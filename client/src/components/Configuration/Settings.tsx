@@ -41,16 +41,23 @@ const Settings: React.FC = () => {
   >([]);
   const [selectedProjectGroup, setSelectedProjectGroup] = useState<string>("");
 
-  const [user, setUser] = useState<{ name: string; email: string } | null>(
-    null
-  );
+  const [user, setUser] = useState<{
+    name: string;
+    email: string;
+    UserGithubUsername: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
       const userName = localStorage.getItem("username");
       const userEmail = localStorage.getItem("email");
+      const userGithubUsername = localStorage.getItem("githubUsername");
       if (userName && userEmail) {
-        setUser({ name: userName, email: userEmail });
+        setUser({
+          name: userName,
+          email: userEmail,
+          UserGithubUsername: userGithubUsername || "",
+        });
       } else {
         console.warn("User data not found in localStorage");
       }
@@ -285,9 +292,15 @@ const Settings: React.FC = () => {
   };
 
   const handleAddGithubUsername = async () => {
+
+    if (!githubUsername) {
+      setMessage("GitHub username cannot be empty");
+      return;
+    }
+  
     const body = {
       email: user?.email,
-      githubUsername: githubUsername,
+      newGithubUsername: githubUsername,
     };
 
     try {
@@ -311,6 +324,7 @@ const Settings: React.FC = () => {
       setMessage(data.message || "GitHub username added successfully!");
       if (data.message.includes("successfully")) {
         setGithubUsername(githubUsername);
+        localStorage.setItem("githubUsername", githubUsername);
         window.location.reload();
       }
     } catch (error: unknown) {
@@ -407,7 +421,9 @@ const Settings: React.FC = () => {
               </Dialog>
             </div>
             <div className="PersonalData">
-              <div className="GitHub">GitHub Username: {githubUsername}</div>
+              <div className="GitHub">
+                GitHub Username: {user?.UserGithubUsername}
+              </div>
               <Dialog>
                 <DialogTrigger className="DialogTrigger">
                   <img className="Edit" src={Edit} />
@@ -415,7 +431,7 @@ const Settings: React.FC = () => {
                 <DialogContent className="DialogContent">
                   <DialogHeader>
                     <DialogTitle className="DialogTitle">
-                      Add GitHub Username
+                      Edit GitHub Username
                     </DialogTitle>
                   </DialogHeader>
                   <div className="GitHubInput">

@@ -313,3 +313,72 @@ button.absolute.right-4.top-4.rounded-sm {
   margin: 0 auto; 
 }
 
+
+.newSem{
+  color: #000;
+font-family: "Kaisei Decol";
+font-size: 23px;
+font-style: normal;
+font-weight: 700;
+line-height: normal;
+
+}
+
+
+.newProjGroupName{
+  color: #000;
+  font-family: "Kaisei Decol";
+  font-size: 23px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.newProjAdmin-input {
+  display: flex;
+  align-items: center;
+
+}
+
+.newProjAdmin-inputBox {
+  border: none;
+  width: 70%;
+  height: 50px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.40);
+  font-size: medium;
+  margin-left: 106px;
+  font-family: var(--font-kaisei-decol);
+
+}
+
+.newProjAdmin-inputBox2 {
+  border: none;
+  width: 70%;
+  height: 50px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.40);
+  font-size: medium;
+margin-left: 142px;
+  font-family: var(--font-kaisei-decol);
+
+}
+
+.newProjAdmin-inputBox3 {
+  border: none;
+  width: 70%;
+  height: 50px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.40);
+  font-size: medium;
+  margin-left: 40px;
+  font-family: var(--font-kaisei-decol);
+}
+
+
+.newProjAdmin-inputBox4 {
+  border: none;
+  width: 70%;
+  height: 50px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.40);
+  font-size: medium;
+  margin-left: 130px;
+  font-family: var(--font-kaisei-decol);
+}

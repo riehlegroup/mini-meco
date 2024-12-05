@@ -11,6 +11,7 @@ import ProjectAdmin from "./components/Administration/ProjectAdmin";
 import ProjectConfig from "./components/Configuration/ProjectConfig";
 import Standups from "./components/Projects/Standups";
 import Happiness from "./components/Projects/Happiness";
+import ConfirmedEmail from "./screens/Auth/ConfirmedEmail";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           <Route path="user-admin" element={<UserAdmin />} />
           <Route path="project-admin" element={<ProjectAdmin />} />
           <Route path="project-config" element={<ProjectConfig />} />
+          <Route path="confirmedEmail" element={<ConfirmedEmail />} />
         </Routes>
       </BrowserRouter>
     </div>

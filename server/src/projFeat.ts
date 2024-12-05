@@ -45,11 +45,13 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
 
   
   export const createSprints = async (req: Request, res: Response, db: Database) => {
+    
     const { projectGroupName, dates } = req.body;
   
+
     try {
       const existingSprints = await db.all(`SELECT endDate FROM sprints WHERE projectGroupName = ?`, [projectGroupName]);
-  
+  /*
       for (let i = 0; i < dates.length; i++) {
         const endDate = dates[i];
   
@@ -59,6 +61,7 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
           return res.status(400).json({ message: "Duplicate sprint date found" });
         }
       }
+        */
   
       const latestSprint = await db.get(`SELECT sprintName FROM sprints WHERE projectGroupName = ? ORDER BY sprintName DESC LIMIT 1`, [projectGroupName]);
       let newSprintNumber = 0;
@@ -69,7 +72,14 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
       for (let i = 0; i < dates.length; i++) {
         const endDate = dates[i];
         const sprintName = `sprint${newSprintNumber + i}`;
-        await db.run(`INSERT INTO sprints (projectGroupName, sprintName, endDate) VALUES (?, ?, ?)`, [projectGroupName, sprintName, endDate]);
+        await db.run(`INSERT INTO sprints (projectGroupName, sprintName, endDate) VALUES (?, ?, ?)`, [projectGroupName, sprintName, endDate], 
+          (err: any) => {
+            if (err) {
+                console.error("Error inserting sprint:", err);
+                throw err; 
+            }
+        }
+        );
       }
   
       res.status(201).json({ message: "Sprints created successfully" });
@@ -144,3 +154,21 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
         res.status(500).json({ message: 'Failed to fetch sprints', error });
       }
     };
+
+    export const getProjectGitHubURL = async (req: Request, res: Response, db: Database) => {
+      const { projectName, email } = req.query;
+  
+      try {
+          const projectURL = await db.get(`SELECT url FROM user_projects WHERE projectName = ? AND userEmail = ?`, [projectName, email]);
+          if (projectURL) {
+              res.json(projectURL);
+          } else {
+              console.warn(`No URL found for project: ${projectName} and email: ${email}`);
+              res.status(404).json({ message: 'Project URL not found' });
+          }
+      } catch (error) {
+          console.error('Error fetching project URL:', error);
+          res.status(500).json({ message: 'Failed to fetch project URL', error });
+      }
+  };
+  

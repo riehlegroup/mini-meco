@@ -30,7 +30,9 @@ const Dashboard: React.FC = () => {
             `http://localhost:3000/userProjects?userEmail=${userEmail}`
           );
           const data = await response.json();
-          setProjects(data.map((project: { projectName: string }) => project.projectName));
+          setProjects(
+            data.map((project: { projectName: string }) => project.projectName)
+          );
         } catch (error) {
           console.error("Error fetching projects:", error);
         }
@@ -56,15 +58,16 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  function goCodeActivity() {
+    if (selectedProject) {
+      navigate("/code-activity", { state: { projectName: selectedProject } });
+    }
+  }
+
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
     navigate("/login");
-  }
-
-
-  function goCodeActivity() {
-    navigate("/code-activity");
   }
 
   function goSettings() {

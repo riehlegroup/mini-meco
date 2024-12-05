@@ -60,7 +60,6 @@ const Happiness: React.FC = (): React.ReactNode => {
     }
   }, [location.state]);
 
-
   useEffect(() => {
     const fetchProjectGroups = async () => {
       try {
@@ -154,16 +153,25 @@ const Happiness: React.FC = (): React.ReactNode => {
     console.log("Selected Dates:", formattedDates);
 
     try {
-      await fetch("http://localhost:3000/happiness/createSprints", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          projectGroupName: selectedProjectGroup,
-          dates: formattedDates,
-        }),
-      });
+      const response = await fetch(
+        "http://localhost:3000/happiness/createSprints",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            projectGroupName: selectedProjectGroup,
+            dates: formattedDates,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(`Error creating sprints: ${errorData.message}`);
+        return;
+      }
       alert("Sprints created successfully");
     } catch (error) {
       console.error("Error creating sprints:", error);
@@ -215,12 +223,12 @@ const Happiness: React.FC = (): React.ReactNode => {
 
   const emailColors: { [email: string]: string } = {};
   const uniqueEmails = [
-    ...new Set(happinessData.map((data) => data.userEmail)), 
+    ...new Set(happinessData.map((data) => data.userEmail)),
   ];
   uniqueEmails.forEach((email, index) => {
-    emailColors[email] = `hsl(${ 
-      (index * 360) / uniqueEmails.length 
-    }, 100%, 50%)`; 
+    emailColors[email] = `hsl(${
+      (index * 360) / uniqueEmails.length
+    }, 100%, 50%)`;
   });
 
   const formattedData: { [sprintName: string]: any } = {};

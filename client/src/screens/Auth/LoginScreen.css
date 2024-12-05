@@ -124,3 +124,23 @@ body {
     color: white;
     background-color: #219A0D;
 }
+
+.ConfirmEmailText{
+    margin-top: 30px;
+    margin-bottom: 50px;
+}
+
+.COnfirmEMailheader {
+    font-size: 36px;
+    display: inline-block;
+    color: var(--color-black);
+    font-weight: bold;
+    margin-top: 50px;
+}
+
+.ConfirmEmailsubmit-container{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    margin-top: 100px;
+}

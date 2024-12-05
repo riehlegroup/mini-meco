@@ -1,0 +1,128 @@
+.SelectWrapperUserAdmin {
+    align-items: center;
+    display: flex;
+    position: relative;
+    text-align: center;
+    margin-left: 450px;
+    margin-top: 30px;
+  }
+
+  .BigContainerUserAdmin {
+    border-radius: 5px;
+    width: 1278px;
+    height: 673px;
+    flex-shrink: 0;
+    background: #FFF;
+    padding: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  .DialogContentUserAdmin {
+    height: 50%;
+    width: 60%;
+    max-width: 1000px;
+    padding: 30px;
+    border: 1px solid #000;
+    background: #FFF;
+    background-color: white;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .userUserAdmin{
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 23px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    margin-left: 20px;
+    margin-right: 200px;
+  }
+  
+  .currentStatusUserAdmin{
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 23px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    margin-left: 20px;
+    margin-right: 90px;
+  }
+  
+  .newStatusUserAdmin{
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 23px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    margin-left: 20px;
+    margin-top: 30px;
+  }
+  
+  .userContent{
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 23px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    margin-left: 20px;
+  }
+
+  .SelectWrapperUserAdminInsideDIalog {
+    align-items: center;
+    display: flex;
+    position: relative;
+    text-align: center;
+    margin-left: 100px;
+  }
+
+  .currentStatusMargin{
+    display: flex;
+    margin-top: 20px;
+  }
+
+  .sendConfirmationEmail {
+    width: 200px;
+    height: 35px;
+    border: 1px solid #000;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 13px;
+    font-weight: 700;
+    justify-content: center;
+position: absolute;
+right: 350px;
+top: 242px;
+  }
+
+  .removeAll {
+    width: 125px;
+    height: 35px;
+    border: 1px solid #000;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto; 
+    margin-right: 30px;
+  }
+  

@@ -42,6 +42,7 @@ const LoginScreen = () => {
         localStorage.setItem("token", data.token);
         localStorage.setItem("username", data.name);
         localStorage.setItem("email", data.email);
+        localStorage.setItem("githubUsername", data.githubUsername);
       }
 
       setMessage(data.message || "Success!");

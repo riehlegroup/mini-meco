@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCurrentSprint = exports.getSprints = exports.getHappinessData = exports.saveHappiness = exports.createSprints = exports.sendStandupsEmail = void 0;
+exports.getProjectGitHubURL = exports.getCurrentSprint = exports.getSprints = exports.getHappinessData = exports.saveHappiness = exports.createSprints = exports.sendStandupsEmail = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const sendStandupsEmail = async (req, res, db) => {
     const { projectName, userName, doneText, plansText, challengesText } = req.body;
@@ -42,14 +42,17 @@ const createSprints = async (req, res, db) => {
     const { projectGroupName, dates } = req.body;
     try {
         const existingSprints = await db.all(`SELECT endDate FROM sprints WHERE projectGroupName = ?`, [projectGroupName]);
-        for (let i = 0; i < dates.length; i++) {
-            const endDate = dates[i];
-            // Check if endDate already exists in existingSprints
-            const isDuplicate = existingSprints.some(sprint => sprint.endDate === endDate);
-            if (isDuplicate) {
+        /*
+            for (let i = 0; i < dates.length; i++) {
+              const endDate = dates[i];
+        
+              // Check if endDate already exists in existingSprints
+              const isDuplicate = existingSprints.some(sprint => sprint.endDate === endDate);
+              if (isDuplicate) {
                 return res.status(400).json({ message: "Duplicate sprint date found" });
+              }
             }
-        }
+              */
         const latestSprint = await db.get(`SELECT sprintName FROM sprints WHERE projectGroupName = ? ORDER BY sprintName DESC LIMIT 1`, [projectGroupName]);
         let newSprintNumber = 0;
         if (latestSprint && latestSprint.sprintName) {
@@ -58,7 +61,12 @@ const createSprints = async (req, res, db) => {
         for (let i = 0; i < dates.length; i++) {
             const endDate = dates[i];
             const sprintName = `sprint${newSprintNumber + i}`;
-            await db.run(`INSERT INTO sprints (projectGroupName, sprintName, endDate) VALUES (?, ?, ?)`, [projectGroupName, sprintName, endDate]);
+            await db.run(`INSERT INTO sprints (projectGroupName, sprintName, endDate) VALUES (?, ?, ?)`, [projectGroupName, sprintName, endDate], (err) => {
+                if (err) {
+                    console.error("Error inserting sprint:", err);
+                    throw err;
+                }
+            });
         }
         res.status(201).json({ message: "Sprints created successfully" });
     }
@@ -125,3 +133,21 @@ const getCurrentSprint = async (req, res, db) => {
     }
 };
 exports.getCurrentSprint = getCurrentSprint;
+const getProjectGitHubURL = async (req, res, db) => {
+    const { projectName, email } = req.query;
+    try {
+        const projectURL = await db.get(`SELECT url FROM user_projects WHERE projectName = ? AND userEmail = ?`, [projectName, email]);
+        if (projectURL) {
+            res.json(projectURL);
+        }
+        else {
+            console.warn(`No URL found for project: ${projectName} and email: ${email}`);
+            res.status(404).json({ message: 'Project URL not found' });
+        }
+    }
+    catch (error) {
+        console.error('Error fetching project URL:', error);
+        res.status(500).json({ message: 'Failed to fetch project URL', error });
+    }
+};
+exports.getProjectGitHubURL = getProjectGitHubURL;

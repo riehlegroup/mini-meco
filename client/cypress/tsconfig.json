@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+      "strict": true,
+      "target": "es6",
+      "lib": ["es5", "dom"],
+      "types": ["cypress", "node"],
+      "moduleResolution": "node",
+      "esModuleInterop": true
+    },
+    "include": [
+      "./e2e/**/*.ts",
+      "./e2e/**/*.js"
+    ],
+    "exclude": [
+      "node_modules"
+    ]
+  }
+  

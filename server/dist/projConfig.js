@@ -98,12 +98,12 @@ const changeURL = async (req, res, db) => {
 };
 exports.changeURL = changeURL;
 const addGitHubUsername = async (req, res, db) => {
-    const { email, githubUsername } = req.body;
-    if (!githubUsername) {
+    const { email, newGithubUsername } = req.body;
+    if (!newGithubUsername) {
         return res.status(400).json({ message: 'Please fill in GitHub username!' });
     }
     try {
-        await db.run(`UPDATE users SET githubUsername = ? WHERE email = ?`, [githubUsername, email]);
+        await db.run(`UPDATE users SET githubUsername = ? WHERE email = ?`, [newGithubUsername, email]);
         res.status(200).json({ message: "GitHub username added successfully" });
     }
     catch (error) {

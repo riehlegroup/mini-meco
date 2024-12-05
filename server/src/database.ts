@@ -13,11 +13,23 @@ export async function initializeDb() {
       name TEXT,
       githubUsername TEXT,
       email TEXT UNIQUE,
+      status TEXT DEFAULT "unconfirmed" NOT NULL,
       password TEXT,
       resetPasswordToken TEXT,
-      resetPasswordExpire INTEGER
+      resetPasswordExpire INTEGER,
+      confirmEmailToken TEXT,
+      confirmEmailExpire INTEGER
     )
   `);
+
+  const userCount = await db.get('SELECT COUNT(*) AS count FROM users');
+  if (userCount.count === 0) {
+    await db.run(
+      `INSERT INTO users (name, email, password, status) VALUES (?, ?, ?, ?)`,
+      ['admin', 'sys@admin.org', 'helloworld', 'confirmed']
+    );
+    console.log('Default admin user created');
+  }
 
   await db.exec(`
     CREATE TABLE IF NOT EXISTS project (
