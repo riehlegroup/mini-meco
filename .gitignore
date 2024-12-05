@@ -37,3 +37,7 @@ client/node_modules/
 
 # TypeScript
 *.tsbuildinfo
+
+# User files
+/server/database.sqlite
+/server/myDatabase.db
