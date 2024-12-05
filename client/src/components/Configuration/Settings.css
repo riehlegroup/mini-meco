@@ -1,0 +1,454 @@
+body {
+    background: #D0E3FE;
+    margin: 0;
+    padding: 0;
+    position: relative;
+  }
+  
+  .Return {
+    width: 193px;
+    height: 52px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    background: #E6E6E6;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    font-size: 30px;
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    cursor: pointer;
+  }
+  
+  .DashboardContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 653px;
+    height: 77px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    color: #fff;
+    background: #3677A7;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    font-family: "Kaisei Decol";
+    font-size: 13px;
+    position: relative;
+    top: 1px;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 50px;
+  }
+  
+  .BigContainer {
+    width: 1300px;
+    border-radius: 5px;
+    height: 1010px;
+    flex-shrink: 0;
+    background: #FFF;
+    padding: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+  }
+  
+  .AccountInfoContainer {
+    width: 1232px;
+    height: 333px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    border: 1px solid #D9D9D9;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    margin-top: 50px;
+    margin-left: 20px;
+    margin-bottom: 50px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+    position: relative;
+  }
+  
+  .ProjectContainer {
+    width: 1232px;
+    height: 472px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    border: 1px solid #D9D9D9;
+    margin-left: 20px;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-bottom: 50px;
+    padding: 10px;
+    position: relative;
+  }
+  
+  .title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 73px;
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 25px;
+    font-weight: 700;
+    line-height: normal;
+    margin-bottom: 20px;
+    margin-left: 30px;
+  }
+
+  .AccountTitle{
+    width: 100%;
+    height: 73px;
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 25px;
+    font-weight: 700;
+    line-height: normal;
+    margin-bottom: 20px;
+    margin-left: 30px;
+    text-align: start;
+  }
+  
+  .ProjectTitle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 73px;
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 25px;
+    font-weight: 700;
+    line-height: normal;
+    margin-bottom: 20px;
+    margin-left: 30px;
+    
+  }
+  
+  .SelectTrigger {
+    width: 300px;
+    height: 50px;
+    flex-shrink: 0;
+    font-size: 20px;
+    border: 1px solid #000;
+    background: #FFF;
+    margin-left: 40px;
+    margin-bottom: 40px;
+    margin-top: 30px;
+    text-align: start;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    position: relative;
+  }
+  
+  .SelectContent {
+    font-size: 20px;
+    width: 300px;
+    border: 1px solid #000;
+    border-radius: 5px;
+    position: absolute;
+    background-color: #FFF;
+  }
+  
+  .SelectWrapper {
+    margin-left: 10px;
+    align-items: flex-start;
+    display: flex;
+    position: relative;
+  }
+  
+  .ProjectItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin: 30px;
+  }
+  
+  .ProjectName {
+    font-size: 20px;
+    font-family: "Kaisei Decol";
+  }
+  
+  .Edit {
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: border-color 0.3s, background-color 0.3s;
+
+  }
+
+  
+  .ProjectDivider {
+    border: none;
+    height: 2px;
+    background: #D9D9D9;
+    margin: 30px 40px;
+  }
+  
+  .PersonalDataCOntainer{
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+margin-bottom: 50px;
+  }
+  .PersonalData {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin: 40px;
+    margin-bottom: 10px;
+  }
+  
+  .Email, .Password, .GitHub {
+    font-size: 20px;
+    margin-left: 10px;
+    font-family: "Kaisei Decol";
+  }
+
+.GitHub{
+  margin-top: 15px;
+  margin-bottom: 50px;
+}
+
+  .DialogTrigger {
+    background-color: transparent;
+    margin-left: auto;
+    margin-right: 10px;
+  }
+  
+  .DialogContent {
+    height: 40%;
+    width: 60%;
+    max-width: 1000px;
+    padding: 30px;
+    border: 1px solid #000;
+    background: #FFF;
+    background-color: white;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .Sem{
+    color: #000;
+  font-family: "Kaisei Decol";
+  font-size: 23px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  }
+  
+  .Role{
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 23px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    margin-left: 20px;
+  }
+  
+  .ProjGroupName{
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 23px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+  }
+  
+  .DialogHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+  
+  .DialogTitle {
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 25px;
+    font-weight: 700;
+  }
+  
+  button.absolute.right-4.top-4.rounded-sm {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background: transparent;
+    border: 1px solid #000;
+    cursor: pointer;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .ProjAdmin-input {
+    display: flex;
+    align-items: center;
+  }
+  
+  .ProjAdmin-inputBox {
+    border: none;
+    width: 70%;
+    height: 50px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.40);
+    font-size: medium;
+    margin-left: 176px;
+    font-family: var(--font-kaisei-decol);
+  
+  }
+  
+  .ProjAdmin-inputBox2 {
+    border: none;
+    width: 70%;
+    height: 50px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.40);
+    font-size: medium;
+    margin-left: 50px;
+    font-family: var(--font-kaisei-decol);
+  }
+  
+  .ProjAdmin-inputBox3 {
+    border: none;
+    width: 70%;
+    height: 50px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.40);
+    font-size: medium;
+    margin-left: 60px;
+    font-family: var(--font-kaisei-decol);
+  }
+  
+  
+  .ProjAdmin-inputBox4 {
+    border: none;
+    width: 70%;
+    height: 50px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.40);
+    font-size: medium;
+    margin-left: 60px;
+    font-family: var(--font-kaisei-decol);
+  }
+  
+  .create {
+    width: 152px;
+    height: 54px;
+    border: 1px solid #000;
+    background: #FFF;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    color: #000;
+    font-family: "Kaisei Decol";
+    font-size: 23px;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto; 
+  }
+  
+  .ProjectItem2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin: 30px;
+    
+  }
+
+  .ProjectItem3 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 1200px;
+    margin: 30px;
+  }
+  
+  .Add{
+    height: 30px;
+    cursor: pointer;
+  }
+
+  .Delete{
+    
+    height: 3px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+
+  .Imgs{
+    display: flex;
+    gap: 10px; 
+    margin-right: -850px;
+  }
+
+  .RoleInput{
+display: flex;
+  }
+
+  .LeaveText{
+    font-size: 23px;
+    display: flex;
+    justify-content: center;
+    font-family: "Kaisei Decol";
+  }
+
+.EmailInput{
+  display: flex;
+}
+
+
+.newEmail{
+  color: #000;
+  font-family: "Kaisei Decol";
+  font-size: 23px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  margin-left: 20px;
+}
+
+.NewEmail-inputBox{
+  border: none;
+  width: 70%;
+  height: 50px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.40);
+  font-size: medium;
+  margin-left: 100px;
+  font-family: var(--font-kaisei-decol);
+}
+
+.GitHubInput{
+  display: flex;
+}
+
+
+.GitHubusername{
+  color: #000;
+  font-family: "Kaisei Decol";
+  font-size: 23px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  margin-left: 20px;
+}
+
+.GitHubUsername-inputBox{
+  border: none;
+  width: 70%;
+  height: 50px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.40);
+  font-size: medium;
+margin-left: 50px;
+  font-family: var(--font-kaisei-decol);
+}
