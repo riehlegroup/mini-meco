@@ -34,7 +34,8 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
         text: `Standup report from ${userName}\n\nDone: ${doneText}\nPlans: ${plansText}\nChallenges: ${challengesText}`,
       };
   
-      await transporter.sendMail(mailOptions);
+      // @todo: Uncomment the following lines to send email
+      // await transporter.sendMail(mailOptions);
   
       res.status(200).json({ message: "Standup email sent successfully" });
     } catch (error) {
