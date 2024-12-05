@@ -134,12 +134,12 @@ tionally, it is targeted at students and educators in courses such as AMOS and A
 
 Environment Variables
 
-1. Create a.envfile in the server directory with the following:
+1. Create a .env file in the server directory with the following:
 ```
 EMAIL_USER_FAU=your_FAU_Email
 EMAIL_PASS_FAU=your_FAU_Password
 ```
-2. Create a.envfile in the client directory with the following:
+2. Create a .env file in the client directory with the following:
 ```
 VITE_GITHUB_TOKEN=your_secret_token
 ```
