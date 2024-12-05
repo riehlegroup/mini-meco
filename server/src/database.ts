@@ -76,7 +76,6 @@ CREATE TABLE IF NOT EXISTS sprints (
       sprintName TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)
       `);
-  
 
   return db;
 }
