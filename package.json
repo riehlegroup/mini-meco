@@ -9,21 +9,10 @@
     "start": "concurrently \"npm start --prefix client\" \"npm start --prefix server\"",
     "test": "npm run test:client && npm run test:server"
   },
-  "dependencies": {
-    "@octokit/rest": "^21.0.1",
-    "concurrently": "^8.0.1",
-    "octokit": "^4.0.2",
-    "react-chartjs-2": "^5.2.0",
-    "recharts": "^2.12.7"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.25.2",
-    "@babel/preset-env": "^7.25.4",
-    "@babel/preset-react": "^7.24.7",
-    "@babel/preset-typescript": "^7.24.7",
-    "@testing-library/react": "^16.0.1",
-    "@types/recharts": "^1.8.29",
-    "identity-obj-proxy": "^3.0.0",
-    "supertest": "^7.0.0"
-  }
+  "dependencies": {},
+  "devDependencies": {},
+  "workspaces": [
+    "client",
+    "server"
+  ]
 }
