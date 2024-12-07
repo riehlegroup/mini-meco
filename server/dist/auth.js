@@ -97,9 +97,10 @@ const sendPasswordResetEmail = async (email, token) => {
         text: `You requested a password reset. Click the link to reset your password: ${resetLink}`,
     };
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Password reset email sent: %s', info.messageId);
-        console.log('Preview URL: %s', nodemailer_1.default.getTestMessageUrl(info));
+        // @todo: Uncomment the following lines to send email
+        // const info = await transporter.sendMail(mailOptions);
+        // console.log('Password reset email sent: %s', info.messageId);
+        // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
     }
     catch (error) {
         console.error('Error sending password reset email:', error);
@@ -166,9 +167,10 @@ const sendConfirmEmail = async (email, token) => {
         text: `You registered for Mini-Meco. Click the link to confirm your email: ${confirmedLink}`,
     };
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Confirm email sent: %s', info.messageId);
-        console.log('Preview URL: %s', nodemailer_1.default.getTestMessageUrl(info));
+        // @todo: Uncomment the following lines to send email
+        // const info = await transporter.sendMail(mailOptions);
+        // console.log('Confirm email sent: %s', info.messageId);
+        // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
     }
     catch (error) {
         console.error('Error sending confirm email:', error);
