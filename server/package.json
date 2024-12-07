@@ -4,11 +4,9 @@
   "description": "Backend for mini-meco",
   "main": "dist/server.js",
   "scripts": {
-    "start": "node dist/server.js",
-    "dev": "tsc && nodemon dist/server.js",
+    "dev": "nodemon --watch src --ext .ts,.js --exec \"npm run build && node dist/server.js\"",
     "build": "tsc",
-    "client": "npm run dev --prefix ../client",
-    "server": "nodemon dist/server.js"
+    "lint": "echo \"TODO: Add linter\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
