@@ -115,9 +115,10 @@ const sendPasswordResetEmail = async (email: string, token: string) => {
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Password reset email sent: %s', info.messageId);
-    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+    // @todo: Uncomment the following lines to send email
+    // const info = await transporter.sendMail(mailOptions);
+    // console.log('Password reset email sent: %s', info.messageId);
+    // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
   } catch (error) {
     console.error('Error sending password reset email:', error);
     throw new Error('There was an error sending the email');
@@ -201,9 +202,10 @@ export const sendConfirmEmail = async (email: string, token: string) => {
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Confirm email sent: %s', info.messageId);
-    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+    // @todo: Uncomment the following lines to send email
+    // const info = await transporter.sendMail(mailOptions);
+    // console.log('Confirm email sent: %s', info.messageId);
+    // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
   } catch (error) {
     console.error('Error sending confirm email:', error);
     throw new Error('There was an error sending the email');

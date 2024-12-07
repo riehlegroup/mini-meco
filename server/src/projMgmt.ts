@@ -330,8 +330,9 @@ export const sendSuspendedEmail = async (email: string) => {
       };
     
       try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Account suspended email sent: %s', info.messageId);
+        // @todo: Uncomment the following lines to send email
+        // const info = await transporter.sendMail(mailOptions);
+        // console.log('Account suspended email sent: %s', info.messageId);
       } catch (error) {
         console.error('error sending suspended email:', error);
         throw new Error('There was an error sending the email');
@@ -357,8 +358,9 @@ export const sendRemovedEmail = async (email: string) => {
       };
     
       try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Account removed email sent: %s', info.messageId);
+        // @todo: Uncomment the following lines to send email
+        // const info = await transporter.sendMail(mailOptions);
+        // console.log('Account removed email sent: %s', info.messageId);
       } catch (error) {
         console.error('error sending removed email:', error);
         throw new Error('There was an error sending the email');
