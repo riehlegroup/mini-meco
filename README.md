@@ -1,4 +1,10 @@
-To be updated
+# Winter 2024/25
+
+See https://github.com/riehlegroup/mini-meco/wiki/How-to-contribute-to-Mini-Meco
+
+----
+
+Start of original documentation
 
 # Mini-Meco Documentation
 
