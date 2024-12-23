@@ -51,7 +51,7 @@ jobs:
 
 
       - name: Build project
-        run: npm run build-all
+        run: npm run build
 
   test:
     runs-on: ubuntu-latest
