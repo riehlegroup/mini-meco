@@ -13,7 +13,6 @@ module.exports = [
     {
         files: ['client/**/*.{ts,tsx}'],
         languageOptions: {
-            ...reactPlugin.configs.flat.recommended.languageOptions,
             parser: typescriptParser,
             parserOptions: {
                 tsconfigRootDir: __dirname, 
@@ -36,6 +35,7 @@ module.exports = [
         rules: {
             ...reactPlugin.configs.recommended.rules,
             ...typescriptPlugin.configs.recommended.rules,
+            ...tailwindPlugin.configs.recommended.rules,
             'tailwindcss/no-custom-classname': 'off',
             'react/react-in-jsx-scope': 'off'
         },
