@@ -2,6 +2,7 @@ const reactPlugin = require('eslint-plugin-react')
 const tailwindPlugin = require('eslint-plugin-tailwindcss')
 const typescriptPlugin = require('@typescript-eslint/eslint-plugin')
 const typescriptParser = require("@typescript-eslint/parser")
+const cypressPlugin = require("eslint-plugin-cypress/flat")
 const globals = require("globals")
 
 module.exports = [
@@ -9,9 +10,10 @@ module.exports = [
     {
         ignores: ['node_modules/**', 'dist/**'],
     },
-    // Client
+        
+    // Client Typescript src
     {
-        files: ['client/**/*.{ts,tsx}'],
+        files: ['client/src/**/*.{ts,tsx}'],
         languageOptions: {
             parser: typescriptParser,
             parserOptions: {
@@ -46,7 +48,7 @@ module.exports = [
           }
     },
 
-    // Server
+    // Server Typescript src
     {
         files: ['server/**/*.ts'],
         languageOptions: {
@@ -67,5 +69,25 @@ module.exports = [
         rules: {
             ...typescriptPlugin.configs.recommended.rules,
         },
-    }
+    },
+
+    // Cypress
+    {
+        files: ['client/cypress/**/*.{ts,tsx}'],
+        languageOptions: {
+            parser: typescriptParser,
+            parserOptions: {
+                tsconfigRootDir: __dirname, 
+                sourceType: "module",
+                ecmaVersion: 2020,
+                project: './client/cypress/tsconfig.json',
+            },
+        },
+        plugins: {
+            cypress: cypressPlugin
+        },
+        rules: {
+            ...cypressPlugin.configs.recommended.rules
+        }
+    },
 ];

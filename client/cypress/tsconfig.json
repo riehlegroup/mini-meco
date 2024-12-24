@@ -9,7 +9,9 @@
     },
     "include": [
       "./e2e/**/*.ts",
-      "./e2e/**/*.js"
+      "./e2e/**/*.js",
+      "./support/**/*.ts",
+      "./support/**/*.js"
     ],
     "exclude": [
       "node_modules"
