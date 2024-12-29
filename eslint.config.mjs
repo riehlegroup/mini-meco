@@ -1,11 +1,11 @@
-const reactPlugin = require('eslint-plugin-react')
-const tailwindPlugin = require('eslint-plugin-tailwindcss')
-const typescriptPlugin = require('@typescript-eslint/eslint-plugin')
-const typescriptParser = require("@typescript-eslint/parser")
-const cypressPlugin = require("eslint-plugin-cypress/flat")
-const globals = require("globals")
+import reactPlugin from "eslint-plugin-react"
+import tailwindPlugin from 'eslint-plugin-tailwindcss'
+import typescriptPlugin from "@typescript-eslint/eslint-plugin"
+import typescriptParser from "@typescript-eslint/parser"
+import cypressPlugin from "eslint-plugin-cypress/flat"
+import globals from "globals"
 
-module.exports = [
+export default [
     // Global
     {
         ignores: ['node_modules/**', 'dist/**'],
@@ -17,7 +17,7 @@ module.exports = [
         languageOptions: {
             parser: typescriptParser,
             parserOptions: {
-                tsconfigRootDir: __dirname, 
+                tsconfigRootDir: import.meta.dirname, 
                 sourceType: "module",
                 ecmaFeatures: {
                     jsx: true
@@ -54,7 +54,7 @@ module.exports = [
         languageOptions: {
             parser: typescriptParser,
             parserOptions: {
-                tsconfigRootDir: __dirname, 
+                tsconfigRootDir: import.meta.dirname, 
                 sourceType: "module",
                 ecmaVersion: 2020,
                 project: './server/tsconfig.json',
@@ -77,7 +77,7 @@ module.exports = [
         languageOptions: {
             parser: typescriptParser,
             parserOptions: {
-                tsconfigRootDir: __dirname, 
+                tsconfigRootDir: import.meta.dirname, 
                 sourceType: "module",
                 ecmaVersion: 2020,
                 project: './client/cypress/tsconfig.json',
