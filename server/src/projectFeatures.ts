@@ -92,7 +92,7 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
   
   
   
-  export const saveHappiness = async (req: Request, res: Response, db: Database) => {
+  export const saveHappinessMetric = async (req: Request, res: Response, db: Database) => {
       const { projectName, userEmail, happiness, sprintName } = req.body;
       const timestamp = new Date().toISOString();
     
@@ -111,7 +111,7 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
       }
     }
     
-    export const getHappinessData = async (req: Request, res: Response, db: Database) => {
+    export const getProjectHappinessMetrics = async (req: Request, res: Response, db: Database) => {
       const { projectName } = req.query;
       try {
         const happinessData = await db.all(`SELECT * FROM happiness WHERE projectName = ? ORDER BY sprintName ASC, timestamp ASC`, [projectName]);
@@ -137,7 +137,7 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
       }
     };
     
-    export const getCurrentSprint = async (req: Request, res: Response, db: Database) => {
+    export const getProjectCurrentSprint = async (req: Request, res: Response, db: Database) => {
       const { projectName } = req.query;
     
       try {
@@ -156,7 +156,7 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
       }
     };
 
-    export const getProjectGitHubURL = async (req: Request, res: Response, db: Database) => {
+    export const getProjectURL = async (req: Request, res: Response, db: Database) => {
       const { projectName, email } = req.query;
   
       try {

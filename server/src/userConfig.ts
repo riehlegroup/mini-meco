@@ -2,7 +2,7 @@ import { Database } from "sqlite";
 import { Request, Response } from "express";
 import bcrypt from 'bcryptjs';
 
-export const ChangeEmail = async (req: Request, res: Response, db: Database) => {
+export const changeEmail = async (req: Request, res: Response, db: Database) => {
     const { newEmail, oldEmail } = req.body;
     if (!newEmail) {
         return res.status(400).json({ message: 'Please fill in new email!' });
@@ -28,7 +28,7 @@ export const ChangeEmail = async (req: Request, res: Response, db: Database) => 
     }
 }
 
-export const ChangePassword = async (req: Request, res: Response, db: Database) => {
+export const changePassword = async (req: Request, res: Response, db: Database) => {
     const { email, password } = req.body;
 
     if (!password) {
@@ -49,7 +49,7 @@ export const ChangePassword = async (req: Request, res: Response, db: Database) 
     }
 }
 
-export const addURL = async (req: Request, res: Response, db: Database) => {
+export const setUserProjectURL = async (req: Request, res: Response, db: Database) => {
   const {email, URL, project} = req.body;
 
   if (!URL) {
@@ -68,7 +68,7 @@ export const addURL = async (req: Request, res: Response, db: Database) => {
   }
 }
 
-export const getURL = async (req: Request, res: Response, db: Database) => {
+export const getUserProjectURL = async (req: Request, res: Response, db: Database) => {
   const {email, project} = req.query;
 
   try {
@@ -81,7 +81,7 @@ export const getURL = async (req: Request, res: Response, db: Database) => {
   }
 }
 
-export const changeURL = async (req: Request, res: Response, db: Database) => {
+export const changeUserProjectURL = async (req: Request, res: Response, db: Database) => {
   const {email, URL, project} = req.body;
   if (!URL) {
     return res.status(400).json({ message: 'Please fill in URL!' });
@@ -98,7 +98,7 @@ export const changeURL = async (req: Request, res: Response, db: Database) => {
   }
 }
 
-export const addGitHubUsername = async (req: Request, res: Response, db: Database) => {
+export const setUserGitHubUsername = async (req: Request, res: Response, db: Database) => {
   const {email, newGithubUsername} = req.body;
   if (!newGithubUsername) {
     return res.status(400).json({ message: 'Please fill in GitHub username!' });

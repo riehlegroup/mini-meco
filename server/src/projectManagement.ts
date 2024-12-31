@@ -241,7 +241,7 @@ export const getUserProjects = async (req: Request, res: Response, db: Database)
 };
 
 
-export const getUserStatus = async (req: Request, res: Response, db: Database) => {
+export const getUsersByStatus = async (req: Request, res: Response, db: Database) => {
     const { status } = req.query;
 
     try {
