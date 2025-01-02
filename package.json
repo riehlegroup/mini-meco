@@ -10,9 +10,16 @@
     "lint": "npm run lint --prefix client && npm run lint --prefix server"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
     "concurrently": "^9.1.0",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "eslint": "^9.17.0",
+    "eslint-plugin-cypress": "^4.1.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-tailwindcss": "^3.17.5",
+    "globals": "^15.14.0"
   },
   "workspaces": [
     "client",
