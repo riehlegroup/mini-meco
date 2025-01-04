@@ -1,6 +1,6 @@
 import { Database } from "sqlite";
 import { Request, Response } from "express";
-import bcrypt from 'bcryptjs';
+import { hashPassword } from "./hash";
 
 export const changeEmail = async (req: Request, res: Response, db: Database) => {
     const { newEmail, oldEmail } = req.body;
@@ -38,7 +38,7 @@ export const changePassword = async (req: Request, res: Response, db: Database) 
         return res.status(400).json({ message: 'Password must be at least 8 characters long' });
       }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
 
     try {
         await db.run(`UPDATE users SET password = ? WHERE email = ?`, [hashedPassword, email]);
