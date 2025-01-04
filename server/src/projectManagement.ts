@@ -179,7 +179,7 @@ export const joinProject = async (req: Request, res: Response, db: Database) => 
             return res.status(400).json({ message: "You have already joined this project" });
         }
         const email = await db.get(`SELECT * FROM "${projectName}" WHERE memberEmail = ?`, [memberEmail]);
-        if (user) {
+        if (email) {
             return res.status(400).json({ message: "You have already joined this project" });
         }
 
