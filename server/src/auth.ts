@@ -9,7 +9,7 @@ import { comparePassword, hashPassword } from './hash';
 dotenv.config();
 
 
-export const register = async (req: Request, res: Response, db: any) => {
+export const register = async (req: Request, res: Response, db: Database) => {
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
@@ -154,7 +154,7 @@ export const forgotPassword = async (req: Request, res: Response, db: Database) 
 };
 
 
-export const resetPassword = async (req: Request, res: Response, db: any) => {
+export const resetPassword = async (req: Request, res: Response, db: Database) => {
   const { token, newPassword } = req.body;
 
   if (!token || !newPassword) {
@@ -213,7 +213,7 @@ export const sendConfirmEmail = async (email: string, token: string) => {
 }
 
   
-export const confirmEmail = async (req: Request, res: Response, db: any) => {
+export const confirmEmail = async (req: Request, res: Response, db: Database) => {
   const { token } = req.body;
 
   if (!token) {
@@ -241,7 +241,7 @@ export const confirmEmail = async (req: Request, res: Response, db: any) => {
   }
 }
 
-export const sendConfirmationEmail = async (req: Request, res: Response, db: any) => {
+export const sendConfirmationEmail = async (req: Request, res: Response, db: Database) => {
   const { email } = req.body;
   try {
     const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
