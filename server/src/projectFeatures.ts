@@ -73,14 +73,12 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
       for (let i = 0; i < dates.length; i++) {
         const endDate = dates[i];
         const sprintName = `sprint${newSprintNumber + i}`;
-        await db.run(`INSERT INTO sprints (projectGroupName, sprintName, endDate) VALUES (?, ?, ?)`, [projectGroupName, sprintName, endDate], 
-          (err: any) => {
-            if (err) {
-                console.error("Error inserting sprint:", err);
-                throw err; 
-            }
+        try {
+          await db.run(`INSERT INTO sprints (projectGroupName, sprintName, endDate) VALUES (?, ?, ?)`, [projectGroupName, sprintName, endDate]);
+        } catch (error) {
+          console.error("Error inserting sprint:", error);
+          throw error;
         }
-        );
       }
   
       res.status(201).json({ message: "Sprints created successfully" });
