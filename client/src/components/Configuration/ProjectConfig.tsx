@@ -30,16 +30,67 @@ const ProjectConfig: React.FC = () => {
   const [url, setURL] = useState("");
   const [newURL, setNewURL] = useState("");
   const [projects, setProjects] = useState<string[]>([]);
+  const [enrolledProjects, setEnrolledProjects] = useState<string[]>([]);
+  const [availableProjects, setAvailableProjects] = useState<string[]>([]);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [edit, setEdit] = useState(false);
+  const [courses, setCourses] = useState<string[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [isOwner, setIsOwner] = useState(false);
+  const [canCreateProject, setCanCreateProject] = useState(false);
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/login");
     }
+    const fetchCourses = async () => {
+      const userEmail = localStorage.getItem("email");
+      if (userEmail) {
+        try {
+          const response = await fetch(
+            `http://localhost:3000/enrolledCourses?userEmail=${userEmail}`
+          );
+          const data = await response.json();
+          setCourses(data.map((course: { projectGroupName: string }) => course.projectGroupName));
+        } catch (error) {
+          console.error("Error fetching courses:", error);
+        }
+      }
+    };
 
+    fetchCourses();
+    }, [navigate]);
+
+    const handleCourseChange = (courseName: string) => {
+      setSelectedCourse(courseName);
+      setSelectedProject(null);
+      fetchProjects(courseName);
+    };
+
+    const fetchProjects = async (courseName: string) => {
+      const userEmail = localStorage.getItem("email");
+      if (userEmail) {
+        try {
+          const response = await fetch(
+            `http://localhost:3000/projectsForCourse?courseName=${courseName}&userEmail=${userEmail}`
+          );
+          if (!response.ok) {
+            throw new Error(`Error: ${response.status}`);
+          }
+          const data = await response.json();
+          setEnrolledProjects(data.enrolledProjects.map((project: { projectName: string }) => project.projectName));
+          setAvailableProjects(data.availableProjects.map((project: { projectName: string }) => project.projectName));
+          setProjects(data.map((project: { projectName: string }) => project.projectName));
+        } catch (error) {
+          console.error("Error fetching projects:", error);
+        }
+      }
+    };
+
+    /*
     const fetchProjects = async () => {
       const userEmail = localStorage.getItem("email");
       if (userEmail) {
@@ -56,14 +107,28 @@ const ProjectConfig: React.FC = () => {
         }
       }
     };
-
-    fetchProjects();
-  }, [navigate]);
+    **/
 
   const handleProjectChange = (projectName: string) => {
-
     setSelectedProject(projectName);
     fetchProjectURL(projectName);
+  };
+
+  const fetchProjectDetails = async (projectName: string) => {
+    const userEmail = localStorage.getItem("email");
+    if (userEmail) {
+      try {
+        const response = await fetch(
+          `http://localhost:3000/projectDetails?projectName=${projectName}&userEmail=${userEmail}`
+        );
+        const data = await response.json();
+        setURL(data.url || "");
+        setIsOwner(data.isOwner);
+        setCanCreateProject(data.canCreateProject);
+      } catch (error) {
+        console.error("Error fetching project details:", error);
+      }
+    }
   };
 
   const fetchProjectURL = async (projectName: string) => {
@@ -181,6 +246,81 @@ const ProjectConfig: React.FC = () => {
     }
   };
 
+  const handleLeaveProject = async () => {
+    const userEmail = localStorage.getItem("email");
+    if (userEmail && selectedProject) {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/leaveProject",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ projectName: selectedProject, userEmail }),
+          }
+        );
+        const data = await response.json();
+        setMessage(data.message || "Left project successfully");
+        if (data.message.includes("successfully")) {
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("Error leaving project:", error);
+      }
+    }
+  };
+
+  const handleCreateProject = async () => {
+    const userEmail = localStorage.getItem("email");
+    if (userEmail && selectedCourse) {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/createProject",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ courseName: selectedCourse, userEmail }),
+          }
+        );
+        const data = await response.json();
+        setMessage(data.message || "Project created successfully");
+        if (data.message.includes("successfully")) {
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("Error creating project:", error);
+      }
+    }
+  };
+
+  const handleEditProject = async () => {
+    const userEmail = localStorage.getItem("email");
+    if (userEmail && selectedProject) {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/editProject",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ projectName: selectedProject, url: newURL, userEmail }),
+          }
+        );
+        const data = await response.json();
+        setMessage(data.message || "Project updated successfully");
+        if (data.message.includes("successfully")) {
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("Error updating project:", error);
+      }
+    }
+  };
+
   return (
     <div onClick={handleNavigation}>
       <ReturnButton />
@@ -189,25 +329,47 @@ const ProjectConfig: React.FC = () => {
       </div>
       <div className="BigContainerProjConfig">
         <div className="margintop">
-          <Select onValueChange={handleProjectChange}>
+          <Select onValueChange={handleCourseChange}>
             <SelectTrigger className="SelectTriggerProject">
-              <SelectValue placeholder="Select Project" />
+              <SelectValue placeholder="Select Course" />
             </SelectTrigger>
-            <SelectContent className="SelectContentProject">
-              {projects.map((project) => (
-                <SelectItem key={project} value={project}>
-                  {project}
+            <SelectContent className="SelectCourse">
+              {courses.map((course) => (
+                <SelectItem key={course} value={course}>
+                  {course}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        {selectedProject && (
+        {selectedCourse && (
           <>
-            <div className="gitURL">Git URL</div>
+          <div className="margintop">
+              <h2>Enrolled Projects</h2>
+              <ul>
+                {enrolledProjects.map((project) => (
+                  <li key={project} onClick={() => handleProjectChange(project)}>
+                    {project}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="margintop">
+              <h2>Available Projects</h2>
+              <ul>
+                {availableProjects.map((project) => (
+                  <li key={project} onClick={() => handleProjectChange(project)}>
+                    {project}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            ö
 
-            {!edit ? (
+            {selectedProject && (
               <>
+                <div className="gitURL">Git URL</div>
                 <input
                   className="gitURLInput"
                   type="url"
@@ -215,55 +377,32 @@ const ProjectConfig: React.FC = () => {
                   value={url}
                   onChange={(e) => setURL(e.target.value)}
                 />
+                {isOwner && (
+                  <Button
+                    className="confirm"
+                    type="submit"
+                    onClick={handleEditProject}
+                  >
+                    Edit
+                  </Button>
+                )}
                 <Button
                   className="confirm"
                   type="submit"
-                  onClick={handleAddURL}
+                  onClick={handleLeaveProject}
                 >
-                  Confirm
+                  Leave
                 </Button>
               </>
-            ) : (
-              <div className="urlContainer">
-                <input
-                  type="text"
-                  className="urlDisplay"
-                  value={url}
-                  readOnly
-                />
-                <Dialog>
-                  <DialogTrigger className="DialogTrigger">
-                    <img className="Edit gitEdit" src={Edit} />
-                  </DialogTrigger>
-                  <DialogContent className="DialogContent URLDialog">
-                    <DialogHeader>
-                      <DialogTitle className="DialogTitle">
-                        Change GitHub URL
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="URLInput">
-                      <div className="newURL">New URL: </div>
-                      <input
-                        type="text"
-                        className="NewURL-inputBox"
-                        placeholder="Enter new URL"
-                        value={newURL}
-                        onChange={(e) => setNewURL(e.target.value)}
-                      />
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        className="create"
-                        variant="primary"
-                        onClick={handleChangeURL}
-                      >
-                        Change
-                      </Button>
-                    </DialogFooter>
-                    {message && <div className="Message">{message}</div>}
-                  </DialogContent>
-                </Dialog>
-              </div>
+            )}
+            {canCreateProject && (
+              <Button
+                className="confirm"
+                type="submit"
+                onClick={handleCreateProject}
+              >
+                Create Project
+              </Button>
             )}
           </>
         )}

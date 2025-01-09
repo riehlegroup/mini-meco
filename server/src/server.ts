@@ -4,7 +4,7 @@ import cors from 'cors';
 import { register, login, forgotPassword, resetPassword, confirmEmail, sendConfirmationEmail } from './auth';
 import { initializeDB } from './databaseInitializer';
 import dotenv from 'dotenv';
-import { createProjectGroup, createProject, editProjectGroup, editProject,getProjectGroups, getProjects, getSemesters, joinProject, leaveProject, getUserProjects, getUserProjectGroups, getUsersByStatus, updateUserStatus, updateAllConfirmedUsers } from './projectManagement';
+import { createProjectGroup, createProject, editProjectGroup, editProject,getProjectGroups, getProjects, getSemesters, joinProject, leaveProject, getUserProjects, getUserProjectGroups, getUsersByStatus, updateUserStatus, updateAllConfirmedUsers, getProjectDetails, getEnrolledCourses, getProjectsForCourse } from './projectManagement';
 import { sendStandupsEmail, saveHappinessMetric, createSprints, getProjectHappinessMetrics, getSprints, getProjectCurrentSprint, getProjectURL } from './projectFeatures';
 import { changeEmail, changePassword, setUserGitHubUsername, getUserGitHubUsername, setUserProjectURL, getUserProjectURL, changeUserProjectURL } from './userConfig';
 
@@ -59,6 +59,13 @@ initializeDB().then((db) => {
   app.post('/updateUserStatus', (req, res) => updateUserStatus(req, res, db));
   app.post('/sendConfirmationEmail', (req, res) => sendConfirmationEmail(req, res, db))
   app.post('/updateAllConfirmedUsers', (req, res) => updateAllConfirmedUsers(req, res, db));
+
+  app.get('/enrolledCourses', (req, res) => getEnrolledCourses(req, res, db));
+  app.get('/projectDetails', (req, res) => getProjectDetails(req, res, db));
+  app.get('/projectsForCourse', (req, res) => getProjectsForCourse(req, res, db));
+  app.post('/leaveProject', (req, res) => leaveProject(req, res, db));
+  app.post('/createProject', (req, res) => createProject(req, res, db));
+  app.post('/editProject', (req, res) => editProject(req, res, db));  
 
   app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);

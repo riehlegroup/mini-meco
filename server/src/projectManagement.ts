@@ -224,7 +224,7 @@ export const getUserProjects = async (req: Request, res: Response, db: Database)
     }
   };
   
-  export const getUserProjectGroups = async (req: Request, res: Response, db: Database) => {
+export const getUserProjectGroups = async (req: Request, res: Response, db: Database) => {
     const { projectName } = req.query;
 
     try {
@@ -366,3 +366,83 @@ export const sendRemovedEmail = async (email: string) => {
         throw new Error('There was an error sending the email');
       }
 }
+
+
+export const getEnrolledCourses = async (req: Request, res: Response, db: Database) => {
+    
+    const { userEmail } = req.query;
+    
+    if (!userEmail) {
+        return res.status(400).json({ message: "User email is required" });
+    }
+
+    try {
+      const courses = await db.all(
+        `SELECT DISTINCT projectGroupName 
+         FROM user_projects 
+         JOIN project USING (projectName)
+         WHERE userEmail = ?`,
+         [userEmail]
+    );
+      res.json(courses);
+    } catch (error) {
+      console.error("Error during retrieving courses of user:", error);
+      res.status(500).json({ message: "Failed to retrieve courses of user", error });
+    }
+};
+
+export const getProjectsForCourse = async (req: Request, res: Response, db: Database) => {
+    const { courseName, userEmail } = req.query;
+
+    if (!courseName || !userEmail) {
+        return res.status(400).json({ message: "Course name and user email are required" });
+    }
+
+    try {
+        const enrolledProjects = await db.all(
+            `SELECT projectName
+             FROM project
+             JOIN user_projects USING (projectName)
+             WHERE projectGroupName = ? AND userEmail = ?`,
+            [courseName, userEmail]
+        );
+
+        const availableProjects = await db.all(
+            `SELECT p.projectName
+             FROM project p
+             LEFT JOIN user_projects up ON (p.projectName = up.projectName) AND (up.userEmail = ?)
+             WHERE p.projectGroupName = ? AND up.userEmail IS NULL`,
+            [userEmail, courseName]
+        );
+
+        res.json({ enrolledProjects, availableProjects });
+    } catch (error) {
+        console.error("Error retrieving projects for course:", error);
+        res.status(500).json({ message: "Failed to retrieve projects for course", error });
+    }
+};
+
+export const getProjectDetails = async (req: Request, res: Response, db: Database) => {
+    const { projectName, userEmail } = req.query;
+  
+    if (!projectName || !userEmail) {
+      return res.status(400).json({ message: "Project name and user email are required" });
+    }
+  
+    try {
+      const project = await db.get(
+        `SELECT p.url, up.isOwner, pg.canCreateProject
+         FROM project p
+         INNER JOIN user_projects up ON p.projectName = up.projectName
+         INNER JOIN projectGroup pg ON p.projectGroupName = pg.projectGroupName
+         WHERE p.projectName = ? AND up.userEmail = ?`,
+        [projectName, userEmail]
+      );
+  
+      res.json(project);
+    } catch (error) {
+      console.error("Error retrieving project details:", error);
+      res.status(500).json({ message: "Failed to retrieve project details", error });
+    }
+}
+  
