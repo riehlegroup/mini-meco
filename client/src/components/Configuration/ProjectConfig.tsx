@@ -43,6 +43,7 @@ const ProjectConfig: React.FC = () => {
   } | null>(null);
   const [role, setRole] = useState("");
   const [projectRoles, setProjectRoles] = useState<{ [key: string]: string }>({});
+  const [projectName, setProjectName] = useState<string>("");
 
   
 
@@ -246,7 +247,7 @@ const ProjectConfig: React.FC = () => {
       console.error("User email or selected project is missing");
     }
   };
-  const handleJoin = async (projectName: string) => {
+  const handleJoin = async (projectName: string, role: string) => {
     if (!user) {
       setMessage("User data not available. Please log in again.");
       return;
@@ -326,29 +327,43 @@ const ProjectConfig: React.FC = () => {
     }
   };
 
-  const handleCreateProject = async () => {
-    const userEmail = localStorage.getItem("email");
-    if (userEmail && selectedCourse) {
-      try {
-        const response = await fetch(
-          "http://localhost:3000/createProject",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ courseName: selectedCourse, userEmail }),
-          }
-        );
-        const data = await response.json();
-        setMessage(data.message || "Project created successfully");
-        if (data.message.includes("successfully")) {
-          window.location.reload();
+  const handleCreate = async (projectName: string) => {
+    const body = { 
+      projectGroupName: selectedCourse,
+      projectName,
+    };
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/projConfig/createProject`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
         }
-      } catch (error) {
-        console.error("Error creating project:", error);
+      );
+
+      const data = await response.json();
+
+      setMessage(data.message || "Project created successfully");
+      if (data.message.includes("successfully")) {
+        window.location.reload();
+      }
+
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setMessage(error.message);
+      } else {
+        setMessage("An unexpected error occurred");
       }
     }
+  };
+
+  const handleCreateAndJoin = async (projectName: string) => {
+    await handleCreate(projectName);
+    await handleJoin(projectName, "owner");
   };
 
   return (
@@ -478,7 +493,7 @@ const ProjectConfig: React.FC = () => {
                       <Button
                         className="create"
                         variant="primary"
-                        onClick={() => handleJoin(selectedAvailableProject)}
+                        onClick={() => handleJoin(selectedAvailableProject, role)}
                       >
                         Join
                       </Button>
@@ -490,15 +505,43 @@ const ProjectConfig: React.FC = () => {
             </div>
             {message && <div className="message">{message}</div>}
 
-            {(
-              <Button
-                className="confirm"
-                type="submit"
-                onClick={handleCreateProject}
-              >
-                Create Project
-              </Button>
-            )}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  className="confirm"
+                  type="button"
+                >
+                  Create Project
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="DialogContent">
+                <DialogHeader>
+                  <DialogTitle className="DialogTitle">
+                    Create Project
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="ProjectInput">
+                  <div className="ProjectName">Project Name: </div>
+                  <input
+                    type="text"
+                    className="ProjAdmin-inputBox"
+                    placeholder="Enter project name"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    className="create"
+                    variant="primary"
+                    onClick={() => handleCreateAndJoin(projectName)}
+                  >
+                    Create
+                  </Button>
+                </DialogFooter>
+                {message && <div className="Message">{message}</div>}
+              </DialogContent>
+            </Dialog>
           </>
         )}
         {message && <div className="message">{message}</div>}
