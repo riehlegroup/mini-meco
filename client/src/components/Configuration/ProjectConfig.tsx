@@ -29,7 +29,6 @@ const ProjectConfig: React.FC = () => {
 
   const [url, setURL] = useState("");
   const [newURL, setNewURL] = useState("");
-  //const [projects, setProjects] = useState<string[]>([]);
   const [enrolledProjects, setEnrolledProjects] = useState<string[]>([]);
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
@@ -38,12 +37,10 @@ const ProjectConfig: React.FC = () => {
   const [edit, setEdit] = useState(false);
   const [courses, setCourses] = useState<string[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
-  //const [isOwner, setIsOwner] = useState(false);
-  //const [canCreateProject, setCanCreateProject] = useState(true);
   const [user, setUser] = useState<{
-      name: string;
-      email: string;
-    } | null>(null);
+    name: string;
+    email: string;
+  } | null>(null);
   const [role, setRole] = useState("");
 
 
@@ -83,32 +80,32 @@ const ProjectConfig: React.FC = () => {
     };
 
     fetchCourses();
-    }, [navigate]);
+  }, [navigate]);
 
-    const handleCourseChange = (courseName: string) => {
-      setSelectedCourse(courseName);
-      setSelectedProject(null);
-      fetchProjects(courseName);
-    };
+  const handleCourseChange = (courseName: string) => {
+    setSelectedCourse(courseName);
+    setSelectedProject(null);
+    fetchProjects(courseName);
+  };
 
-    const fetchProjects = async (courseName: string) => {
-      const userEmail = localStorage.getItem("email");
-      if (userEmail) {
-        try {
-          const response = await fetch(
-            `http://localhost:3000/projectsForCourse?courseName=${courseName}&userEmail=${userEmail}`
-          );
-          if (!response.ok) {
-            throw new Error(`Error: ${response.status}`);
-          }
-          const data = await response.json();
-          setEnrolledProjects(data.enrolledProjects.map((project: { projectName: string }) => project.projectName));
-          setAvailableProjects(data.availableProjects.map((project: { projectName: string }) => project.projectName));
-        } catch (error) {
-          console.error("Error fetching projects:", error);
+  const fetchProjects = async (courseName: string) => {
+    const userEmail = localStorage.getItem("email");
+    if (userEmail) {
+      try {
+        const response = await fetch(
+          `http://localhost:3000/projectsForCourse?courseName=${courseName}&userEmail=${userEmail}`
+        );
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
         }
+        const data = await response.json();
+        setEnrolledProjects(data.enrolledProjects.map((project: { projectName: string }) => project.projectName));
+        setAvailableProjects(data.availableProjects.map((project: { projectName: string }) => project.projectName));
+      } catch (error) {
+        console.error("Error fetching projects:", error);
       }
-    };
+    }
+  };
 
   const handleProjectChange = (projectName: string) => {
     setSelectedProject(projectName);
@@ -161,7 +158,7 @@ const ProjectConfig: React.FC = () => {
       }
 
       const data = await response.json();
-      
+
 
       if (data && data.url) {
         setURL(data.url || "");
@@ -246,27 +243,44 @@ const ProjectConfig: React.FC = () => {
       console.error("User email or selected project is missing");
     }
   };
-  const handleJoinProject = async () => {
-    const userEmail = localStorage.getItem("email");
-    if (userEmail && selectedAvailableProject) {
-      try {
-        const response = await fetch(
-          "http://localhost:3000/joinProject",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ projectName: selectedAvailableProject, userEmail }),
-          }
-        );
-        const data = await response.json();
-        setMessage(data.message || "Joined project successfully");
-        if (data.message.includes("successfully")) {
-          window.location.reload();
+  const handleJoin = async (projectName: string) => {
+    if (!user) {
+      setMessage("User data not available. Please log in again.");
+      return;
+    }
+
+    const body = {
+      projectName,
+      memberName: user.name,
+      memberRole: role,
+      memberEmail: user.email,
+    };
+
+    try {
+      const response = await fetch(
+        "http://localhost:3000/settings/joinProject",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
         }
-      } catch (error) {
-        console.error("Error joining project:", error);
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Something went wrong");
+      }
+
+      setMessage(data.message || "Successfully joined the project!");
+      if (data.message.includes("successfully")) {
+        window.location.reload();
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+        setMessage(error.message);
       }
     }
   };
@@ -367,6 +381,7 @@ const ProjectConfig: React.FC = () => {
       </div>
       <div className="BigContainerProjConfig">
         <div className="margintop">
+          <h2>Enrolled Courses</h2>
           <Select onValueChange={handleCourseChange}>
             <SelectTrigger className="SelectTriggerProject">
               <SelectValue placeholder="Select Course" />
@@ -379,7 +394,7 @@ const ProjectConfig: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          </div>
+        </div>
         {selectedCourse && (
           <>
             <div className="margintop">
@@ -407,7 +422,7 @@ const ProjectConfig: React.FC = () => {
               </ul>
             </div>
             <div className="margintop">
-            <h2>Available Projects</h2>
+              <h2>Available Projects</h2>
               <Select onValueChange={setSelectedAvailableProject}>
                 <SelectTrigger className="SelectTriggerProject">
                   <SelectValue placeholder="Select Project to Join" />
@@ -421,15 +436,46 @@ const ProjectConfig: React.FC = () => {
                 </SelectContent>
               </Select>
               {selectedAvailableProject && (
-                <Button
-                  className="joinButton"
-                  type="button"
-                  onClick={handleJoinProject}
-                >
-                  Join
-                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      className="joinButton"
+                      type="button"
+                    >
+                      Join
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="DialogContent">
+                    <DialogHeader>
+                      <DialogTitle className="DialogTitle">
+                        Join Project
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="RoleInput">
+                      <div className="Role">Role: </div>
+                      <input
+                        type="text"
+                        className="ProjAdmin-inputBox"
+                        placeholder="Enter your role"
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        className="create"
+                        variant="primary"
+                        onClick={() => handleJoin(selectedAvailableProject)}
+                      >
+                        Join
+                      </Button>
+                    </DialogFooter>
+                    {message && <div className="Message">{message}</div>}
+                  </DialogContent>
+                </Dialog>
               )}
             </div>
+            {message && <div className="message">{message}</div>}
 
             {(
               <Button
