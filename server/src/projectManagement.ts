@@ -422,7 +422,7 @@ export const getProjectsForCourse = async (req: Request, res: Response, db: Data
     }
 };
 
-export const getProjectDetails = async (req: Request, res: Response, db: Database) => {
+export const getRoleForProject = async (req: Request, res: Response, db: Database) => {
     const { projectName, userEmail } = req.query;
   
     if (!projectName || !userEmail) {
@@ -430,28 +430,16 @@ export const getProjectDetails = async (req: Request, res: Response, db: Databas
     }
   
     try {
-        const project = await db.get(
+        const role = await db.get(
             `SELECT memberRole
-             FROM user_projects
-             WHERE projectName = ? AND userEmail = ?`,
+             FROM ${projectName}
+             WHERE memberEmail = ?`,
             [projectName, userEmail]
         );
-
-        if (project) {
-            // Set isOwner to true if memberRole is 'owner'
-            if (project.memberRole === 'owner') {
-                project.isOwner = true;
-            }
-
-            res.json({
-                isOwner: project.isOwner,
-            });
-        } else {
-            res.status(404).json({ message: "Project not found" });
-        }
+        res.json(role);
     } catch (error) {
-      console.error("Error retrieving project details:", error);
-      res.status(500).json({ message: "Failed to retrieve project details", error });
+      console.error("Error retrieving project role", error);
+      res.status(500).json({ message: "Failed to retrieve project role", error });
     }
 }
 

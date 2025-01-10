@@ -42,6 +42,9 @@ const ProjectConfig: React.FC = () => {
     email: string;
   } | null>(null);
   const [role, setRole] = useState("");
+  const [projectRoles, setProjectRoles] = useState<{ [key: string]: string }>({});
+
+  
 
 
   useEffect(() => {
@@ -107,28 +110,28 @@ const ProjectConfig: React.FC = () => {
     }
   };
 
-  const handleProjectChange = (projectName: string) => {
-    setSelectedProject(projectName);
-    fetchProjectURL(projectName);
-  };
-  /*
-  const fetchProjectDetails = async (projectName: string) => {
+  const fetchRoles = async (projectName: string) => {
     const userEmail = localStorage.getItem("email");
     if (userEmail) {
       try {
         const response = await fetch(
-          `http://localhost:3000/projectDetails?projectName=${projectName}&userEmail=${userEmail}`
+          `http://localhost:3000/roleForProject?projectName=${projectName}&userEmail=${userEmail}`
         );
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
         const data = await response.json();
-        setURL(data.url || "");
-        setIsOwner(data.isOwner);
-        setCanCreateProject(data.canCreateProject);
+        setRole(data.role);
       } catch (error) {
-        console.error("Error fetching project details:", error);
+        console.error("Error fetching role:", error);
       }
     }
+  }
+  const handleProjectChange = (projectName: string) => {
+    setSelectedProject(projectName);
+    fetchProjectURL(projectName);
   };
-  **/
+  
   const fetchProjectURL = async (projectName: string) => {
     if (!projectName) {
       console.error("Selected project is missing");
@@ -258,7 +261,7 @@ const ProjectConfig: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/settings/joinProject",
+        "http://localhost:3000/projConfig/joinProject",
         {
           method: "POST",
           headers: {
@@ -297,7 +300,7 @@ const ProjectConfig: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/settings/leaveProject",
+        "http://localhost:3000/projConfig/leaveProject",
         {
           method: "POST",
           headers: {
@@ -348,31 +351,6 @@ const ProjectConfig: React.FC = () => {
     }
   };
 
-  const handleEditProject = async () => {
-    const userEmail = localStorage.getItem("email");
-    if (userEmail && selectedProject) {
-      try {
-        const response = await fetch(
-          "http://localhost:3000/editProject",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ projectName: selectedProject, url: newURL, userEmail }),
-          }
-        );
-        const data = await response.json();
-        setMessage(data.message || "Project updated successfully");
-        if (data.message.includes("successfully")) {
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error("Error updating project:", error);
-      }
-    }
-  };
-
   return (
     <div onClick={handleNavigation}>
       <ReturnButton />
@@ -403,13 +381,48 @@ const ProjectConfig: React.FC = () => {
                 {enrolledProjects.map((project) => (
                   <li key={project}>
                     {project}
-                    <Button
-                      className="editButton"
-                      type="button"
-                      onClick={() => handleEditProject()}
-                    >
-                      Edit
-                    </Button>
+                    
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            className="editButton"
+                            type="button"
+                            onClick={() => handleProjectChange(project)}
+                          >
+                            Edit
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="DialogContent">
+                          <DialogHeader>
+                            <DialogTitle className="DialogTitle">
+                              Edit Project URL
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="URLInput">
+                            <div className="URL">
+                              {url ? `Current URL: ${url}` : "No URL currently set"}
+                            </div>
+                            <input
+                              type="text"
+                              className="ProjAdmin-inputBox"
+                              placeholder="Enter new URL"
+                              value={newURL}
+                              onChange={(e) => setNewURL(e.target.value)}
+                            />
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              className="create"
+                              variant="primary"
+                              onClick={handleChangeURL}
+                            >
+                              Save
+                            </Button>
+                          </DialogFooter>
+                          {message && <div className="Message">{message}</div>}
+                        </DialogContent>
+                      </Dialog>
+                    
                     <Button
                       className="leaveButton"
                       type="button"
