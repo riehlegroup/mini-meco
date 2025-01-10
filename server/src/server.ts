@@ -63,7 +63,7 @@ initializeDB().then((db) => {
   app.get('/enrolledCourses', (req, res) => getEnrolledCourses(req, res, db));
   app.get('/projectDetails', (req, res) => getProjectDetails(req, res, db));
   app.get('/projectsForCourse', (req, res) => getProjectsForCourse(req, res, db));
-  app.post('/leaveProject', (req, res) => leaveProject(req, res, db));
+  app.post('/projectConfig/leaveProject', (req, res) => leaveProject(req, res, db));
   app.post('/createProject', (req, res) => createProject(req, res, db));
   app.post('/editProject', (req, res) => editProject(req, res, db));  
 

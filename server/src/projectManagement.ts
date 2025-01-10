@@ -430,19 +430,30 @@ export const getProjectDetails = async (req: Request, res: Response, db: Databas
     }
   
     try {
-      const project = await db.get(
-        `SELECT p.url, up.isOwner, pg.canCreateProject
-         FROM project p
-         INNER JOIN user_projects up ON p.projectName = up.projectName
-         INNER JOIN projectGroup pg ON p.projectGroupName = pg.projectGroupName
-         WHERE p.projectName = ? AND up.userEmail = ?`,
-        [projectName, userEmail]
-      );
-  
-      res.json(project);
+        const project = await db.get(
+            `SELECT memberRole
+             FROM user_projects
+             WHERE projectName = ? AND userEmail = ?`,
+            [projectName, userEmail]
+        );
+
+        if (project) {
+            // Set isOwner to true if memberRole is 'owner'
+            if (project.memberRole === 'owner') {
+                project.isOwner = true;
+            }
+
+            res.json({
+                isOwner: project.isOwner,
+            });
+        } else {
+            res.status(404).json({ message: "Project not found" });
+        }
     } catch (error) {
       console.error("Error retrieving project details:", error);
       res.status(500).json({ message: "Failed to retrieve project details", error });
     }
 }
+
+
   

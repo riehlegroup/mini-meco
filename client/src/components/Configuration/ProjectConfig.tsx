@@ -29,16 +29,22 @@ const ProjectConfig: React.FC = () => {
 
   const [url, setURL] = useState("");
   const [newURL, setNewURL] = useState("");
-  const [projects, setProjects] = useState<string[]>([]);
+  //const [projects, setProjects] = useState<string[]>([]);
   const [enrolledProjects, setEnrolledProjects] = useState<string[]>([]);
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [selectedAvailableProject, setSelectedAvailableProject] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [edit, setEdit] = useState(false);
   const [courses, setCourses] = useState<string[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
-  const [isOwner, setIsOwner] = useState(false);
-  const [canCreateProject, setCanCreateProject] = useState(false);
+  //const [isOwner, setIsOwner] = useState(false);
+  //const [canCreateProject, setCanCreateProject] = useState(true);
+  const [user, setUser] = useState<{
+      name: string;
+      email: string;
+    } | null>(null);
+  const [role, setRole] = useState("");
 
 
   useEffect(() => {
@@ -46,6 +52,21 @@ const ProjectConfig: React.FC = () => {
     if (!token) {
       navigate("/login");
     }
+    const fetchUserData = async () => {
+      const userName = localStorage.getItem("username");
+      const userEmail = localStorage.getItem("email");
+      if (userName && userEmail) {
+        setUser({
+          name: userName,
+          email: userEmail,
+        });
+      } else {
+        console.warn("User data not found in localStorage");
+      }
+    };
+
+    fetchUserData();
+
     const fetchCourses = async () => {
       const userEmail = localStorage.getItem("email");
       if (userEmail) {
@@ -83,37 +104,17 @@ const ProjectConfig: React.FC = () => {
           const data = await response.json();
           setEnrolledProjects(data.enrolledProjects.map((project: { projectName: string }) => project.projectName));
           setAvailableProjects(data.availableProjects.map((project: { projectName: string }) => project.projectName));
-          setProjects(data.map((project: { projectName: string }) => project.projectName));
         } catch (error) {
           console.error("Error fetching projects:", error);
         }
       }
     };
-
-    /*
-    const fetchProjects = async () => {
-      const userEmail = localStorage.getItem("email");
-      if (userEmail) {
-        try {
-          const response = await fetch(
-            `http://localhost:3000/userProjects?userEmail=${userEmail}`
-          );
-          const data = await response.json();
-          setProjects(
-            data.map((project: { projectName: string }) => project.projectName)
-          );
-        } catch (error) {
-          console.error("Error fetching projects:", error);
-        }
-      }
-    };
-    **/
 
   const handleProjectChange = (projectName: string) => {
     setSelectedProject(projectName);
     fetchProjectURL(projectName);
   };
-
+  /*
   const fetchProjectDetails = async (projectName: string) => {
     const userEmail = localStorage.getItem("email");
     if (userEmail) {
@@ -130,7 +131,7 @@ const ProjectConfig: React.FC = () => {
       }
     }
   };
-
+  **/
   const fetchProjectURL = async (projectName: string) => {
     if (!projectName) {
       console.error("Selected project is missing");
@@ -245,28 +246,65 @@ const ProjectConfig: React.FC = () => {
       console.error("User email or selected project is missing");
     }
   };
-
-  const handleLeaveProject = async () => {
+  const handleJoinProject = async () => {
     const userEmail = localStorage.getItem("email");
-    if (userEmail && selectedProject) {
+    if (userEmail && selectedAvailableProject) {
       try {
         const response = await fetch(
-          "http://localhost:3000/leaveProject",
+          "http://localhost:3000/joinProject",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ projectName: selectedProject, userEmail }),
+            body: JSON.stringify({ projectName: selectedAvailableProject, userEmail }),
           }
         );
         const data = await response.json();
-        setMessage(data.message || "Left project successfully");
+        setMessage(data.message || "Joined project successfully");
         if (data.message.includes("successfully")) {
           window.location.reload();
         }
       } catch (error) {
-        console.error("Error leaving project:", error);
+        console.error("Error joining project:", error);
+      }
+    }
+  };
+
+  const handleLeave = async (projectName: string) => {
+    if (!user) {
+      setMessage("User data not available. Please log in again.");
+      return;
+    }
+    const body = {
+      projectName,
+      memberEmail: user.email,
+    };
+
+    try {
+      const response = await fetch(
+        "http://localhost:3000/settings/leaveProject",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Something went wrong");
+      }
+
+      setMessage(data.message || "Successfully left the project!");
+      if (data.message.includes("successfully")) {
+        window.location.reload();
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+        setMessage(error.message);
       }
     }
   };
@@ -325,7 +363,7 @@ const ProjectConfig: React.FC = () => {
     <div onClick={handleNavigation}>
       <ReturnButton />
       <div className="DashboardContainer">
-        <h1>Project Config</h1>
+        <h1>Project Configuration</h1>
       </div>
       <div className="BigContainerProjConfig">
         <div className="margintop">
@@ -341,61 +379,59 @@ const ProjectConfig: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-        </div>
+          </div>
         {selectedCourse && (
           <>
-          <div className="margintop">
+            <div className="margintop">
               <h2>Enrolled Projects</h2>
               <ul>
                 {enrolledProjects.map((project) => (
-                  <li key={project} onClick={() => handleProjectChange(project)}>
+                  <li key={project}>
                     {project}
+                    <Button
+                      className="editButton"
+                      type="button"
+                      onClick={() => handleEditProject()}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      className="leaveButton"
+                      type="button"
+                      onClick={() => handleLeave(project)}
+                    >
+                      Leave
+                    </Button>
                   </li>
                 ))}
               </ul>
             </div>
             <div className="margintop">
-              <h2>Available Projects</h2>
-              <ul>
-                {availableProjects.map((project) => (
-                  <li key={project} onClick={() => handleProjectChange(project)}>
-                    {project}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            ö
-
-            {selectedProject && (
-              <>
-                <div className="gitURL">Git URL</div>
-                <input
-                  className="gitURLInput"
-                  type="url"
-                  placeholder="Please Add Git URL"
-                  value={url}
-                  onChange={(e) => setURL(e.target.value)}
-                />
-                {isOwner && (
-                  <Button
-                    className="confirm"
-                    type="submit"
-                    onClick={handleEditProject}
-                  >
-                    Edit
-                  </Button>
-                )}
+            <h2>Available Projects</h2>
+              <Select onValueChange={setSelectedAvailableProject}>
+                <SelectTrigger className="SelectTriggerProject">
+                  <SelectValue placeholder="Select Project to Join" />
+                </SelectTrigger>
+                <SelectContent className="SelectContentProject">
+                  {availableProjects.map((project) => (
+                    <SelectItem key={project} value={project}>
+                      {project}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedAvailableProject && (
                 <Button
-                  className="confirm"
-                  type="submit"
-                  onClick={handleLeaveProject}
+                  className="joinButton"
+                  type="button"
+                  onClick={handleJoinProject}
                 >
-                  Leave
+                  Join
                 </Button>
-              </>
-            )}
-            {canCreateProject && (
+              )}
+            </div>
+
+            {(
               <Button
                 className="confirm"
                 type="submit"
