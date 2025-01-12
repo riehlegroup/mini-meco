@@ -2,13 +2,6 @@ import React, { useState, useEffect } from "react";
 import Button from "react-bootstrap/esm/Button";
 import { useNavigate } from "react-router-dom";
 import "./ProjectAdmin.css";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
 import Add from "./../../assets/Add.png";
 import Edit from "./../../assets/Edit.png";
 import ReturnButton from "../Components/return";
@@ -17,8 +10,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 
 const ProjectAdmin: React.FC = () => {
@@ -28,465 +21,477 @@ const ProjectAdmin: React.FC = () => {
     navigate("/project-admin");
   };
 
-  const [semester, setSemester] = useState("");
-  const [projectGroupName, setProjectGroupName] = useState("");
-  const [projectName, setProjectName] = useState("");
+  interface Project {
+    id: string;
+    projectName: string;
+    studentsCanJoinProject: boolean;
+  }
+
+  interface Course {
+    semester: string;
+    courseName: string;
+    projects: Project[];
+    studentsCanCreateProject: boolean;
+  }
+
   const [message, setMessage] = useState("");
-  const [action, setAction] = useState("");
+  const [selectedCourseEdit, setSelectedCourseEdit] = useState<Course>({ semester: "", courseName: "", projects: [], studentsCanCreateProject: false });
+  const [selectedCourse, setSelectedCourse] = useState<Course>();
 
-  const [semesters, setSemesters] = useState<string[]>([]);
-  const [projectGroups, setProjectGroups] = useState<string[]>([]);
-  const [projects, setProjects] = useState<
-    { id: number; projectName: string; projectGroupName: string }[]
-  >([]);
-  const [selectedProjectGroup, setSelectedProjectGroup] = useState<string>("");
+  const [selectedProjectEdit, setSelectedProjectEdit] = useState<Project>({ id: "", projectName: "", studentsCanJoinProject: false });
+  const [selectedProject, setSelectedProject] = useState<Project>();
 
-  const [newSemester, setNewSemester] = useState("");
-  const [newProjectGroupName, setNewProjectGroupName] = useState("");
-  const [newProjectName, setNewProjectName] = useState("");
-  const [selectToEditProjectGroup, setSelectToEditProjectGroup] = useState("");
-  const [selectToEditProject, setSelectToEditProject] = useState<
-    { id: number; projectName: string; projectGroupName: string } | string
-  >("");
+  const [courses, setCourses] = useState<Course[]>([]);
 
-  useEffect(() => {
-    const fetchSemesters = async () => {
-      try {
-        const response = await fetch("http://localhost:3000/semesters");
-        const data = await response.json();
-        setSemesters(data.map((item: any) => item.semester));
-      } catch (error: unknown) {
+  const get = (endpoint: string) => {
+    return fetch(`http://localhost:3000/${endpoint}`)
+      .then(async (response) => {
+        if (response.status < 200 || response.status > 299) {
+          const data = await response.json()
+          throw new Error(data.message || "Unknown error occurred");
+
+        }
+        return response.json();
+      })
+  };
+
+  const post = (endpoint: string, body: { [x: string]: string | boolean; }) => {
+    return fetch(
+      `http://localhost:3000/${endpoint}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    )
+      .then(async (response) => {
+        if (response.status < 200 || response.status > 299) {
+          const data = await response.json()
+          throw new Error(data.message || "Unknown error occurred");
+
+        }
+        return response.json();
+      })
+  };
+
+  const getProjectsForCourse = (course: string): Promise<Project[]> => {
+    return get(`projects?projectGroupName=${course}`)
+      .then(projects => projects.map((project: { id: string; projectName: string; studentsCanJoinProject: boolean; }) => ({
+        id: project.id,
+        projectName: project.projectName,
+        studentsCanJoinProject: project?.studentsCanJoinProject || false,
+      })))
+      .catch((error) => {
         if (error instanceof Error) {
-          console.error(error.message);
+          console.error("Error fetching projects:", error.message);
         }
-      }
-    };
-
-    const fetchProjectGroups = async () => {
-      if (semester) {
-        try {
-          const response = await fetch(
-            `http://localhost:3000/project-groups?semester=${semester}`
-          );
-          const data = await response.json();
-          setProjectGroups(data.map((item: any) => item.projectGroupName));
-        } catch (error: unknown) {
-          if (error instanceof Error) {
-            console.error(error.message);
-          }
-        }
-      } else {
-        setProjectGroups([]);
-      }
-    };
-
-    fetchSemesters();
-    fetchProjectGroups();
-  }, [semester]);
+        return [];
+      });
+  };
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      if (selectedProjectGroup) {
-        try {
-          const response = await fetch(
-            `http://localhost:3000/projects?projectGroupName=${selectedProjectGroup}`
-          );
-          const data = await response.json();
-          const mappedProjects = data.map((item: any) => ({
-            id: item.id,
-            projectName: item.projectName,
-            projectGroupName: item.projectGroupName || selectedProjectGroup, // Fallback to selectedProjectGroup if undefined
-          }));
-          setProjects(mappedProjects);
-        } catch (error: unknown) {
-          if (error instanceof Error) {
-            console.error(error.message);
-          }
+    const fetchData = async () => {
+      try {
+        const coursesData = await get("project-groups");
+
+        const coursesWithProjects: Course[] = await Promise.all(
+          coursesData.map(async (course: { projectGroupName: string; semester: string; studentsCanCreateProject: boolean; }) => {
+            const projects = await getProjectsForCourse(course.projectGroupName);
+            return {
+              semester: course.semester,
+              courseName: course.projectGroupName,
+              projects: projects,
+              studentsCanCreateProject: course?.studentsCanCreateProject || false,
+            };
+          })
+        );
+        setCourses(coursesWithProjects);
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error("Error fetching data:", error.message);
         }
-      } else {
-        setProjects([]);
       }
-    };
-
-    fetchProjects();
-  }, [selectedProjectGroup]);
-
-  const handleCreate = async () => {
-    const endpoint =
-      action === "CreateProjectGroup"
-        ? "/createProjectGroup"
-        : "/createProject";
-    const body: { [key: string]: string } = { semester, projectGroupName };
-
-    if (action === "CreateProject") {
-      body.projectName = projectName;
     }
 
-    try {
-      const response = await fetch(
-        `http://localhost:3000/project-admin${endpoint}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
+    fetchData();
+  }, []);
 
-      const data = await response.json();
+  const handleCreateCourse = async (semester: string, courseName: string,) => {
+    const body: { [key: string]: string } = { semester, projectGroupName: courseName };
 
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+    const data = await post("project-admin/createProjectGroup", body)
+      .catch((error) => {
+        console.error("Error fetching data:", error.message);
+        return error;
+      });
 
-      setMessage(data.message || "Success!");
-      if (data.message.includes("successfully")) {
-        window.location.reload(); // Refresh the page
-      }
-
-      console.log(data);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        setMessage(error.message);
-      } else {
-        setMessage("An unexpected error occurred");
-      }
+    setMessage(data.message || "Success!");
+    if (data.message.includes("successfully")) {
+      window.location.reload(); // Refresh the page
     }
   };
 
-  const filteredProjects = projects.filter(
-    (project) => project.projectGroupName === selectedProjectGroup
-  );
+  const handleCreateProject = async (projectName: string) => {
+    if (!selectedCourse) return;
 
-  const HandleEdit = async () => {
-    const endpoint =
-      action === "EditProjectGroup" ? "/editProjectGroup" : "/editProject";
+    const body: { [key: string]: string } = { semester: selectedCourse.semester, projectGroupName: selectedCourse.courseName, projectName };
+
+    const data = await post("project-admin/createProject", body)
+      .catch((error) => {
+        console.error("Error fetching data:", error.message);
+        return error;
+      });
+
+    setMessage(data.message || "Success!");
+    if (data.message.includes("successfully")) {
+      window.location.reload(); // Refresh the page
+    }
+  };
+
+  const handleEditProject = async (projectName: string, courseName: string) => {
+    if (!selectedCourse || !selectedProject) return;
+
     const body: { [key: string]: string } = {
-      projectGroupName: selectToEditProjectGroup,
-      newSemester,
-      newProjectGroupName,
+      projectGroupName: selectedCourse.courseName,
+      newSemester: selectedCourse.semester,
+      newProjectGroupName: courseName,
+      projectName: selectedProject.projectName,
+      newProjectName: projectName,
     };
-    if (action === "EditProject") {
-      if (typeof selectToEditProject === "string") {
-        body.projectName = selectToEditProject;
-      } else {
-        body.projectName = selectToEditProject.projectName;
-      }
-      body.newProjectName = newProjectName;
-      body.newProjectGroupName = newProjectGroupName;
-    }
-    try {
-      const response = await fetch(
-        `http://localhost:3000/project-admin${endpoint}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
 
-      const data = await response.json();
+    const data = await post("project-admin/editProject", body)
+      .catch((error) => {
+        console.error("Error fetching data:", error.message);
+        return error;
+      });
 
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
-
-      setMessage(data.message || "Success!");
-      if (data.message.includes("successfully")) {
-        window.location.reload(); // Refresh the page
-      }
-
-      console.log(data);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error occurred:", error);
-        setMessage("An error occurred: " + error.message);
-      } else {
-        setMessage("An unexpected error occurred");
-      }
+    setMessage(data.message || "Success!");
+    if (data.message.includes("successfully")) {
+      window.location.reload(); // Refresh the page
     }
   };
+
+  const handleEditCourse = async (editedCourse: Course) => {
+    if (!selectedCourse) return;
+
+    const body: { [key: string]: string | boolean } = {
+      projectGroupName: selectedCourse.courseName,
+      newSemester: editedCourse.semester,
+      newProjectGroupName: editedCourse.courseName,
+      studentsCanCreateProject: editedCourse.studentsCanCreateProject,
+    };
+
+    const data = await post("project-admin/editProjectGroup", body)
+      .catch((error) => {
+        console.error("Error fetching data:", error.message);
+        return error;
+      });
+
+
+    setMessage(data.message || "Success!");
+    if (data.message.includes("successfully")) {
+      window.location.reload(); // Refresh the page
+    }
+  };
+
+  const onOpenEditCourseDialog = (course: Course) => {
+    setSelectedCourse(course);
+    setSelectedCourseEdit(structuredClone(course));
+  };
+
+  const onOpenCreateCourseDialog = () => {
+    console.log("dialog open ");
+    setSelectedCourse(undefined);
+    setSelectedCourseEdit({ semester: "", courseName: "", projects: [], studentsCanCreateProject: false });
+  };
+
+  const onOpenCreateProjectDialog = (course: Course) => {
+    setSelectedCourse(course);
+    setSelectedProjectEdit({ id: "", projectName: "", studentsCanJoinProject: false });
+  };
+
+  const onOpenEditProjectDialog = (course: Course, project: Project) => {
+    setSelectedCourse(course);
+    setSelectedProject(project);
+    setSelectedProjectEdit(structuredClone(project));
+  };
+
+  const onOpenChangeDialog = () => {
+    setMessage("");
+  }
 
   return (
-    <div onClick={handleNavigation}>
+    <div onClick={handleNavigation} className="text-black">
       <ReturnButton />
-      <div className="DashboardContainer">
-        <h1>Project Admin</h1>
+      <div className="ProjAdminPanel-DashboardContainer">
+        <h1>Course Admin Panel</h1>
       </div>
-      <div className="BigContainer">
-        <div className="ProjectGroupContainer">
-          <div className="title">
-            <h3>Project Group Lists</h3>
-            <div className="Add">
-              <Dialog>
-                <DialogTrigger className="DialogTrigger" data-cy="add-project-group-button">
-                  <img src={Add} alt="Add" />
-                </DialogTrigger>
-                <DialogContent className="DialogContent">
-                  <DialogHeader>
-                    <DialogTitle className="DialogTitle">
-                      Create New Project Group
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="ProjAdmin-input">
-                    <div className="Sem">Semester: </div>
-                    <input
-                      className="ProjAdmin-inputBox"
-                      type="text"
-                      placeholder="Please follow this format: SS24 / WS2425"
-                      value={semester}
-                      onChange={(e) => setSemester(e.target.value)}
-                    />
-                  </div>
-                  <div className="ProjAdmin-input">
-                    <div className="ProjGroupName">Project Group Name: </div>
-                    <input
-                      className="ProjAdmin-inputBox2"
-                      type="text"
-                      placeholder="Please Enter Project Group Name"
-                      value={projectGroupName}
-                      onChange={(e) => setProjectGroupName(e.target.value)}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      className="create"
-                      type="submit"
-                      onClick={() => {
-                        setAction("CreateProjectGroup");
-                        handleCreate();
-                      }}
-                    >
-                      Create
-                    </Button>
-                  </DialogFooter>
-                  {message && <div className="message">{message}</div>}
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-          <div className="SelectWrapper">
-            <Select
-              onValueChange={(value) => {
-                setSemester(value);
-              }}
-            >
-              <SelectTrigger className="SelectTrigger">
-                <SelectValue
-                  className="SelectValue"
-                  placeholder="Select Semester"
-                />
-              </SelectTrigger>
-              <SelectContent className="SelectContent">
-                {semesters.map((sem) => (
-                  <SelectItem key={sem} value={sem}>
-                    {sem}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Only show project groups when a semester is selected */}
-          {semester &&
-            projectGroups.length > 0 &&
-            projectGroups.map((group, index) => (
-              <React.Fragment key={group}>
-                <div className="ProjectItem">
-                  <div className="ProjectName">{group}</div>
-
-                  <Dialog>
-                    <DialogTrigger
-                      className="DialogTrigger"
-                      onClick={() => setSelectToEditProjectGroup(group)}
-                    >
-                      <img className="Edit" src={Edit} alt="Edit" />
+      <div className="ProjAdminPanel-BigContainer">
+        <div className="relative overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-stone-300 text-lg text-black">
+              <tr>
+                <th className="px-6 py-3">Semester</th>
+                <th className="px-6 py-3">Course</th>
+                <th className="flex items-center justify-center px-6 py-4">
+                  <Dialog onOpenChange={onOpenChangeDialog}>
+                    <DialogTrigger className="ProjAdminPanel-DialogTrigger" onClick={() => onOpenCreateCourseDialog()} data-cy="add-project-group-button">
+                      <img className="ProjAdminPanel-Add" src={Add} alt="Add" />
                     </DialogTrigger>
-                    <DialogContent className="DialogContent">
+                    <DialogContent className="ProjAdminPanel-DialogContent">
                       <DialogHeader>
-                        <DialogTitle className="DialogTitle">
-                          Edit Project Group
-                        </DialogTitle>
+                        <DialogTitle className="ProjAdminPanel-DialogTitle">Create New Course</DialogTitle>
                       </DialogHeader>
-                      <div className="newProjAdmin-input">
-                        <div className="newSem">New Semester: </div>
+                      <div className="flex items-center justify-between">
+                        <div className="ProjAdminPanel-Sem">Semester: </div>
                         <input
-                          className="newProjAdmin-inputBox"
+                          className="ProjAdminPanel-inputBox bg-gray-50"
                           type="text"
-                          placeholder="Please follow this format: SS24 / WS2425"
-                          value={newSemester}
-                          onChange={(e) => setNewSemester(e.target.value)}
-                        />
-                      </div>
-                      <div className="newProjAdmin-input">
-                        <div className="newProjGroupName">New Name: </div>
-                        <input
-                          className="newProjAdmin-inputBox2"
-                          type="text"
-                          placeholder="Please Enter New Project Group Name"
-                          value={newProjectGroupName}
+                          value={selectedCourseEdit?.semester || ""}
                           onChange={(e) =>
-                            setNewProjectGroupName(e.target.value)
+                            setSelectedCourseEdit({
+                              ...selectedCourseEdit,
+                              semester: e.target.value
+                            })
                           }
                         />
                       </div>
+                      <div className="flex items-center justify-between">
+                        <div className="ProjAdminPanel-ProjGroupName">Course Name: </div>
+                        <input
+                          className="ProjAdminPanel-inputBox bg-gray-50"
+                          type="text"
+                          value={selectedCourseEdit?.courseName || ""}
+                          onChange={(e) => {
+                            console.log(selectedCourseEdit);
+                            setSelectedCourseEdit({
+                              ...selectedCourseEdit,
+                              courseName: e.target.value
+                            })
+                          }
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center space-x-3 text-black">
+                        <input
+                          className="mr-4 size-8 cursor-pointer appearance-none rounded border-2 border-gray-400 bg-gray-300 text-blue-600 checked:border-blue-600 checked:bg-blue-600"
+                          type="checkbox"
+                          checked={selectedCourseEdit?.studentsCanCreateProject || false}
+                          onChange={(e) =>
+                            setSelectedCourseEdit({
+                              ...selectedCourseEdit,
+                              studentsCanCreateProject: e.target.checked
+                            })
+                          }
+                        />
+                        <label className="text-lg font-medium">Students can create their own project</label>
+                      </div>
                       <DialogFooter>
-                        <Button
-                          className="create"
-                          type="submit"
-                          onClick={() => {
-                            setAction("EditProjectGroup");
-                            HandleEdit();
-                          }}
-                        >
-                          Confirm
+                        <Button className="ProjAdminPanel-create" onClick={() => handleCreateCourse(selectedCourseEdit.semester, selectedCourseEdit.courseName)}>
+                          Create
                         </Button>
                       </DialogFooter>
-                      {message && <div className="message">{message}</div>}
+                      {message && <div className="ProjAdminPanel-message">{message}</div>}
                     </DialogContent>
                   </Dialog>
-                </div>
-                {index < projectGroups.length - 1 && (
-                  <hr className="ProjectDivider" />
-                )}
-              </React.Fragment>
-            ))}
-        </div>
-        <div className="ProjectContainer">
-          <div className="ProjectTitle">
-            <h3>Project Lists</h3>
-            <div className="Add">
-              <Dialog>
-                <DialogTrigger className="DialogTrigger" data-cy="add-project-button">
-                  <img src={Add} alt="Add" />
-                </DialogTrigger>
-                <DialogContent className="DialogContent">
-                  <DialogHeader>
-                    <DialogTitle className="DialogTitle">
-                      Create New Project
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="ProjAdmin-input">
-                    <div className="ProjGroup">Project Group: </div>
-                    <input
-                      className="ProjAdmin-inputBox3"
-                      type="text"
-                      placeholder="Please Enter Project Group Name"
-                      value={projectGroupName}
-                      onChange={(e) => setProjectGroupName(e.target.value)}
-                    />
-                  </div>
-                  <div className="ProjAdmin-input">
-                    <div className="ProjGroupName">Project Name: </div>
-                    <input
-                      className="ProjAdmin-inputBox4"
-                      type="text"
-                      placeholder="Please Enter Project Name"
-                      value={projectName}
-                      onChange={(e) => setProjectName(e.target.value)}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      className="create"
-                      type="submit"
-                      onClick={() => {
-                        setAction("CreateProject");
-                        handleCreate();
-                      }}
-                    >
-                      Create
-                    </Button>
-                  </DialogFooter>
-                  {message && <div className="message">{message}</div>}
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-          <div className="SelectWrapper">
-            <Select
-              onValueChange={(value) => {
-                setSelectedProjectGroup(value);
-              }}
-            >
-              <SelectTrigger className="SelectTrigger">
-                <SelectValue
-                  className="SelectValue"
-                  placeholder="Select Project Group"
-                />
-              </SelectTrigger>
-              <SelectContent className="SelectContent">
-                {projectGroups.map((group) => (
-                  <SelectItem key={group} value={group}>
-                    {group}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {filteredProjects.map((project) => (
-            <>
-              <div key={project.id} className="ProjectItem">
-                <div className="ProjectName">{project.projectName}</div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {courses.map((course, i) => (
+                <React.Fragment key={i}>
+                  <tr className="bg-gray-100 text-black">
+                    <td className="px-6 py-4 text-lg">{course.semester}</td>
+                    <td className="px-6 py-4 text-lg">{course.courseName}</td>
+                    <td className="flex items-center justify-center px-6 py-4">
+                      <div>
+                        {/* Edit course dialog */}
+                        <Dialog onOpenChange={onOpenChangeDialog}>
+                          <DialogTrigger className="ProjAdminPanel-DialogTrigger" onClick={() => onOpenEditCourseDialog(course)} data-cy="add-project-group-button">
+                            <img className="ProjAdminPanel-Edit" src={Edit} alt="Edit" />
+                          </DialogTrigger>
+                          <DialogContent className="ProjAdminPanel-DialogContent">
+                            <DialogHeader>
+                              <DialogTitle className="ProjAdminPanel-DialogTitle">Edit Course</DialogTitle>
+                            </DialogHeader>
+                            <div className="flex items-center justify-between">
+                              <div className="ProjAdminPanel-Sem">Semester: </div>
+                              <input
+                                className="ProjAdminPanel-inputBox bg-gray-50"
+                                type="text"
+                                value={selectedCourseEdit?.semester || ""}
+                                onChange={(e) =>
+                                  setSelectedCourseEdit({
+                                    ...selectedCourseEdit,
+                                    semester: e.target.value
+                                  })
+                                }
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="ProjAdminPanel-ProjGroupName">Course Name: </div>
+                              <input
+                                className="ProjAdminPanel-inputBox bg-gray-50"
+                                type="text"
+                                value={selectedCourseEdit?.courseName || ""}
+                                onChange={(e) => {
+                                  console.log(selectedCourseEdit);
+                                  setSelectedCourseEdit({
+                                    ...selectedCourseEdit,
+                                    courseName: e.target.value
+                                  })
+                                }
+                                }
+                              />
+                            </div>
+                            <div className="flex items-center space-x-3 text-black">
+                              <input
+                                className="mr-4 size-8 cursor-pointer appearance-none rounded border-2 border-gray-400 bg-gray-300 text-blue-600 checked:border-blue-600 checked:bg-blue-600"
+                                type="checkbox"
+                                checked={selectedCourseEdit?.studentsCanCreateProject || false}
+                                onChange={(e) =>
+                                  setSelectedCourseEdit({
+                                    ...selectedCourseEdit,
+                                    studentsCanCreateProject: e.target.checked
+                                  })
+                                }
+                              />
+                              <div className="text-lg font-medium">Students can create their own project</div>
+                            </div>
+                            <DialogFooter>
+                              <Button className="ProjAdminPanel-create" onClick={() => handleEditCourse(selectedCourseEdit)}>
+                                Save
+                              </Button>
+                            </DialogFooter>
+                            {message && <div className="ProjAdminPanel-message">{message}</div>}
+                          </DialogContent>
+                        </Dialog>
 
-                <Dialog>
-                  <DialogTrigger
-                    className="DialogTrigger"
-                    onClick={() => setSelectToEditProject(project)}
-                  >
-                    <img className="Edit" src={Edit} alt="Edit" />
-                  </DialogTrigger>
-                  <DialogContent className="DialogContent">
-                    <DialogHeader>
-                      <DialogTitle className="DialogTitle">
-                        Edit Project
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="newProjAdmin-input">
-                      <div className="newSem">New Project Group: </div>
-                      <input
-                        className="newProjAdmin-inputBox3"
-                        type="text"
-                        placeholder="Please Enter New Project Group Name"
-                        value={newProjectGroupName}
-                        onChange={(e) => setNewProjectGroupName(e.target.value)}
-                      />
-                    </div>
-                    <div className="newProjAdmin-input">
-                      <div className="newProjGroupName">New Name: </div>
-                      <input
-                        className="newProjAdmin-inputBox4"
-                        type="text"
-                        placeholder="Please Enter New Project Name"
-                        value={newProjectName}
-                        onChange={(e) => setNewProjectName(e.target.value)}
-                      />
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        className="create"
-                        type="submit"
-                        onClick={() => {
-                          setAction("EditProject");
-                          HandleEdit();
-                        }}
-                      >
-                        Confirm
-                      </Button>
-                    </DialogFooter>
-                    {message && <div className="message">{message}</div>}
-                  </DialogContent>
-                </Dialog>
-              </div>
-              <hr className="ProjectDivider" />
-            </>
-          ))}
+                        {/* AddProject dialog */}
+                        <Dialog onOpenChange={onOpenChangeDialog}>
+                          <DialogTrigger className="ProjAdminPanel-DialogTrigger" onClick={() => onOpenCreateProjectDialog(course)} data-cy="add-project-group-button">
+                            <img className="ProjAdminPanel-Add" src={Add} alt="Add" />
+                          </DialogTrigger>
+                          <DialogContent className="ProjAdminPanel-DialogContent">
+                            <DialogHeader>
+                              <DialogTitle className="ProjAdminPanel-DialogTitle">Add Project</DialogTitle>
+                            </DialogHeader>
+                            <div className="flex items-center justify-between">
+                              <div className="ProjAdminPanel-Sem">Project Name: </div>
+                              <input
+                                className="ProjAdminPanel-inputBox bg-gray-50"
+                                type="text"
+                                value={selectedProjectEdit?.projectName || ""}
+                                onChange={(e) =>
+                                  setSelectedProjectEdit({
+                                    ...selectedProjectEdit,
+                                    projectName: e.target.value
+                                  })
+                                }
+                              />
+                            </div>
+                            <div className="flex items-center space-x-3 text-black">
+                              <input
+                                className="mr-4 size-8 cursor-pointer appearance-none rounded border-2 border-gray-400 bg-gray-300 text-blue-600 checked:border-blue-600 checked:bg-blue-600"
+                                type="checkbox"
+                                checked={selectedProjectEdit?.studentsCanJoinProject || false}
+                                onChange={(e) =>
+                                  setSelectedProjectEdit({
+                                    ...selectedProjectEdit,
+                                    studentsCanJoinProject: e.target.checked
+                                  })
+                                }
+                              />
+                              <label className="text-lg font-medium">Students can join this project</label>
+                            </div>
+                            <DialogFooter>
+                              <Button className="ProjAdminPanel-create" onClick={() => handleCreateProject(selectedProjectEdit.projectName)}>
+                                Create
+                              </Button>
+                            </DialogFooter>
+                            {message && <div className="ProjAdminPanel-message">{message}</div>}
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+
+                    </td>
+                  </tr>
+
+                  {/* Display projects */}
+                  {course.projects.length > 0 && (
+                    <tr className="">
+                      <td colSpan={3} className="pl-16">
+                        <div className="bg-stone-200 pl-10">
+                          <ul className="m-0 flex list-none gap-5 py-3 pl-6 text-black">
+                            {course.projects.map((project, i) => (
+                              <React.Fragment key={i}>
+
+                                <li key={project.id} className="flex items-center space-x-2">
+                                  <span className="text-base">{project.projectName}</span>
+
+                                  {/* EditProject dialog */}
+                                  <Dialog onOpenChange={onOpenChangeDialog}>
+                                    <DialogTrigger className="ProjAdminPanel-DialogTrigger" onClick={() => onOpenEditProjectDialog(course, project)} data-cy="add-project-group-button">
+                                      <img className="ProjAdminPanel-SmallEdit" src={Edit} alt="Edit" />
+                                    </DialogTrigger>
+                                    <DialogContent className="ProjAdminPanel-DialogContent">
+                                      <DialogHeader>
+                                        <DialogTitle className="ProjAdminPanel-DialogTitle">Edit Project</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="flex items-center justify-between">
+                                        <div className="ProjAdminPanel-Sem">Project Name: </div>
+                                        <input
+                                          className="ProjAdminPanel-inputBox bg-gray-50"
+                                          type="text"
+                                          value={selectedProjectEdit?.projectName || ""}
+                                          onChange={(e) =>
+                                            setSelectedProjectEdit({
+                                              ...selectedProjectEdit,
+                                              projectName: e.target.value
+                                            })
+                                          }
+                                        />
+                                      </div>
+                                      <div className="flex items-center space-x-3 text-black">
+                                        <input
+                                          className="mr-4 size-8 cursor-pointer appearance-none rounded border-2 border-gray-400 bg-gray-300 text-blue-600 checked:border-blue-600 checked:bg-blue-600"
+                                          type="checkbox"
+                                          checked={selectedProjectEdit?.studentsCanJoinProject || false}
+                                          onChange={(e) =>
+                                            setSelectedProjectEdit({
+                                              ...selectedProjectEdit,
+                                              studentsCanJoinProject: e.target.checked
+                                            })
+                                          }
+                                        />
+                                        <label className="text-lg font-medium">Students can join this project</label>
+                                      </div>
+                                      <DialogFooter>
+                                        <Button className="ProjAdminPanel-create" onClick={() => handleEditProject(selectedProjectEdit.projectName, course.courseName)}>
+                                          Save
+                                        </Button>
+                                      </DialogFooter>
+                                      {message && <div className="ProjAdminPanel-message">{message}</div>}
+                                    </DialogContent>
+                                  </Dialog>
+                                </li>
+                              </React.Fragment>
+
+                            ))}
+                          </ul>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 export default ProjectAdmin;
