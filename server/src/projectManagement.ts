@@ -428,15 +428,25 @@ export const getRoleForProject = async (req: Request, res: Response, db: Databas
     if (!projectName || !userEmail) {
       return res.status(400).json({ message: "Project name and user email are required" });
     }
+
+    const validTableName = typeof projectName === 'string' && /^[a-zA-Z0-9_]+$/.test(projectName);
+    if (!validTableName) {
+        return res.status(400).json({ message: "Invalid project name" });
+    }
   
     try {
+      
         const role = await db.get(
             `SELECT memberRole
              FROM ${projectName}
              WHERE memberEmail = ?`,
-            [projectName, userEmail]
+            [userEmail]
         );
-        res.json(role);
+
+        if (!role) {
+            return res.status(404).json({ message: "Role not found" });
+        }
+        res.json({role: role.memberRole});
     } catch (error) {
       console.error("Error retrieving project role", error);
       res.status(500).json({ message: "Failed to retrieve project role", error });

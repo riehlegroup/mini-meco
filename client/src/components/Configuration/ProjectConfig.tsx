@@ -41,9 +41,11 @@ const ProjectConfig: React.FC = () => {
     name: string;
     email: string;
   } | null>(null);
-  const [role, setRole] = useState("");
+  const [createdProject, setCreatedProject] = useState<string>("");
+  const [memberRole, setMemberRole] = useState("");
   const [projectRoles, setProjectRoles] = useState<{ [key: string]: string }>({});
-  const [projectName, setProjectName] = useState<string>("");
+  const [error, setError] = useState('');
+  
 
   
 
@@ -105,29 +107,31 @@ const ProjectConfig: React.FC = () => {
         const data = await response.json();
         setEnrolledProjects(data.enrolledProjects.map((project: { projectName: string }) => project.projectName));
         setAvailableProjects(data.availableProjects.map((project: { projectName: string }) => project.projectName));
+        
+        for (const project of data.enrolledProjects) {
+          try {
+            const roleResponse = await fetch(
+              `http://localhost:3000/roleForProject?projectName=${project.projectName}&userEmail=${userEmail}`
+            );
+            
+            const roleData = await roleResponse.json();
+            setProjectRoles((prevRoles) => ({
+              ...prevRoles,
+              [project.projectName]: roleData.role,
+            }));
+            
+          } catch (error) {
+            console.error("Error fetching role:", error);
+          }
+        }
+
       } catch (error) {
         console.error("Error fetching projects:", error);
       }
     }
   };
 
-  const fetchRoles = async (projectName: string) => {
-    const userEmail = localStorage.getItem("email");
-    if (userEmail) {
-      try {
-        const response = await fetch(
-          `http://localhost:3000/roleForProject?projectName=${projectName}&userEmail=${userEmail}`
-        );
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
-        const data = await response.json();
-        setRole(data.role);
-      } catch (error) {
-        console.error("Error fetching role:", error);
-      }
-    }
-  }
+  
   const handleProjectChange = (projectName: string) => {
     setSelectedProject(projectName);
     fetchProjectURL(projectName);
@@ -361,6 +365,15 @@ const ProjectConfig: React.FC = () => {
     }
   };
 
+  const validateProjectName = (name: string) => {
+    const isValid = /^[a-zA-Z0-9_]+$/.test(name);
+    if (!isValid) {
+      setError('Project name can only contain letters, numbers, and underscores.');
+    } else {
+      setError('');
+    }
+  };
+
   const handleCreateAndJoin = async (projectName: string) => {
     await handleCreate(projectName);
     await handleJoin(projectName, "owner");
@@ -396,48 +409,50 @@ const ProjectConfig: React.FC = () => {
                 {enrolledProjects.map((project) => (
                   <li key={project}>
                     {project}
-                    
+
+                    {projectRoles[project] === "owner" && (
                       <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            className="editButton"
-                            type="button"
-                            onClick={() => handleProjectChange(project)}
-                          >
-                            Edit
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="DialogContent">
-                          <DialogHeader>
-                            <DialogTitle className="DialogTitle">
-                              Edit Project URL
-                            </DialogTitle>
-                          </DialogHeader>
-                          <div className="URLInput">
-                            <div className="URL">
-                              {url ? `Current URL: ${url}` : "No URL currently set"}
-                            </div>
-                            <input
-                              type="text"
-                              className="ProjAdmin-inputBox"
-                              placeholder="Enter new URL"
-                              value={newURL}
-                              onChange={(e) => setNewURL(e.target.value)}
-                            />
+                      <DialogTrigger asChild>
+                        <Button
+                          className="editButton"
+                          type="button"
+                          onClick={() => handleProjectChange(project)}
+                        >
+                          Edit
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="DialogContent">
+                        <DialogHeader>
+                          <DialogTitle className="DialogTitle">
+                            Edit Project URL
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="URLInput">
+                          <div className="URL">
+                            {url ? `Current URL: ${url}` : "No URL currently set"}
                           </div>
-                          <DialogFooter>
-                            <Button
-                              className="create"
-                              variant="primary"
-                              onClick={handleChangeURL}
-                            >
-                              Save
-                            </Button>
-                          </DialogFooter>
-                          {message && <div className="Message">{message}</div>}
-                        </DialogContent>
-                      </Dialog>
-                    
+                          <input
+                            type="text"
+                            className="ProjAdmin-inputBox"
+                            placeholder="Enter new URL"
+                            value={newURL}
+                            onChange={(e) => setNewURL(e.target.value)}
+                          />
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            className="create"
+                            variant="primary"
+                            onClick={handleChangeURL}
+                          >
+                            Save
+                          </Button>
+                        </DialogFooter>
+                        {message && <div className="Message">{message}</div>}
+                      </DialogContent>
+                    </Dialog>
+                    )}
+                      
                     <Button
                       className="leaveButton"
                       type="button"
@@ -485,15 +500,15 @@ const ProjectConfig: React.FC = () => {
                         type="text"
                         className="ProjAdmin-inputBox"
                         placeholder="Enter your role"
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
+                        value={memberRole}
+                        onChange={(e) => setMemberRole(e.target.value)}
                       />
                     </div>
                     <DialogFooter>
                       <Button
                         className="create"
                         variant="primary"
-                        onClick={() => handleJoin(selectedAvailableProject, role)}
+                        onClick={() => handleJoin(selectedAvailableProject, memberRole)}
                       >
                         Join
                       </Button>
@@ -526,15 +541,20 @@ const ProjectConfig: React.FC = () => {
                     type="text"
                     className="ProjAdmin-inputBox"
                     placeholder="Enter project name"
-                    value={projectName}
-                    onChange={(e) => setProjectName(e.target.value)}
+                    value={createdProject}
+                    onChange={(e) => {
+                      setCreatedProject(e.target.value);
+                      validateProjectName(e.target.value);
+                    }}
                   />
+                  {error && <div className="ErrorMessage">{error}</div>}
                 </div>
                 <DialogFooter>
                   <Button
                     className="create"
                     variant="primary"
-                    onClick={() => handleCreateAndJoin(projectName)}
+                    onClick={() => handleCreateAndJoin(createdProject)}
+                    disabled={!!error}
                   >
                     Create
                   </Button>
