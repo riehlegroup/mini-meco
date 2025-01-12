@@ -45,9 +45,9 @@ const ProjectConfig: React.FC = () => {
   const [memberRole, setMemberRole] = useState("");
   const [projectRoles, setProjectRoles] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState('');
-  
 
-  
+
+
 
 
   useEffect(() => {
@@ -107,19 +107,19 @@ const ProjectConfig: React.FC = () => {
         const data = await response.json();
         setEnrolledProjects(data.enrolledProjects.map((project: { projectName: string }) => project.projectName));
         setAvailableProjects(data.availableProjects.map((project: { projectName: string }) => project.projectName));
-        
+
         for (const project of data.enrolledProjects) {
           try {
             const roleResponse = await fetch(
               `http://localhost:3000/roleForProject?projectName=${project.projectName}&userEmail=${userEmail}`
             );
-            
+
             const roleData = await roleResponse.json();
             setProjectRoles((prevRoles) => ({
               ...prevRoles,
               [project.projectName]: roleData.role,
             }));
-            
+
           } catch (error) {
             console.error("Error fetching role:", error);
           }
@@ -131,12 +131,12 @@ const ProjectConfig: React.FC = () => {
     }
   };
 
-  
+
   const handleProjectChange = (projectName: string) => {
     setSelectedProject(projectName);
     fetchProjectURL(projectName);
   };
-  
+
   const fetchProjectURL = async (projectName: string) => {
     if (!projectName) {
       console.error("Selected project is missing");
@@ -332,7 +332,7 @@ const ProjectConfig: React.FC = () => {
   };
 
   const handleCreate = async (projectName: string) => {
-    const body = { 
+    const body = {
       projectGroupName: selectedCourse,
       projectName,
     };
@@ -405,65 +405,70 @@ const ProjectConfig: React.FC = () => {
           <>
             <div className="margintop">
               <h2>Enrolled Projects</h2>
-              <ul>
-                {enrolledProjects.map((project) => (
-                  <li key={project}>
-                    {project}
+              <div className="project-container">
+                <ul className="project-list">
+                  {enrolledProjects.map((project) => (
+                    <li key={project} className="project-item">
+                      <span>{project}</span>
+                      <div className="project-buttons">
 
-                    {projectRoles[project] === "owner" && (
-                      <Dialog>
-                      <DialogTrigger asChild>
+                        {projectRoles[project] === "owner" && (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                className="editButton"
+                                type="button"
+                                onClick={() => handleProjectChange(project)}
+                              >
+                                <img src={Edit} alt="Edit" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="DialogContent">
+                              <DialogHeader>
+                                <DialogTitle className="DialogTitle">
+                                  Edit Project URL
+                                </DialogTitle>
+                              </DialogHeader>
+                              <div className="URLInput">
+                                <div className="URL">
+                                  {url ? `Current URL: ${url}` : "No URL currently set"}
+                                </div>
+                                <input
+                                  type="text"
+                                  className="ProjAdmin-inputBox"
+                                  placeholder="Enter new URL"
+                                  value={newURL}
+                                  onChange={(e) => setNewURL(e.target.value)}
+                                />
+                              </div>
+                              <DialogFooter>
+                                <Button
+                                  className="create"
+                                  variant="primary"
+                                  onClick={handleChangeURL}
+                                >
+                                  Save
+                                </Button>
+                              </DialogFooter>
+                              {message && <div className="Message">{message}</div>}
+                            </DialogContent>
+                          </Dialog>
+                        )}
+
                         <Button
-                          className="editButton"
+                          className="leaveButton"
                           type="button"
-                          onClick={() => handleProjectChange(project)}
+                          onClick={() => handleLeave(project)}
                         >
-                          Edit
+                          Leave
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent className="DialogContent">
-                        <DialogHeader>
-                          <DialogTitle className="DialogTitle">
-                            Edit Project URL
-                          </DialogTitle>
-                        </DialogHeader>
-                        <div className="URLInput">
-                          <div className="URL">
-                            {url ? `Current URL: ${url}` : "No URL currently set"}
-                          </div>
-                          <input
-                            type="text"
-                            className="ProjAdmin-inputBox"
-                            placeholder="Enter new URL"
-                            value={newURL}
-                            onChange={(e) => setNewURL(e.target.value)}
-                          />
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            className="create"
-                            variant="primary"
-                            onClick={handleChangeURL}
-                          >
-                            Save
-                          </Button>
-                        </DialogFooter>
-                        {message && <div className="Message">{message}</div>}
-                      </DialogContent>
-                    </Dialog>
-                    )}
-                      
-                    <Button
-                      className="leaveButton"
-                      type="button"
-                      onClick={() => handleLeave(project)}
-                    >
-                      Leave
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
+
             <div className="margintop">
               <h2>Available Projects</h2>
               <Select onValueChange={setSelectedAvailableProject}>
@@ -522,12 +527,14 @@ const ProjectConfig: React.FC = () => {
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button
-                  className="confirm"
-                  type="button"
-                >
-                  Create Project
-                </Button>
+                <div className="createButton">
+                  <Button
+                    className="createButton"
+                    type="button"
+                  >
+                    Create Project
+                  </Button>
+                </div>
               </DialogTrigger>
               <DialogContent className="DialogContent">
                 <DialogHeader>

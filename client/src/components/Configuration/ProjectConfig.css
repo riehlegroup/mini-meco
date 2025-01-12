@@ -113,3 +113,42 @@ border-radius: 5px;
   margin-top: 50px;
 }
 
+.project-container {
+  display: flex;
+  justify-content: center;
+}
+
+.project-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.project-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 10px;
+  width: 100%;
+}
+
+.project-buttons {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.editButton img {
+  width: 16px;
+  height: 16px;
+}
+
+.joinButton {
+  margin-top: 0px; 
+}
+
+.createButton {
+  width: 100%;
+  max-width: 200px;
+  display: inline-block;
+  text-align: center;
+}
