@@ -34,7 +34,6 @@ const ProjectConfig: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selectedAvailableProject, setSelectedAvailableProject] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [edit, setEdit] = useState(false);
   const [courses, setCourses] = useState<string[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [user, setUser] = useState<{
@@ -170,49 +169,11 @@ const ProjectConfig: React.FC = () => {
 
       if (data && data.url) {
         setURL(data.url || "");
-        setEdit(!!data.url);
       } else {
         setURL("");
-        setEdit(false);
       }
     } catch (error) {
       console.error("Error fetching URL:", error);
-    }
-  };
-
-  const handleAddURL = async () => {
-    const userEmail = localStorage.getItem("email");
-    if (userEmail && selectedProject) {
-      try {
-        const response = await fetch(
-          "http://localhost:3000/projConfig/addURL",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: userEmail,
-              URL: url,
-              project: selectedProject,
-            }),
-          }
-        );
-        const data = await response.json();
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Error adding URL:", errorData);
-        } else {
-          setMessage(data.message || "URL added successfully");
-          if (data.message.includes("successfully")) {
-            window.location.reload();
-          }
-        }
-      } catch (error) {
-        console.error("Error adding URL:", error);
-      }
-    } else {
-      console.error("User email or selected project is missing");
     }
   };
 
