@@ -1,5 +1,12 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { hashPassword } from './hash';
+
+const DEFAULT_USER = {
+  name: "admin",
+  email: "sys@admin.org",
+  password: "helloworld"
+};
 
 export async function initializeDB() {
   const db = await open({
@@ -24,11 +31,12 @@ export async function initializeDB() {
 
   const userCount = await db.get('SELECT COUNT(*) AS count FROM users');
   if (userCount.count === 0) {
+    const { name, email, password } = DEFAULT_USER;
     await db.run(
       `INSERT INTO users (name, email, password, status) VALUES (?, ?, ?, ?)`,
-      ['admin', 'sys@admin.org', 'helloworld', 'confirmed']
+      [name, email, await hashPassword(password), 'confirmed']
     );
-    console.log('Default admin user created');
+    console.log(`Default admin user created: (email: '${email}', password: '${password}')`);
   }
 
   await db.exec(`

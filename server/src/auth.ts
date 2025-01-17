@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { Database } from 'sqlite';
+import { comparePassword, hashPassword } from './hash';
 
 dotenv.config();
 
 
-export const register = async (req: Request, res: Response, db: any) => {
+export const register = async (req: Request, res: Response, db: Database) => {
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
@@ -22,7 +22,7 @@ export const register = async (req: Request, res: Response, db: any) => {
     return res.status(400).json({ message: 'Name must be at least 3 characters long' });
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await hashPassword(password);
 
   try {
     await db.run('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, hashedPassword]);
@@ -67,7 +67,7 @@ export const login = async (req: Request, res: Response, db: Database) => {
       return res.status(400).json({ message: 'Invalid email' });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await comparePassword(password, user.password);
     if (!isValidPassword) {
       return res.status(400).json({ message: 'Invalid password' });
     }
@@ -154,7 +154,7 @@ export const forgotPassword = async (req: Request, res: Response, db: Database) 
 };
 
 
-export const resetPassword = async (req: Request, res: Response, db: any) => {
+export const resetPassword = async (req: Request, res: Response, db: Database) => {
   const { token, newPassword } = req.body;
 
   if (!token || !newPassword) {
@@ -171,7 +171,7 @@ export const resetPassword = async (req: Request, res: Response, db: any) => {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword);
     await db.run('UPDATE users SET password = ?, resetPasswordToken = NULL, resetPasswordExpire = NULL WHERE id = ?', [hashedPassword, user.id]);
 
     res.status(200).json({ message: 'Password has been reset' });
@@ -213,7 +213,7 @@ export const sendConfirmEmail = async (email: string, token: string) => {
 }
 
   
-export const confirmEmail = async (req: Request, res: Response, db: any) => {
+export const confirmEmail = async (req: Request, res: Response, db: Database) => {
   const { token } = req.body;
 
   if (!token) {
@@ -241,7 +241,7 @@ export const confirmEmail = async (req: Request, res: Response, db: any) => {
   }
 }
 
-export const sendConfirmationEmail = async (req: Request, res: Response, db: any) => {
+export const sendConfirmationEmail = async (req: Request, res: Response, db: Database) => {
   const { email } = req.body;
   try {
     const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
