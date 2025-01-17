@@ -17,10 +17,13 @@ import {
 const ProjectAdmin: React.FC = () => {
   const navigate = useNavigate();
 
+  const server = "http://localhost:3000/";
+
   const handleNavigation = () => {
     navigate("/project-admin");
   };
 
+  {/* Helper method for fetching all projects of a course */}
   interface Project {
     id: string;
     projectName: string;
@@ -44,7 +47,7 @@ const ProjectAdmin: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
 
   const get = (endpoint: string) => {
-    return fetch(`http://localhost:3000/${endpoint}`)
+    return fetch(`${server}${endpoint}`)
       .then(async (response) => {
         if (response.status < 200 || response.status > 299) {
           const data = await response.json()
@@ -57,7 +60,7 @@ const ProjectAdmin: React.FC = () => {
 
   const post = (endpoint: string, body: { [x: string]: string | boolean; }) => {
     return fetch(
-      `http://localhost:3000/${endpoint}`,
+      `${server}${endpoint}`,
       {
         method: "POST",
         headers: {
@@ -76,6 +79,7 @@ const ProjectAdmin: React.FC = () => {
       })
   };
 
+  {/* Helper method for fetching all projects of a course */}
   const getProjectsForCourse = (course: string): Promise<Project[]> => {
     return get(`projects?projectGroupName=${course}`)
       .then(projects => projects.map((project: { id: string; projectName: string; studentsCanJoinProject: boolean; }) => ({
@@ -91,6 +95,7 @@ const ProjectAdmin: React.FC = () => {
       });
   };
 
+  {/** Fetch courses and projects on page reload */}
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -118,6 +123,7 @@ const ProjectAdmin: React.FC = () => {
     fetchData();
   }, []);
 
+  {/* Method for creating a course */}
   const handleCreateCourse = async (semester: string, courseName: string,) => {
     const body: { [key: string]: string } = { semester, projectGroupName: courseName };
 
@@ -133,6 +139,7 @@ const ProjectAdmin: React.FC = () => {
     }
   };
 
+  {/* Method for creating a project */}
   const handleCreateProject = async (projectName: string) => {
     if (!selectedCourse) return;
 
@@ -150,6 +157,7 @@ const ProjectAdmin: React.FC = () => {
     }
   };
 
+  {/* Method for editing a project */}
   const handleEditProject = async (projectName: string, courseName: string) => {
     if (!selectedCourse || !selectedProject) return;
 
@@ -173,6 +181,7 @@ const ProjectAdmin: React.FC = () => {
     }
   };
 
+  {/* Method for editing a course */}
   const handleEditCourse = async (editedCourse: Course) => {
     if (!selectedCourse) return;
 
@@ -236,6 +245,7 @@ const ProjectAdmin: React.FC = () => {
                 <th className="px-6 py-3">Semester</th>
                 <th className="px-6 py-3">Course</th>
                 <th className="flex items-center justify-center px-6 py-4">
+                  {/* Create course dialog */}
                   <Dialog onOpenChange={onOpenChangeDialog}>
                     <DialogTrigger className="ProjAdminPanel-DialogTrigger" onClick={() => onOpenCreateCourseDialog()} data-cy="add-project-group-button">
                       <img className="ProjAdminPanel-Add" src={Add} alt="Add" />
@@ -300,6 +310,7 @@ const ProjectAdmin: React.FC = () => {
               </tr>
             </thead>
             <tbody>
+              {/* Iterate over all courses and add them to the table */}
               {courses.map((course, i) => (
                 <React.Fragment key={i}>
                   <tr className="bg-gray-100 text-black">
@@ -369,7 +380,7 @@ const ProjectAdmin: React.FC = () => {
                           </DialogContent>
                         </Dialog>
 
-                        {/* AddProject dialog */}
+                        {/* Add Project dialog */}
                         <Dialog onOpenChange={onOpenChangeDialog}>
                           <DialogTrigger className="ProjAdminPanel-DialogTrigger" onClick={() => onOpenCreateProjectDialog(course)} data-cy="add-project-group-button">
                             <img className="ProjAdminPanel-Add" src={Add} alt="Add" />
@@ -419,19 +430,20 @@ const ProjectAdmin: React.FC = () => {
                     </td>
                   </tr>
 
-                  {/* Display projects */}
+                  {/* Display projects for a course */}
                   {course.projects.length > 0 && (
                     <tr className="">
                       <td colSpan={3} className="pl-16">
                         <div className="bg-stone-200 pl-10">
                           <ul className="m-0 flex list-none gap-5 py-3 pl-6 text-black">
+                            {/* Iterate over all projects of a course and add them to the row below the course */}
                             {course.projects.map((project, i) => (
                               <React.Fragment key={i}>
 
                                 <li key={project.id} className="flex items-center space-x-2">
                                   <span className="text-base">{project.projectName}</span>
 
-                                  {/* EditProject dialog */}
+                                  {/* Edit Project dialog */}
                                   <Dialog onOpenChange={onOpenChangeDialog}>
                                     <DialogTrigger className="ProjAdminPanel-DialogTrigger" onClick={() => onOpenEditProjectDialog(course, project)} data-cy="add-project-group-button">
                                       <img className="ProjAdminPanel-SmallEdit" src={Edit} alt="Edit" />
