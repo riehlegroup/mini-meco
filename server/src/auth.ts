@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { Database } from 'sqlite';
+import { UserStatus, UserStatusEnum } from './userStatus';
 import { comparePassword, hashPassword } from './hash';
 
 dotenv.config();
@@ -72,12 +73,13 @@ export const login = async (req: Request, res: Response, db: Database) => {
       return res.status(400).json({ message: 'Invalid password' });
     }
 
-    const userStatus = user.status;
-    if (userStatus == 'unconfirmed') {
+    let st: string = user.status;
+    let userStatus: UserStatus = new UserStatus(st as UserStatusEnum);
+    if (userStatus.getStatus() == UserStatusEnum.unconfirmed) {
       return res.status(400).json({ message: 'Email not confirmed. Please contact system admin.' });
-    } else if (userStatus == 'suspended') {
+    } else if (userStatus.getStatus() == UserStatusEnum.suspended) {
       return res.status(400).json({ message: 'User account is suspended. Please contact system admin.' }); 
-    } else if (userStatus == 'removed') {
+    } else if (userStatus.getStatus() == UserStatusEnum.removed) {
       return res.status(400).json({ message: 'User account is removed. Please contact system admin.' });
     }
 
@@ -245,7 +247,9 @@ export const sendConfirmationEmail = async (req: Request, res: Response, db: Dat
   const { email } = req.body;
   try {
     const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
-    if (!user || user.status !== 'unconfirmed') {
+    let st: string = user.status;
+    let userStatus: UserStatus = new UserStatus(st as UserStatusEnum);
+    if (!user || userStatus.getStatus() != UserStatusEnum.unconfirmed) {
       return res.status(400).json({ message: 'User not found or not unconfirmed' });
     }
 
