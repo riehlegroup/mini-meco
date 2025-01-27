@@ -81,23 +81,6 @@ export const getUserProjectURL = async (req: Request, res: Response, db: Databas
   }
 }
 
-export const changeUserProjectURL = async (req: Request, res: Response, db: Database) => {
-  const {email, URL, project} = req.body;
-  if (!URL) {
-    return res.status(400).json({ message: 'Please fill in URL!' });
-  }
-  else if (!URL.includes('git')) {
-    return res.status(400).json({ message: 'Invalid URL' });
-  }
-  try {
-    await db.run(`UPDATE user_projects SET url = ? WHERE userEmail = ? AND projectName = ?`, [URL, email, project]);
-    res.status(200).json({ message: "URL added successfully" });
-  } catch (error) {
-    console.error("Error adding URL:", error);
-    res.status(500).json({ message: "Failed to add URL", error });
-  }
-}
-
 export const setUserGitHubUsername = async (req: Request, res: Response, db: Database) => {
   const {email, newGithubUsername} = req.body;
   if (!newGithubUsername) {
@@ -106,7 +89,7 @@ export const setUserGitHubUsername = async (req: Request, res: Response, db: Dat
   try {
     await db.run(`UPDATE users SET githubUsername = ? WHERE email = ?`, [newGithubUsername, email]);
     res.status(200).json({ message: "GitHub username added successfully" });
-  } catch (error) {
+  } catch (error) {-
     console.error("Error adding GitHub username:", error);
     res.status(500).json({ message: "Failed to add GitHub username}", error });
   }

@@ -22,7 +22,7 @@ const Standups: React.FC = () => {
   }, [location.state]);
 
   console.log("Project Name:", projectName);
-  
+
   const handleStandups = () => {
     navigate("/standups");
   };
@@ -39,7 +39,7 @@ const Standups: React.FC = () => {
       return;
     }
 
-    const endpoint = "/projects/sendStandupsEmail";
+    const endpoint = "/project/standupsEmail";
     const body = { projectName, userName, doneText, plansText, challengesText };
 
     try {

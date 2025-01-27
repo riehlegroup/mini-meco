@@ -147,14 +147,13 @@ const UserAdmin = () => {
     }
 
     function sendConfirmationEmail(user: User) {
-        fetch(`http://localhost:3000/sendConfirmationEmail`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ "email": user.email })
-            })
-            .then(checkError)
-            .catch(console.error)
+        fetch(`/user/confirmation/trigger`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: user.email }),
+        })
+          .then(checkError)
+          .catch(console.error);
     }
 
     const tableData = users.map(user => [

@@ -27,7 +27,7 @@ const Dashboard: React.FC = () => {
       if (userEmail) {
         try {
           const response = await fetch(
-            `http://localhost:3000/userProjects?userEmail=${userEmail}`
+            `http://localhost:3000/user/projects?userEmail=${userEmail}`
           );
           const data = await response.json();
           setProjects(

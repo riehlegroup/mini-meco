@@ -391,7 +391,7 @@ http :// localhost :3000
 #### 5.2.1 Authentication Routes
 
 
-POST /register
+POST /user
 Registers a new user to the system.
 
 - Request Body:
@@ -407,7 +407,7 @@ Registers a new user to the system.
     - 400 Bad Request: Validation errors or user already exists.
  
       
-POST /login<br>
+POST /session<br>
 Logs a user into the system.
 - Request Body:
 ```
@@ -499,7 +499,7 @@ Fetches all projects.
     - 500 Internal Server Error: Database failure.
  
       
-POST /project-admin/createProjectGroup<br>
+POST /course<br>
 Creates a new project group.
 - Request Body:
 ```
@@ -600,7 +600,7 @@ Saves the happiness rating of a user.
     - 400 Bad Request: Validation errors.
 
 
-GET /getHappinessData<br>
+GET /courseProject/happiness<br>
 Fetches happiness data for analysis.
 - Response:
     - 200 OK: Returns happiness data.
@@ -667,7 +667,7 @@ Updates the status of a user.
     - 400 Bad Request: Validation errors.
  
   
-GET /getUserStatus<br>
+GET /user/status<br>
 Fetches the current status of a user.
 - Response:
     - 200 OK: User status data returned.

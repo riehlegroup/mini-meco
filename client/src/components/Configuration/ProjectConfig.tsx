@@ -166,7 +166,6 @@ const ProjectConfig: React.FC = () => {
 
       const data = await response.json();
 
-
       if (data && data.url) {
         setURL(data.url || "");
       } else {
@@ -181,20 +180,17 @@ const ProjectConfig: React.FC = () => {
     const userEmail = localStorage.getItem("email");
     if (userEmail && selectedProject) {
       try {
-        const response = await fetch(
-          "http://localhost:3000/projConfig/addURL",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: userEmail,
-              URL: newURL,
-              project: selectedProject,
-            }),
-          }
-        );
+        const response = await fetch("http://localhost:3000/user/project/url", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: userEmail,
+            URL: newURL,
+            project: selectedProject,
+          }),
+        });
         const data = await response.json();
         if (!response.ok) {
           const errorData = await response.json();
