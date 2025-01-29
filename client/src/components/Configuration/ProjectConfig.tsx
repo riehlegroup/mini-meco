@@ -222,7 +222,7 @@ const ProjectConfig: React.FC = () => {
       projectName,
       memberName: user.name,
       memberRole: role,
-      memberEmail: user.email,
+      memberEmail: user.email.toString(),
     };
 
     try {
@@ -261,7 +261,7 @@ const ProjectConfig: React.FC = () => {
     }
     const body = {
       projectName,
-      memberEmail: user.email,
+      memberEmail: user.email.toString(),
     };
 
     try {

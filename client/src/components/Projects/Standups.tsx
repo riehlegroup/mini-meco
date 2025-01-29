@@ -39,7 +39,7 @@ const Standups: React.FC = () => {
       return;
     }
 
-    const endpoint = "/projects/sendStandupsEmail";
+    const endpoint = "/projects/sendStandupEmails";
     const body = { projectName, userName, doneText, plansText, challengesText };
 
     try {

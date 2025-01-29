@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { Database } from 'sqlite';
 import { comparePassword, hashPassword } from './hash';
+import { Email } from './email';
 
 dotenv.config();
 
@@ -16,20 +17,27 @@ export const register = async (req: Request, res: Response, db: Database) => {
     return res.status(400).json({ message: 'Please fill in username, email and password!' });
   } else if (password.length < 8) {
     return res.status(400).json({ message: 'Password must be at least 8 characters long' });
-  } else if (!email.includes('@')) {
-    return res.status(400).json({ message: 'Invalid email address' });
   } else if (name.length < 3) {
     return res.status(400).json({ message: 'Name must be at least 3 characters long' });
+  } else if(typeof email !== 'string') {
+    return res.status(400).json({ message: 'email has not the right format' });
+  }
+
+  let validatedEmail: Email;
+  try {
+    validatedEmail = new Email(email as string);
+  } catch (IllegalArgumentException) {
+    return res.status(400).json({ message: 'Invalid email address' });
   }
 
   const hashedPassword = await hashPassword(password);
 
   try {
-    await db.run('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, hashedPassword]);
+    await db.run('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, validatedEmail.toString(), hashedPassword]);
     res.status(201).json({ message: 'User registered successfully' });
 
     // Generate confirm email TOKEN
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const user = await db.get('SELECT * FROM users WHERE email = ?', [validatedEmail.toString()]);
     if (!user) {
       console.error('Email not found after registration');
       return;
@@ -42,10 +50,10 @@ export const register = async (req: Request, res: Response, db: Database) => {
 
     await db.run(
       'UPDATE users SET confirmEmailToken = ?, confirmEmailExpire = ? WHERE email = ?',
-      [token, expire, email]
+      [token, expire, validatedEmail.toString()]
     );
 
-    await sendConfirmEmail(email, token);
+    await sendConfirmEmail(validatedEmail, token);
 
     console.log('Confirmation email sent');
 
@@ -57,12 +65,20 @@ export const register = async (req: Request, res: Response, db: Database) => {
 
 export const login = async (req: Request, res: Response, db: Database) => {
   const { email, password } = req.body;
-  if (!email || !password) {
+  if (!email || !password || typeof email !== 'string') {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
+  let validatedEmail: Email;
   try {
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    validatedEmail = new Email(email as string);
+  } catch (IllegalArgumentException) {
+    return res.status(400).json({ message: 'Invalid email address' });
+  }
+
+
+  try {
+    const user = await db.get('SELECT * FROM users WHERE email = ?', [validatedEmail.toString()]);
     if (!user) {
       return res.status(400).json({ message: 'Invalid email' });
     }
@@ -85,7 +101,7 @@ export const login = async (req: Request, res: Response, db: Database) => {
 
 
     const token = jwt.sign({ id: user.id }, 'your_jwt_secret', { expiresIn: '1h' });
-    res.status(200).json({ token, name: user.name, email: user.email, githubUsername: user.githubUsername });
+    res.status(200).json({ token, name: user.name, email: user.email.toString(), githubUsername: user.githubUsername });
   } catch (error) {
     console.error('Error during login:', error);
     res.status(500).json({ message: 'Login failed' });
@@ -93,7 +109,7 @@ export const login = async (req: Request, res: Response, db: Database) => {
 };
 
 
-const sendPasswordResetEmail = async (email: string, token: string) => {
+const sendPasswordResetEmail = async (email: Email, token: string) => {
 
   const transporter = nodemailer.createTransport({
     host: 'smtp-auth.fau.de',
@@ -109,7 +125,7 @@ const sendPasswordResetEmail = async (email: string, token: string) => {
 
   const mailOptions = {
     from: '"Mini-Meco" <shu-man.cheng@fau.de>',
-    to: email,
+    to: email.toString(),
     subject: 'Password Reset',
     text: `You requested a password reset. Click the link to reset your password: ${resetLink}`,
   };
@@ -126,10 +142,19 @@ const sendPasswordResetEmail = async (email: string, token: string) => {
 };
 
 export const forgotPassword = async (req: Request, res: Response, db: Database) => {
-  const { email } = req.body;
+  let email: Email;
+  if (!req.body.email || typeof req.body.email !== 'string') {
+    return res.status(400).json({ message: 'User email is required' });
+  }
+  try {
+    email = new Email(req.body.email as string); // Validate and construct the Email instance
+  } catch (IllegalArgumentException) {
+  return res.status(400).json({ message: 'Invalid email address' });
+}
+
 
   try {
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const user = await db.get('SELECT * FROM users WHERE email = ?', [email.toString()]);
     if (!user) {
       return res.status(404).json({ message: 'Email not found' });
     }
@@ -141,7 +166,7 @@ export const forgotPassword = async (req: Request, res: Response, db: Database) 
 
     await db.run(
       'UPDATE users SET resetPasswordToken = ?, resetPasswordExpire = ? WHERE email = ?',
-      [token, expire, email]
+      [token, expire, email.toString()]
     );
 
     await sendPasswordResetEmail(email, token);
@@ -181,7 +206,7 @@ export const resetPassword = async (req: Request, res: Response, db: Database) =
   }
 };
 
-export const sendConfirmEmail = async (email: string, token: string) => {
+export const sendConfirmEmail = async (email: Email, token: string) => {
 
   const transporter = nodemailer.createTransport({
     host: 'smtp-auth.fau.de',
@@ -196,7 +221,7 @@ export const sendConfirmEmail = async (email: string, token: string) => {
 
   const mailOptions = {
     from: '"Mini-Meco" <shu-man.cheng@fau.de>',
-    to: email,
+    to: email.toString(),
     subject: 'Confirm Email',
     text: `You registered for Mini-Meco. Click the link to confirm your email: ${confirmedLink}`,
   };
@@ -232,7 +257,7 @@ export const confirmEmail = async (req: Request, res: Response, db: Database) =>
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
-    await db.run('UPDATE users SET status = "confirmed", confirmEmailToken = NULL, confirmEmailExpire = NULL WHERE email = ?', [user.email]);
+    await db.run('UPDATE users SET status = "confirmed", confirmEmailToken = NULL, confirmEmailExpire = NULL WHERE email = ?', [user.email.toString()]);
 
     res.status(200).json({ message: 'Email has been confirmed' });
   } catch (error) {
@@ -242,9 +267,17 @@ export const confirmEmail = async (req: Request, res: Response, db: Database) =>
 }
 
 export const sendConfirmationEmail = async (req: Request, res: Response, db: Database) => {
-  const { email } = req.body;
+  let email: Email;
+  if (!req.body.email || typeof req.body.email !== 'string') {
+    return res.status(400).json({ message: 'User email is required' });
+  }
   try {
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    email = new Email(req.body.email as string);
+  } catch (IllegalArgumentException) {
+    return res.status(400).json({ message: 'Invalid email address' });
+  }
+  try {
+    const user = await db.get('SELECT * FROM users WHERE email = ?', [email.toString()]);
     if (!user || user.status !== 'unconfirmed') {
       return res.status(400).json({ message: 'User not found or not unconfirmed' });
     }
@@ -252,7 +285,7 @@ export const sendConfirmationEmail = async (req: Request, res: Response, db: Dat
     const token = crypto.randomBytes(20).toString('hex');
     const expire = Date.now() + 3600000;
 
-    await db.run('UPDATE users SET confirmEmailToken = ?, confirmEmailExpire = ? WHERE email = ?', [token, expire, email]);
+    await db.run('UPDATE users SET confirmEmailToken = ?, confirmEmailExpire = ? WHERE email = ?', [token, expire, email.toString()]);
     await sendConfirmEmail(email, token);
 
     res.status(200).json({ message: 'Confirmation email sent' });

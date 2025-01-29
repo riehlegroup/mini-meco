@@ -5,7 +5,7 @@ import { register, login, forgotPassword, resetPassword, confirmEmail, sendConfi
 import { initializeDB } from './databaseInitializer';
 import dotenv from 'dotenv';
 import { createProjectGroup, createProject, editProjectGroup, editProject,getProjectGroups, getProjects, getSemesters, joinProject, leaveProject, getUserProjects, getUserProjectGroups, getUsers, getUsersByStatus, updateUserStatus, updateAllConfirmedUsers, getEnrolledCourses, getProjectsForCourse, getRoleForProject} from './projectManagement';
-import { sendStandupsEmail, saveHappinessMetric, createSprints, getProjectHappinessMetrics, getSprints, getProjectCurrentSprint, getProjectURL } from './projectFeatures';
+import { sendStandupEmails, saveHappinessMetric, createSprints, getProjectHappinessMetrics, getSprints, getProjectCurrentSprint, getProjectURL } from './projectFeatures';
 import { changeEmail, changePassword, setUserGitHubUsername, getUserGitHubUsername, setUserProjectURL, getUserProjectURL, changeUserProjectURL } from './userConfig';
 
 dotenv.config();
@@ -49,7 +49,7 @@ initializeDB().then((db) => {
   app.post('/settings/joinProject', (req, res) => joinProject(req, res, db));
   app.post('/settings/leaveProject', (req, res) => leaveProject(req, res, db));
   app.post('/settings/addGitHubUsername', (req, res) => setUserGitHubUsername(req, res, db));
-  app.post('/projects/sendStandupsEmail', (req, res) => sendStandupsEmail(req, res, db));
+  app.post('/projects/sendStandupEmails', (req, res) => sendStandupEmails(req, res, db));
   app.post('/happiness/saveHappiness', (req, res) => saveHappinessMetric(req, res, db));
   app.post('/happiness/createSprints', (req, res) => createSprints(req, res, db));
   app.post('/settings/changeEmail', (req, res) => changeEmail(req, res, db));

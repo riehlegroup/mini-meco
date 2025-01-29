@@ -1,8 +1,9 @@
 import { Database } from "sqlite";
 import { Request, Response } from "express";
 import nodemailer from "nodemailer";
+import { Email } from './email';
 
-export const sendStandupsEmail = async (req: Request, res: Response, db: Database) => {
+export const sendStandupEmails = async (req: Request, res: Response, db: Database) => {
     const { projectName, userName, doneText, plansText, challengesText } = req.body;
 
   
@@ -91,7 +92,14 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
   
   
   export const saveHappinessMetric = async (req: Request, res: Response, db: Database) => {
-      const { projectName, userEmail, happiness, sprintName } = req.body;
+      const { projectName, happiness, sprintName } = req.body;
+      let userEmail: Email;
+      try {
+        userEmail = new Email(req.query.email as string);
+      } catch (IllegalArgumentException) {
+        return res.status(400).json({ message: 'Invalid email address' });
+      }
+
       const timestamp = new Date().toISOString();
     
       try {
@@ -101,7 +109,7 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
         if (!projectGroupName) {
           return res.status(404).json({ message: "Project group not found" });
         }
-        await db.run(`INSERT INTO happiness (projectGroupName, projectName, userEmail, happiness, sprintName, timestamp ) VALUES (?, ?, ?, ?, ?, ? )`, [projectGroupName, projectName, userEmail, happiness, sprintName, timestamp]);
+        await db.run(`INSERT INTO happiness (projectGroupName, projectName, userEmail, happiness, sprintName, timestamp ) VALUES (?, ?, ?, ?, ?, ? )`, [projectGroupName, projectName, userEmail.toString(), happiness, sprintName, timestamp]);
         res.status(200).json({ message: "Happiness updated successfully" });
       } catch (error) {
         console.error("Error updating happiness:", error);
@@ -155,14 +163,24 @@ export const sendStandupsEmail = async (req: Request, res: Response, db: Databas
     };
 
     export const getProjectURL = async (req: Request, res: Response, db: Database) => {
-      const { projectName, email } = req.query;
+      const { projectName } = req.query;
+
+      let email: Email;
+      if (!req.query.email || typeof req.query.email !== 'string') {
+        return res.status(400).json({ message: 'User email is required' });
+      }
+      try {
+        email = new Email(req.query.email as string);
+      } catch (IllegalArgumentException) {
+        return res.status(400).json({ message: 'Invalid email address' });
+      }
   
       try {
-          const projectURL = await db.get(`SELECT url FROM user_projects WHERE projectName = ? AND userEmail = ?`, [projectName, email]);
+          const projectURL = await db.get(`SELECT url FROM user_projects WHERE projectName = ? AND userEmail = ?`, [projectName, email.toString()]);
           if (projectURL) {
               res.json(projectURL);
           } else {
-              console.warn(`No URL found for project: ${projectName} and email: ${email}`);
+              console.warn(`No URL found for project: ${projectName} and email: ${email.toString()}`);
               res.status(404).json({ message: 'Project URL not found' });
           }
       } catch (error) {
