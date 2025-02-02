@@ -116,6 +116,6 @@ export class User extends Visitor {
   }
 
   public removeProject(project: CourseProject){
-    this.projectsUserIsMemberOf = this.projectsUserIsMemberOf.filter(projectEl => projectEl.projectName != project.projectName);
+    this.projectsUserIsMemberOf = this.projectsUserIsMemberOf.filter(projectEl => projectEl.getName() != project.getName());
   }
 }
