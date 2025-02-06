@@ -14,7 +14,7 @@ const LoginScreen = () => {
   const [message, setMessage] = useState("");
 
   const handleSubmit = async () => {
-    const endpoint = action === "Registration" ? "/register" : "/login";
+    const endpoint = action === "Registration" ? "/user" : "/session";
     const body: { [key: string]: string } = { email, password };
     // Add name to the body if the action is Registration (not Login)
     if (action === "Registration") {
@@ -38,7 +38,7 @@ const LoginScreen = () => {
         throw new Error(data.message || "Something went wrong");
       }
 
-      if (endpoint === "/login") {
+      if (endpoint === "/session") {
         localStorage.setItem("token", data.token);
         localStorage.setItem("username", data.name);
         localStorage.setItem("email", data.email);

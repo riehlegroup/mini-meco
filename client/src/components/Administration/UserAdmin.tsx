@@ -37,7 +37,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
     function onSave() {
         const promises = []
         if (githubUsername && githubUsername !== user.githubUsername) {
-            promises.push(fetch(`http://localhost:3000/settings/addGitHubUsername`,
+            promises.push(fetch(`http://localhost:3000/user/githubUsername`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -57,7 +57,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
                 .catch(console.error));
         }
         if (password) {
-            promises.push(fetch(`http://localhost:3000/settings/changePassword`,
+            promises.push(fetch(`http://localhost:3000/user/password`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -69,7 +69,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
 
         Promise.all(promises).then(() =>
             email !== user.email ?
-                fetch(`http://localhost:3000/settings/changeEmail`,
+                fetch(`http://localhost:3000/user/mail`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -147,14 +147,13 @@ const UserAdmin = () => {
     }
 
     function sendConfirmationEmail(user: User) {
-        fetch(`http://localhost:3000/sendConfirmationEmail`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ "email": user.email })
-            })
-            .then(checkError)
-            .catch(console.error)
+        fetch(`/user/confirmation/trigger`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: user.email }),
+        })
+          .then(checkError)
+          .catch(console.error);
     }
 
     const tableData = users.map(user => [

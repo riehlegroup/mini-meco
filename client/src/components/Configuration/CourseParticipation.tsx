@@ -70,7 +70,7 @@ const CourseParticipation: React.FC = () => {
 
     const fetchProjectGroups = async () => {
       try {
-        const response = await fetch("http://localhost:3000/project-groups");
+        const response = await fetch("http://localhost:3000/course");
         const data = await response.json();
         setProjectGroups(data.map((item: Project) => item.projectGroupName));
         console.log("Fetched project groups:", data);
@@ -86,7 +86,7 @@ const CourseParticipation: React.FC = () => {
     const fetchUserProjects = async() => {
       try {
         const userEmail = localStorage.getItem("email")
-        const response = await fetch(`http://localhost:3000/userProjects?userEmail=${userEmail}`);
+        const response = await fetch(`http://localhost:3000/user/projects?userEmail=${userEmail}`);
         const data = await response.json();
         setUserProjects(data.map((item: Project) => item.projectName));
         console.log("Fetched user projects:", data);
@@ -105,7 +105,7 @@ const CourseParticipation: React.FC = () => {
       if (selectedEnrolledProjectGroup) {
         try {
           const response = await fetch(
-            `http://localhost:3000/projects?projectGroupName=${selectedEnrolledProjectGroup}`
+            `http://localhost:3000/courseProject?projectGroupName=${selectedEnrolledProjectGroup}`
           );
           const data = await response.json();
           const mappedProjects = data.map((item: Project) => ({
@@ -139,7 +139,7 @@ const CourseParticipation: React.FC = () => {
       if (selectedAvailableProjectGroup) {
         try {
           const response = await fetch(
-            `http://localhost:3000/projects?projectGroupName=${selectedAvailableProjectGroup}`
+            `http://localhost:3000/courseProject?projectGroupName=${selectedAvailableProjectGroup}`
           );
           const data = await response.json();
           const mappedProjects = data.map((item: Project) => ({
@@ -183,7 +183,7 @@ const CourseParticipation: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/settings/joinProject",
+        "http://localhost:3000/user/project",
         {
           method: "POST",
           headers: {
@@ -223,9 +223,9 @@ const CourseParticipation: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/settings/leaveProject",
+        "http://localhost:3000/user/project",
         {
-          method: "POST",
+          method: "DELETE",
           headers: {
             "Content-Type": "application/json",
           },

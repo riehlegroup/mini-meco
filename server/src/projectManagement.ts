@@ -4,20 +4,20 @@ import { send } from "process";
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
+import { Semester } from "./Models/Semester";
+
 dotenv.config();
 
 export const createProjectGroup = async (req: Request, res: Response, db: Database) => {
     const { semester, projectGroupName } = req.body;
-    const semesterRegex = /^(SS|WS)\d{2,4}$/; // Format: SS24 or WS2425
-
     if (!semester || !projectGroupName) {
         return res.status(400).json({ message: "Please fill in semester and project group name" });
-    } else if (!semesterRegex.test(semester)) {
-        return res.status(400).json({ message: "Invalid semester format. Please use SSYY or WSYYYY format" });
     }
     
+    let semesterInput = semester; // Raw input from the request
     try {
-        await db.run("INSERT INTO projectGroup (semester, projectGroupName) VALUES (?, ?)", [semester, projectGroupName]);
+        const semester = Semester.create(semesterInput); // Uses the Semester's internal validation
+        await db.run("INSERT INTO projectGroup (semester, projectGroupName) VALUES (?, ?)", [semester.toString(), projectGroupName]);
         await db.exec(`
             CREATE TABLE IF NOT EXISTS "${projectGroupName}" (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,21 +64,19 @@ export const createProject = async (req: Request, res: Response, db: Database) =
 
 export const editProjectGroup = async (req: Request, res: Response, db: Database) => {
     const { projectGroupName, newSemester, newProjectGroupName } = req.body;
-    const semesterRegex = /^(SS|WS)\d{2,4}$/; // Format: SS24 or WS2425
  
     if (!newSemester || !newProjectGroupName) {
         return res.status(400).json({ message: "Please fill in semester and project group name" });
-    } else if (!semesterRegex.test(newSemester)) {
-        return res.status(400).json({ message: "Invalid semester format. Please use SSYY or WSYYYY format" });
     }
 
     try {
-        console.log(`Executing SQL: UPDATE projectGroup SET semester = '${newSemester}', projectGroupName = '${newProjectGroupName}' WHERE projectGroupName = '${projectGroupName}'`);
+        const semester = Semester.create(newSemester); // @todo Shared ValueType method?
+        console.log(`Executing SQL: UPDATE projectGroup SET semester = '${semester.toString()}', projectGroupName = '${newProjectGroupName}' WHERE projectGroupName = '${projectGroupName}'`);
 
         await db.run(
             
             `UPDATE projectGroup SET semester = ?, projectGroupName = ? WHERE projectGroupName = ?`, 
-            [newSemester, newProjectGroupName, projectGroupName]
+            [semester.toString(), newProjectGroupName, projectGroupName]
         );        
 
         res.status(201).json({ message: "Project group edited successfully" });

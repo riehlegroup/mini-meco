@@ -19,7 +19,7 @@ beforeEach(() => {
   
     it('should create a new project group', () => {
       // Ensure the "Create" button is visible and clickable
-      cy.intercept('POST', '/project-groups').as('createProjectGroup');
+      cy.intercept('POST', '/course').as('createProjectGroup');
       cy.get('[data-cy="add-project-group-button"]').should('be.visible').click();
   
       cy.get('input[placeholder="Please follow this format: SS24 / WS2425"]').type('SS24');

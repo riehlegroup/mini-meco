@@ -47,7 +47,7 @@ const UserPanel: React.FC = () => {
     if (userEmail) {
       try {
         const response = await fetch(
-          `http://localhost:3000/getUserGitHubUsername?email=${userEmail}`
+          `http://localhost:3000/user/githubUsername?email=${userEmail}`
         );
         const data = await response.json();
         if (!response.ok) {
@@ -123,7 +123,7 @@ const UserPanel: React.FC = () => {
     };
     try {
       const response = await fetch(
-        "http://localhost:3000/settings/changePassword",
+        "http://localhost:3000/user/password",
         {
           method: "POST",
           headers: {
@@ -165,7 +165,7 @@ const UserPanel: React.FC = () => {
     let msg = document.getElementById('ErrorMessageGithub');
     try {
       const response = await fetch(
-        "http://localhost:3000/settings/addGitHubUsername",
+        "http://localhost:3000/user/githubUsername",
         {
           method: "POST",
           headers: {

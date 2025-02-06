@@ -8,7 +8,7 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const endpoint = "/forgotPassword";
+    const endpoint = "/user/password/forgotMail";
     const body = { email };
 
     try {

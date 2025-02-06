@@ -356,7 +356,7 @@ Note: The structure shown above includes only the most important files and direc
           - Example: standupsTest.cy.ts, authTest.cy.ts
 6. API Routes and Endpoints
     - Use camelCase for URL paths<br>
-           - Example: /api/saveHappiness or /api/addGitHubUsername
+           - Example: /api/saveHappiness or /api/user/githubUsername
 
 
 ### 4.3 Key Files and Directories
@@ -391,7 +391,7 @@ http :// localhost :3000
 #### 5.2.1 Authentication Routes
 
 
-POST /register
+POST /user
 Registers a new user to the system.
 
 - Request Body:
@@ -407,7 +407,7 @@ Registers a new user to the system.
     - 400 Bad Request: Validation errors or user already exists.
  
       
-POST /login<br>
+POST /session<br>
 Logs a user into the system.
 - Request Body:
 ```
@@ -421,7 +421,7 @@ Logs a user into the system.
     - 401 Unauthorized: Incorrect credentials.
 
   
-POST /forgotPassword<br>
+POST /user/password/forgotMail<br>
 Initiates the password reset process by sending a password reset email.
 - Request Body:
 ```
@@ -434,7 +434,7 @@ Initiates the password reset process by sending a password reset email.
     - 404 Not Found: User not found.
 
   
-POST /resetPassword<br>
+POST /user/password<br>
 Resets the password for a user.
 - Request Body:
 ```
@@ -462,7 +462,7 @@ Confirms a user’s email after registration.
     - 400 Bad Request: Invalid or expired token.
  
       
-POST /sendConfirmationEmail<br>
+POST /user/confirmation/trigger<br>
 Resends the email confirmation link to a user.
 - Request Body:
 ```
@@ -484,14 +484,14 @@ Fetches available semesters for projects
     - 500 Internal Server Error: Database connection or query failure.
  
       
-GET /project-groups<br>
+GET /course<br>
 Fetches all project groups.
 - Response:
     - 200 OK: Returns a list of project groups.
     - 500 Internal Server Error: Database failure.
 
   
-GET /projects<br>
+GET /courseProject<br>
 Fetches all projects.
 
 - Response:
@@ -499,7 +499,7 @@ Fetches all projects.
     - 500 Internal Server Error: Database failure.
  
       
-POST /project-admin/createProjectGroup<br>
+POST /course<br>
 Creates a new project group.
 - Request Body:
 ```
@@ -513,7 +513,7 @@ Creates a new project group.
     - 400 Bad Request: Invalid input data.
 
   
-POST /project-admin/createProject<br>
+POST /courseProject<br>
 Creates a new project under a project group.
 - Request Body:
 ```
@@ -527,7 +527,7 @@ Creates a new project under a project group.
     - 400 Bad Request: Invalid input data.
 
 
-POST /project-admin/editProjectGroup<br>
+PUT /course<br>
 Edits an existing project group.
 - Request Body:
 ```
@@ -542,7 +542,7 @@ Edits an existing project group.
     - 400 Bad Request: Validation errors.
 
 
-POST /project-admin/editProject<br>
+PUT /courseProject<br>
 Edits an existing project group.
 
 - Request Body:
@@ -558,7 +558,7 @@ Edits an existing project group.
     - 400 Bad Request: Validation errors.
  
   
-GET /getUserProjects<br>
+GET /user/projects<br>
 Fetches all projects associated with the current user.
 - Response:
     - 200 OK: List of user-specific projects.
@@ -566,7 +566,7 @@ Fetches all projects associated with the current user.
 
 #### 5.2.3 Project Features Routes
 
-POST /projects/sendStandupsEmail<br>
+POST /project/standupsEmail<br>
 Sends a standups reminder email.
 
 - Request Body:
@@ -584,7 +584,7 @@ Sends a standups reminder email.
     - 500 Internal Server Error: Failure sending the email.
  
 
-POST /happiness/saveHappiness<br>
+POST /courseProject/happiness<br>
 Saves the happiness rating of a user.
 - Request Body:
 ```
@@ -600,7 +600,7 @@ Saves the happiness rating of a user.
     - 400 Bad Request: Validation errors.
 
 
-GET /getHappinessData<br>
+GET /courseProject/happiness<br>
 Fetches happiness data for analysis.
 - Response:
     - 200 OK: Returns happiness data.
@@ -608,8 +608,8 @@ Fetches happiness data for analysis.
 
 #### 5.2.4 Project Configuration Routes
 
-POST /settings/addGitHubUsername<br>
-Adds a GitHub username to a user profile.
+POST /user/githubUsername<br>
+Sets a GitHub username for a user profile.
 
 - Request Body:
 ```
@@ -623,7 +623,7 @@ Adds a GitHub username to a user profile.
     - 400 Bad Request: Validation errors.
  
       
-POST /settings/changeEmail<br>
+POST /user/{userMail}/email<br>
 Changes the user’s email.
 - Request Body:
 ```
@@ -637,7 +637,7 @@ Changes the user’s email.
     - 400 Bad Request: Validation errors.
 
   
-POST /settings/changePassword<br>
+POST /user/{userMail}/password<br>
 Changes the user’s password.
 - Request Body:
 ```
@@ -652,7 +652,7 @@ Changes the user’s password.
 
 #### 5.2.5 Additional Routes
 
-POST /updateUserStatus
+POST /user/status
 Updates the status of a user.
 
 - Request Body:
@@ -667,7 +667,7 @@ Updates the status of a user.
     - 400 Bad Request: Validation errors.
  
   
-GET /getUserStatus<br>
+GET /user/status<br>
 Fetches the current status of a user.
 - Response:
     - 200 OK: User status data returned.

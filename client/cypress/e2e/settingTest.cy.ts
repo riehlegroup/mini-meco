@@ -3,7 +3,7 @@ describe('Settings Page End-to-End Test', () => {
     beforeEach(() => {
       cy.request({
         method: 'POST',
-        url: 'http://localhost:3000/login', 
+        url: 'http://localhost:3000/session', 
         body: {
           email: 'test@fau.edu',
           password: 'TestPassword123',
