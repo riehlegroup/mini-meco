@@ -85,5 +85,43 @@ CREATE TABLE IF NOT EXISTS sprints (
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)
       `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS schedules (
+      id INTEGER PRIMARY KEY,
+      startDate Integer,
+      endDate Integer
+    )`);
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS deliveries (
+      id INTEGER PRIMARY KEY,
+      scheduleId INTEGER,
+      deliveryDate INTEGER,
+      FOREIGN KEY (scheduleId) REFERENCES schedules(id) ON DELETE CASCADE,
+      UNIQUE (scheduleId, deliveryDate)
+    )`);
+
+  await db.exec(`
+    CREATE TRIGGER IF NOT EXISTS deliveries_insert_trigger
+    BEFORE INSERT ON deliveries
+    FOR EACH ROW
+    BEGIN
+      SELECT RAISE(ABORT, 'deliveryDate must be between startDate and endDate')
+      WHERE NEW.deliveryDate < (SELECT startDate FROM schedules WHERE id = NEW.scheduleId)
+        OR NEW.deliveryDate > (SELECT endDate FROM schedules WHERE id = NEW.scheduleId);
+    END;
+    `);
+
+  await db.exec(`
+    CREATE TRIGGER IF NOT EXISTS deliveries_update_trigger
+    BEFORE UPDATE ON deliveries
+    FOR EACH ROW
+    BEGIN
+      SELECT RAISE(ABORT, 'deliveryDate must be between startDate and endDate')
+      WHERE NEW.deliveryDate < (SELECT startDate FROM schedules WHERE id = NEW.scheduleId)
+        OR NEW.deliveryDate > (SELECT endDate FROM schedules WHERE id = NEW.scheduleId);
+    END;
+    `);
+
   return db;
 }

@@ -2,8 +2,9 @@ import { Database } from "sqlite";
 import { Response, Request } from "express";
 import { User } from "./Models/User";
 import { CourseProject } from "./Models/CourseProject";
-import { CourseSchedule } from "./Models/CourseSchedule";
+import { CourseSchedule, DeliveryDate } from "./Models/CourseSchedule";
 import { Course } from "./Models/Course";
+import assert from "assert";
 
 export class ObjectHandler { 
 
@@ -103,12 +104,52 @@ export class ObjectHandler {
         return new CourseProject(); // fill project object with data from row, e.g. projectRow.id;
     }
 
-    public async getCourseSchedule(id: string, db: Database): Promise<CourseSchedule | null> {
-        const scheduleRow = await db.get('SELECT * FROM schedules WHERE id = ?', [id]);
+    public async getCourseSchedule(id: number, db: Database): Promise<CourseSchedule | null> {
+        interface ScheduleRow {
+            id: number;
+            startDate: number;
+            endDate: number;
+        }
+
+        interface DeliveryRow {
+            id: number;
+            scheduleId: number;
+            deliveryDate: number;
+        }
+
+        const scheduleRow: ScheduleRow | undefined = await db.get('SELECT * FROM schedules WHERE id = ?', [id]);
         if (!scheduleRow) {
             return null;
         }
-        return new CourseSchedule(); // fill schedule object with data from row, e.g. scheduleRow.id;
+        const dates: DeliveryRow[] = await db.all('SELECT * FROM deliveries WHERE scheduleId = ? ORDER BY deliveryDate ASC', [id]);
+
+        return new CourseSchedule(
+            id,
+            new Date(scheduleRow.startDate * 1000),
+            new Date(scheduleRow.endDate * 1000),
+            dates.map(date => new DeliveryDate(date.id, new Date(date.deliveryDate * 1000)))
+        );
+    }
+
+    public async saveCourseSchedule(schedule: CourseSchedule, db: Database): Promise<void> {
+        if (schedule.getId()) {
+            await updateSchedule(schedule, db);
+        } else {
+            await insertSchedule(schedule, db);
+        }
+        
+        const scheduleId = schedule.getId();
+        if (!scheduleId) {
+            throw new Error("Failed to persist CourseSchedule");
+        }
+
+        for (const deliveryDate of schedule.getDeliveryDates()) {
+            if (deliveryDate.getId()) {
+                await updateDeliveryDate(deliveryDate, db);
+            } else {
+                await insertDeliveryDate(deliveryDate, scheduleId, db);
+            }
+        }
     }
 
     public async getCourse(id: string, db: Database): Promise<Course | null> {
@@ -120,4 +161,53 @@ export class ObjectHandler {
     }
 
     
+}
+
+
+async function updateDeliveryDate(deliveryDate: DeliveryDate, db: Database): Promise<void> {
+    assert(deliveryDate.getId())
+
+    await db.run(
+        'UPDATE deliveries SET deliveryDate = ? WHERE id = ?',
+        [deliveryDate.getDeliveryDate().getTime() / 1000, deliveryDate.getId()]
+    )
+}
+
+async function insertDeliveryDate(deliveryDate: DeliveryDate, scheduleId: number, db: Database): Promise<void> {
+    assert(!deliveryDate.getId())
+
+    const rowId = await db.run(
+        'INSERT INTO deliveries (scheduleId, deliveryDate) VALUES (?, ?)',
+        [scheduleId, deliveryDate.getDeliveryDate().getTime() / 1000]
+    ).then((res) => res.lastID);
+
+    if (rowId == null) {
+        throw new Error("Failed to persist DeliveryDate");
+    }
+
+    deliveryDate.setId(rowId);
+}
+
+async function updateSchedule(schedule: CourseSchedule, db: Database): Promise<void> {
+    assert(schedule.getId())
+
+    await db.run(
+        'UPDATE schedules SET startDate = ?, endDate = ? WHERE id = ?',
+        [schedule.getStartDate().getTime() / 1000, schedule.getEndDate().getTime() / 1000, schedule.getId()]
+    );
+}
+
+async function insertSchedule(schedule: CourseSchedule, db: Database): Promise<void> {
+    assert(!schedule.getId())
+
+    const rowId = await db.run(
+        'INSERT INTO schedules (startDate, endDate) VALUES (?, ?)',
+        [schedule.getStartDate().getTime() / 1000, schedule.getEndDate().getTime() / 1000]
+    ).then((res) => res.lastID);
+
+    if (rowId == null) {
+        throw new Error("Failed to persist CourseSchedule");
+    }
+
+    schedule.setId(rowId);
 }
