@@ -1,5 +1,5 @@
 import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import { Database, open } from 'sqlite';
 import { hashPassword } from './hash';
 
 const DEFAULT_USER = {
@@ -84,7 +84,15 @@ CREATE TABLE IF NOT EXISTS sprints (
       sprintName TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)
       `);
+      
 
+  await initializeCourseSchedule(db);
+
+  return db;
+}
+
+// exported for testing
+export async function initializeCourseSchedule(db: Database) {
   await db.exec(`
     CREATE TABLE IF NOT EXISTS schedules (
       id INTEGER PRIMARY KEY,
@@ -122,6 +130,4 @@ CREATE TABLE IF NOT EXISTS sprints (
         OR NEW.deliveryDate > (SELECT endDate FROM schedules WHERE id = NEW.scheduleId);
     END;
     `);
-
-  return db;
 }
