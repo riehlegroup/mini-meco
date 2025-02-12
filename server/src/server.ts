@@ -4,27 +4,25 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { initializeDB } from './databaseInitializer';
 import { ObjectHandler } from './ObjectHandler';
-import { 
-    register, login, forgotPassword, resetPassword, confirmEmail, sendConfirmationEmail 
+import {
+  register, login, forgotPassword, resetPassword, confirmEmail, sendConfirmationEmail
 } from './auth';
-import { 
-    createProjectGroup, createProject, editProjectGroup, editProject, getProjectGroups, getProjects, 
-    getSemesters, joinProject, leaveProject, getUserProjects, getUserProjectGroups, getUsersByStatus, 
-    updateUserStatus, updateAllConfirmedUsers, 
-    getEnrolledCourses,
-    getProjectsForCourse,
-    getRoleForProject,
-    getUsers,
-    getUserRole,
-    updateUserRole
+import {
+  createCourse, createProject, editCourse, editProject, getCourses, getProjects,
+  getSemesters, joinProject, leaveProject, getUserProjects, getUserCourses, getUsersByStatus,
+  updateUserStatus, updateAllConfirmedUsers,
+  getEnrolledCourses,
+  getProjectsForCourse,
+  getRoleForProject,
+  getUsers
 } from './projectManagement';
-import { 
-    sendStandupsEmail, saveHappinessMetric, createSprints, getProjectHappinessMetrics, getSprints, 
-    getProjectCurrentSprint
+import {
+  sendStandupsEmail, saveHappinessMetric, createSprints, getProjectHappinessMetrics, getSprints,
+  getProjectCurrentSprint
 } from './projectFeatures';
-import { 
-    changeEmail, changePassword, setUserGitHubUsername, getUserGitHubUsername, setUserProjectURL, 
-    getUserProjectURL 
+import {
+  changeEmail, changePassword, setUserGitHubUsername, getUserGitHubUsername, setUserProjectURL,
+  getUserProjectURL
 } from './userConfig';
 import { checkOwnership } from './auth';
 
@@ -45,11 +43,11 @@ initializeDB().then((db) => {
   });
 
   // course endpoints
-  app.get('/course', (req, res) => { getProjectGroups(req, res, db) });
-  app.post('/course', (req, res) => { createProjectGroup(req, res, db); });
-  app.put('/course', (req, res) => { editProjectGroup(req, res, db); });
+  app.get('/course', (req, res) => { getCourses(req, res, db) });
+  app.post('/course', (req, res) => { createCourse(req, res, db); });
+  app.put('/course', (req, res) => { editCourse(req, res, db); });
   app.get('/course/courseProjects', (req, res) => getProjectsForCourse(req, res, db));
-  app.get('/course/user', (req, res) => { getUserProjectGroups(req, res, db) });
+  app.get('/course/user', (req, res) => { getUserCourses(req, res, db) });
 
   // courseProject endpoints
   app.get('/courseProject', (req, res) => { getProjects(req, res, db) });
@@ -87,16 +85,15 @@ initializeDB().then((db) => {
   app.get('/user/role', (req, res) => { getUserRole(req, res, db) });
   app.post('/user/role', (req, res) => { updateUserRole(req, res, db) });
 
-
   app.post('/projConfig/changeURL', (req, res) => setUserProjectURL(req, res, db));
   app.get('/semesters', (req, res) => { getSemesters(req, res, db) });
   app.post('/projConfig/leaveProject', (req, res) => leaveProject(req, res, db));
   app.post('/session', (req, res) => login(req, res, db));
 
 
-    app.listen(port, () => {
-        console.log(`Server running on http://localhost:${port}`);
-    });
+  app.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
+  });
 }).catch(error => {
-    console.error('Failed to initialize the database:', error);
+  console.error('Failed to initialize the database:', error);
 });

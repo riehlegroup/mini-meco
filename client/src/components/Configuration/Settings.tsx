@@ -116,7 +116,7 @@ const Settings: React.FC = () => {
     }
 
     const body = {
-      email: user.email,
+      userEmail: user.email,
       password: newPassword,
     };
 

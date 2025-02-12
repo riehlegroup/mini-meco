@@ -37,8 +37,8 @@ const CodeActivity: React.FC = () => {
     githubUsername: string;
   } | null>(null);
   // @ts-ignore: suppress unused variable warning
-  const [projectGroups, setProjectGroups] = useState<string[]>([]);
-  const [selectedProjectGroup, setSelectedProjectGroup] = useState<string>("");
+  const [courses, setCourses] = useState<string[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [commitsPerSprint, setCommitsPerSprint] = useState<any[]>([]);
 
   const handleNavigation = () => {
@@ -57,7 +57,7 @@ const CodeActivity: React.FC = () => {
   }, [location.state]);
 
   useEffect(() => {
-    const fetchProjectGroup = async () => {
+    const fetchCourse = async () => {
       if (!projectName) return;
 
       try {
@@ -70,8 +70,8 @@ const CodeActivity: React.FC = () => {
           const text = await response.text();
           if (text) {
             const data = JSON.parse(text);
-            if (data && data.projectGroupName) {
-              setSelectedProjectGroup(data.projectGroupName);
+            if (data && data.courseName) {
+              setSelectedCourse(data.courseName);
             }
           } else {
             console.error("Empty response body");
@@ -84,7 +84,7 @@ const CodeActivity: React.FC = () => {
       }
     };
 
-    fetchProjectGroup();
+    fetchCourse();
   }, [projectName]);
 
   useEffect(() => {
@@ -121,7 +121,7 @@ const CodeActivity: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/user/user/projects?email=${encodeURIComponent(
+        `http://localhost:3000/user/projects?userEmail=${encodeURIComponent(
           user.email
         )}&projectName=${encodeURIComponent(projectName)}`
       );
@@ -151,12 +151,12 @@ const CodeActivity: React.FC = () => {
 
   useEffect(() => {
     const fetchAllSprints = async () => {
-      if (!selectedProjectGroup) return;
-
+      if (!selectedCourse) return;
+  
       try {
         const response = await fetch(
-          `http://localhost:3000/sprints?projectGroupName=${encodeURIComponent(
-            selectedProjectGroup
+          `http://localhost:3000/sprints?courseName=${encodeURIComponent(
+            selectedCourse
           )}`
         );
         const fetchedSprints = await response.json();
@@ -185,7 +185,8 @@ const CodeActivity: React.FC = () => {
     };
 
     fetchAllSprints();
-  }, [selectedProjectGroup]);
+  }, [selectedCourse]);
+  
 
   const getCommits = async (page: number) => {
     if (!repoDetails || !sprints.length) {
