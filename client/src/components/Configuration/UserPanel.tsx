@@ -118,7 +118,7 @@ const UserPanel: React.FC = () => {
     }
 
     const body = {
-      email: user.email.toString(),
+      userEmail: user.email.toString(),
       password: newPassword,
     };
     try {
@@ -159,7 +159,7 @@ const UserPanel: React.FC = () => {
     }
   
     const body = {
-      email: user?.email,
+      userEmail: user?.email,
       newGithubUsername: githubUsername,
     };
     let msg = document.getElementById('ErrorMessageGithub');

@@ -1,56 +1,51 @@
 import { Database } from "sqlite";
 import { Request, Response } from "express";
 import { hashPassword } from "./hash";
+import { DatabaseManager } from "./Models/DatabaseManager";
 
 export const changeEmail = async (req: Request, res: Response, db: Database) => {
-    const { newEmail, oldEmail } = req.body;
-    if (!newEmail) {
-        return res.status(400).json({ message: 'Please fill in new email!' });
-      }
-      else if (!newEmail.includes('@')) {
-        return res.status(400).json({ message: 'Invalid email address' });
-      }
+  const { newEmail, oldEmail } = req.body;
+  if (!newEmail) {
+    return res.status(400).json({ message: 'Please fill in new email!' });
+  }
+  else if (!newEmail.includes('@')) {
+    return res.status(400).json({ message: 'Invalid email address' });
+  }
 
-    try {
-        const projects = await db.all(`SELECT projectName FROM user_projects WHERE userEmail = ?`, [oldEmail])
-
-        await db.run(`UPDATE users SET email = ? WHERE email = ?`, [newEmail, oldEmail]);
-        await db.run(`UPDATE user_projects SET userEmail = ? WHERE userEmail = ?`, [newEmail, oldEmail]);
-        await db.run(`UPDATE happiness SET userEmail = ? WHERE userEmail = ?`, [newEmail, oldEmail]);
-
-        for (let i = 0; i < projects.length; i++) {
-            await db.run(`UPDATE "${projects[i].projectName}" SET memberEmail = ? WHERE memberEmail = ?`, [newEmail, oldEmail]);
-        }
-        res.status(200).json({ message: "Email updated successfully" });
-    } catch (error) {
-        console.error("Error updating email:", error);
-        res.status(500).json({ message: "Failed to update email", error });
-    }
+  try {
+    const userId = DatabaseManager.getUserIdFromEmail(db, oldEmail);
+    await db.run(`UPDATE users SET email = ? WHERE id = ?`, [newEmail, userId]);
+    res.status(200).json({ message: "Email updated successfully" });
+  } catch (error) {
+    console.error("Error updating email:", error);
+    res.status(500).json({ message: "Failed to update email", error });
+  }
 }
 
 export const changePassword = async (req: Request, res: Response, db: Database) => {
-    const { email, password } = req.body;
+  const { userEmail, password } = req.body;
 
-    if (!password) {
-        return res.status(400).json({ message: 'Please fill in new password!' });
-      }
-      else if (password.length < 8) {
-        return res.status(400).json({ message: 'Password must be at least 8 characters long' });
-      }
+  if (!password) {
+    return res.status(400).json({ message: 'Please fill in new password!' });
+  }
+  else if (password.length < 8) {
+    return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+  }
 
-    const hashedPassword = await hashPassword(password);
+  const hashedPassword = await hashPassword(password);
 
-    try {
-        await db.run(`UPDATE users SET password = ? WHERE email = ?`, [hashedPassword, email]);
-        res.status(200).json({ message: "Password updated successfully" });
-    } catch (error) {
-        console.error("Error updating password:", error);
-        res.status(500).json({ message: "Failed to update password", error });
-    }
+  try {
+    const userId = DatabaseManager.getUserIdFromEmail(db, userEmail);
+    await db.run(`UPDATE users SET password = ? WHERE id = ?`, [hashedPassword, userId]);
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Error updating password:", error);
+    res.status(500).json({ message: "Failed to update password", error });
+  }
 }
 
 export const setUserProjectURL = async (req: Request, res: Response, db: Database) => {
-  const {email, URL, project} = req.body;
+  const { userEmail, URL, projectName } = req.body;
 
   if (!URL) {
     return res.status(400).json({ message: 'Please fill in URL!' });
@@ -60,7 +55,10 @@ export const setUserProjectURL = async (req: Request, res: Response, db: Databas
   }
 
   try {
-    await db.run(`UPDATE user_projects SET url = ? WHERE userEmail = ? AND projectName = ?`, [URL, email, project]);
+    const userId = DatabaseManager.getUserIdFromEmail(db, userEmail);
+    const projectId = DatabaseManager.getProjectIdFromName(db, projectName);
+
+    await db.run(`UPDATE user_projects SET url = ? WHERE userId = ? AND projectId = ?`, [URL, userId, projectId]);
     res.status(200).json({ message: "URL added successfully" });
   } catch (error) {
     console.error("Error adding URL:", error);
@@ -69,10 +67,16 @@ export const setUserProjectURL = async (req: Request, res: Response, db: Databas
 }
 
 export const getUserProjectURL = async (req: Request, res: Response, db: Database) => {
-  const {email, project} = req.query;
+  const { userEmail, projectName } = req.query;
+
+  if(!userEmail || !projectName) {
+    return res.status(400).json({ message: 'User Email and Project Name are mandatory!' });
+  }
 
   try {
-    const urlObj = await db.get(`SELECT url FROM user_projects WHERE userEmail = ? AND projectName = ?`, [email, project]);
+    const userId = DatabaseManager.getUserIdFromEmail(db, userEmail.toString());
+    const projectId = DatabaseManager.getProjectIdFromName(db, projectName.toString());
+    const urlObj = await db.get(`SELECT url FROM user_projects WHERE userId = ? AND projectId = ?`, [userId, projectId]);
     const url = urlObj ? urlObj.url : null;
     res.status(200).json({ url });
   } catch (error) {
@@ -82,12 +86,13 @@ export const getUserProjectURL = async (req: Request, res: Response, db: Databas
 }
 
 export const setUserGitHubUsername = async (req: Request, res: Response, db: Database) => {
-  const {email, newGithubUsername} = req.body;
+  const { userEmail, newGithubUsername } = req.body;
   if (!newGithubUsername) {
     return res.status(400).json({ message: 'Please fill in GitHub username!' });
   }
   try {
-    await db.run(`UPDATE users SET githubUsername = ? WHERE email = ?`, [newGithubUsername, email]);
+    const userId = DatabaseManager.getUserIdFromEmail(db, userEmail);
+    await db.run(`UPDATE users SET githubUsername = ? WHERE id = ?`, [newGithubUsername, userId]);
     res.status(200).json({ message: "GitHub username added successfully" });
   } catch (error) {
     console.error("Error adding GitHub username:", error);
@@ -96,9 +101,15 @@ export const setUserGitHubUsername = async (req: Request, res: Response, db: Dat
 }
 
 export const getUserGitHubUsername = async (req: Request, res: Response, db: Database) => {
-  const {email} = req.query;
+  const { userEmail } = req.query;
+
+  if(!userEmail) {
+    return res.status(400).json({ message: 'User Email is mandatory!' });
+  }
+
   try {
-    const githubUsernameObj = await db.get(`SELECT githubUsername FROM users WHERE email = ?`, [email]);
+    const userId = DatabaseManager.getUserIdFromEmail(db, userEmail?.toString());
+    const githubUsernameObj = await db.get(`SELECT githubUsername FROM users WHERE id = ?`, [userId]);
     const githubUsername = githubUsernameObj ? githubUsernameObj.githubUsername : null;
     res.status(200).json({ githubUsername });
   } catch (error) {
@@ -106,3 +117,36 @@ export const getUserGitHubUsername = async (req: Request, res: Response, db: Dat
     res.status(500).json({ message: "Failed to fetch GitHub username", error });
   }
 }
+
+export const getUserRole = async (req: Request, res: Response, db: Database) => {
+  const { userEmail } = req.query;
+
+  try {
+      const user = await db.get('SELECT userRole FROM users WHERE email = ?', [userEmail]);
+      if (user) {
+          res.json(user);
+      } else {
+          res.status(404).json({ message: "User not found" });
+      }
+  } catch (error) {
+      console.error("Error during retrieving user role:", error);
+      res.status(500).json({ message: "Failed to retrieve user role", error });
+  }
+}
+
+export const updateUserRole = async (req: Request, res: Response, db: Database) => {
+  const { email, role } = req.body;
+
+  if (!email || !role) {
+      return res.status(400).json({ message: "Please provide email and role" });
+  }
+
+  try {
+      await db.run('UPDATE users SET userRole = ? WHERE email = ?', [role, email]);
+      res.status(200).json({ message: "User role updated successfully" });
+  } catch (error) {
+      console.error("Error during updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role", error });
+  }
+}
+

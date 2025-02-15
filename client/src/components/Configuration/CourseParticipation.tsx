@@ -25,7 +25,7 @@ const CourseParticipation: React.FC = () => {
   type Project = {
     id: number; 
     projectName: string; 
-    projectGroupName: string;
+    courseName: string;
   };
   
   const navigate = useNavigate();
@@ -43,14 +43,14 @@ const CourseParticipation: React.FC = () => {
     email: string;
   } | null>(null);
 
-  const [projectGroups, setProjectGroups] = useState<string[]>([]);
+  const [courses, setCourses] = useState<string[]>([]);
   const [userProjects, setUserProjects] = useState<string[]>([]);
 
   const [enrolledProjects, setEnrolledProjects] = useState<Project[]>([]);
-  const [selectedEnrolledProjectGroup, setSelectedEnrolledProjectGroup] = useState<string>("");
+  const [selectedEnrolledCourse, setSelectedEnrolledCourse] = useState<string>("");
 
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
-  const [selectedAvailableProjectGroup, setSelectedAvailableProjectGroup] = useState<string>("");
+  const [selectedAvailableCourse, setSelectedAvailableCourse] = useState<string>("");
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -68,11 +68,11 @@ const CourseParticipation: React.FC = () => {
 
     fetchUserData();
 
-    const fetchProjectGroups = async () => {
+    const fetchCourses = async () => {
       try {
         const response = await fetch("http://localhost:3000/course");
         const data = await response.json();
-        setProjectGroups(data.map((item: Project) => item.projectGroupName));
+        setCourses(data.map((item: Project) => item.courseName));
         console.log("Fetched project groups:", data);
       } catch (error: unknown) {
         if (error instanceof Error) {
@@ -81,7 +81,7 @@ const CourseParticipation: React.FC = () => {
       }
     };
 
-    fetchProjectGroups();
+    fetchCourses();
 
     const fetchUserProjects = async() => {
       try {
@@ -102,16 +102,16 @@ const CourseParticipation: React.FC = () => {
 
   useEffect(() => {
     const fetchEnrolledProjects = async () => {
-      if (selectedEnrolledProjectGroup) {
+      if (selectedEnrolledCourse) {
         try {
           const response = await fetch(
-            `http://localhost:3000/courseProject?projectGroupName=${selectedEnrolledProjectGroup}`
+            `http://localhost:3000/courseProject?courseName=${selectedEnrolledCourse}`
           );
           const data = await response.json();
           const mappedProjects = data.map((item: Project) => ({
             id: item.id,
             projectName: item.projectName,
-            projectGroupName: item.projectGroupName || selectedEnrolledProjectGroup,
+            courseName: item.courseName || selectedEnrolledCourse,
           }));
 
           const enrolledProjects = mappedProjects.filter((item: Project) => userProjects.includes(item.projectName));
@@ -128,24 +128,24 @@ const CourseParticipation: React.FC = () => {
     };
 
     fetchEnrolledProjects();
-  }, [selectedEnrolledProjectGroup]);
+  }, [selectedEnrolledCourse]);
 
   const filteredEnrolledProjects = enrolledProjects.filter(
-    (project) => project.projectGroupName === selectedEnrolledProjectGroup
+    (project) => project.courseName === selectedEnrolledCourse
   );
 
   useEffect(() => {
     const fetchAvailableProjects = async () => {
-      if (selectedAvailableProjectGroup) {
+      if (selectedAvailableCourse) {
         try {
           const response = await fetch(
-            `http://localhost:3000/courseProject?projectGroupName=${selectedAvailableProjectGroup}`
+            `http://localhost:3000/courseProject?courseName=${selectedAvailableCourse}`
           );
           const data = await response.json();
           const mappedProjects = data.map((item: Project) => ({
             id: item.id,
             projectName: item.projectName,
-            projectGroupName: item.projectGroupName || selectedAvailableProjectGroup,
+            courseName: item.courseName || selectedAvailableCourse,
           }));
 
           const availableProjectsWithoutEnrolled = mappedProjects.filter((item: Project) => !userProjects.includes(item.projectName));
@@ -162,10 +162,10 @@ const CourseParticipation: React.FC = () => {
     };
 
     fetchAvailableProjects();
-  }, [selectedAvailableProjectGroup]);
+  }, [selectedAvailableCourse]);
 
   const filteredAvailableProjects = availableProjects.filter(
-    (project: Project) => project.projectGroupName === selectedAvailableProjectGroup
+    (project: Project) => project.courseName === selectedAvailableCourse
   );
 
   const handleJoin = async (projectName: string) => {
@@ -263,14 +263,14 @@ const CourseParticipation: React.FC = () => {
           <div className="SelectWrapper">
             <Select
               onValueChange={(value) => {
-                setSelectedEnrolledProjectGroup(value);
+                setSelectedEnrolledCourse(value);
               }}
             >
               <SelectTrigger className="SelectTrigger">
                 <SelectValue placeholder="Select a project group" />
               </SelectTrigger>
               <SelectContent className="SelectContent">
-                {projectGroups.map((group, index) => (
+                {courses.map((group, index) => (
                   <SelectItem key={index} value={group}>
                     {group}
                   </SelectItem>
@@ -322,14 +322,14 @@ const CourseParticipation: React.FC = () => {
           <div className="SelectWrapper">
             <Select
               onValueChange={(value) => {
-                setSelectedAvailableProjectGroup(value);
+                setSelectedAvailableCourse(value);
               }}
             >
               <SelectTrigger className="SelectTrigger">
                 <SelectValue placeholder="Select a project group" />
               </SelectTrigger>
               <SelectContent className="SelectContent">
-                {projectGroups.map((group, index) => (
+                {courses.map((group, index) => (
                   <SelectItem key={index} value={group}>
                     {group}
                   </SelectItem>

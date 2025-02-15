@@ -1,6 +1,10 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import { hashPassword } from './hash';
+import { ObjectHandler } from './ObjectHandler';
+import { DatabaseSerializableFactory } from './Serializer/DatabaseSerializableFactory';
+import { User } from './Models/User';
+import { DatabaseWriter } from './Serializer/DatabaseWriter';
 import { Email } from './email';
 
 const DEFAULT_USER = {
@@ -14,6 +18,8 @@ export async function initializeDB() {
     filename: './myDatabase.db',
     driver: sqlite3.Database,
   });
+
+  const oh = new ObjectHandler();
 
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -31,61 +37,71 @@ export async function initializeDB() {
     )
   `);
 
-  const userCount = await db.get('SELECT COUNT(*) AS count FROM users');
-  if (userCount.count === 0) {
+  const userCount = await oh.getUserCount(db);
+  if (!userCount || userCount === 0) {
     const { name, email, password } = DEFAULT_USER;
-    await db.run(
-      `INSERT INTO users (name, email, password, status, userRole) VALUES (?, ?, ?, ?, ?)`,
-      [name, email, await hashPassword(password), 'confirmed', "ADMIN"]
-    );
+    const dbsf = new DatabaseSerializableFactory(db);
+    const writer = new DatabaseWriter(db);
+    const admin = await dbsf.create("User") as User;
+    admin.setName(name);
+    admin.setEmail(new Email(email));
+    admin.setPassword(await hashPassword(password));
+    admin.setStatus('confirmed');
+    writer.writeRoot(admin);
     console.log(`Default admin user created: (email: '${email}', password: '${password}')`);
   }
 
   await db.exec(`
-    CREATE TABLE IF NOT EXISTS project (
+    CREATE TABLE IF NOT EXISTS projects (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      projectName TEXT,
-      projectGroupName TEXT
+      projectName TEXT UNIQUE,
+      courseId INTEGER,
+      FOREIGN KEY (courseId) REFERENCES courses(id)
     )
   `);
 
   await db.exec(`
-    CREATE TABLE IF NOT EXISTS projectGroup (
+    CREATE TABLE IF NOT EXISTS courses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       semester TEXT,
-      projectGroupName TEXT UNIQUE
+      courseName TEXT UNIQUE
     )
   `);
 
   await db.exec(`
     CREATE TABLE IF NOT EXISTS user_projects (
-      userEmail TEXT,
-      projectName TEXT,
+      userId INTEGER,
+      projectId INTEGER,
+      role TEXT,
       url TEXT,
-      PRIMARY KEY (userEmail, projectName),
-      FOREIGN KEY (userEmail) REFERENCES users(email)
+      PRIMARY KEY (userId, projectId),
+      FOREIGN KEY (userId) REFERENCES users(id),
+      FOREIGN KEY (projectId) REFERENCES projects(id)
     )
     `);
 
   await db.exec(`
-CREATE TABLE IF NOT EXISTS sprints (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  projectGroupName TEXT NOT NULL,
-  sprintName TEXT NOT NULL,
-  endDate DATETIME NOT NULL
-)
+    CREATE TABLE IF NOT EXISTS sprints (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      courseId INTEGER NOT NULL,
+      sprintName TEXT NOT NULL,
+      endDate DATETIME NOT NULL,
+      FOREIGN KEY (courseId) REFERENCES courses(id)
+    )
   `);
 
   await db.exec(`
     CREATE TABLE IF NOT EXISTS happiness (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      projectGroupName TEXT,
-      projectName TEXT,
-      userEmail TEXT,
+      projectId INTEGER,
+      userId INTEGER,
       happiness INTEGER,
-      sprintName TEXT,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)
-      `);
+      sprintId INTEGER,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id),
+      FOREIGN KEY (projectId) REFERENCES projects(id)
+    )
+  `);
 
   return db;
 }

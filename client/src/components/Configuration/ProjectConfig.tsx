@@ -77,7 +77,7 @@ const ProjectConfig: React.FC = () => {
             `http://localhost:3000/user/courses?userEmail=${userEmail}`
           );
           const data = await response.json();
-          setCourses(data.map((course: { projectGroupName: string }) => course.projectGroupName));
+          setCourses(data.map((course: { courseName: string }) => course.courseName));
         } catch (error) {
           console.error("Error fetching courses:", error);
         }
@@ -186,9 +186,9 @@ const ProjectConfig: React.FC = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: userEmail,
+            userEmail: userEmail,
             URL: newURL,
-            project: selectedProject,
+            projectName: selectedProject,
           }),
         });
         const data = await response.json();
@@ -290,7 +290,7 @@ const ProjectConfig: React.FC = () => {
 
   const handleCreate = async (projectName: string) => {
     const body = {
-      projectGroupName: selectedCourse,
+      courseName: selectedCourse,
       projectName,
     };
 

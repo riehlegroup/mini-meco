@@ -1,39 +1,89 @@
 import { Visitor } from "./Visitor";
 import { CourseProject } from "./CourseProject";
+import { Serializable } from "../Serializer/Serializable";
+import { Reader } from "../Serializer/Reader";
+import { Writer } from "../Serializer/Writer";
 import { Email } from "../email";
 
-export class User extends Visitor {
-
-  constructor(
-    protected id: number = 0,
-    protected name: string = "",
-    protected githubUsername: string = "",
-    protected email: Email = new Email(""),
-    protected status: string = "",
-    protected password: string = "",
-    protected resetPasswordToken: string = "",
-    protected resetPasswordExpire: number = 0,
-    protected confirmEmailToken: string = "",
-    protected confirmEmailExpire: number = 0,
-    protected projectsUserIsMemberOf: CourseProject[] = []
-  ) {
+export class User extends Visitor implements Serializable {
+  protected id: number;
+  protected name: string | null = null;
+  protected githubUsername: string | null = null;
+  protected email: Email | null = null;
+  protected status: string = "unconfirmed";
+  protected password: string | null = null;
+  protected resetPasswordToken: string | null = null;
+  protected resetPasswordExpire: number | null = null;
+  protected confirmEmailToken: string | null = null;
+  protected confirmEmailExpire: number | null = null;
+  
+  /** Do not call this constructor directly. Instead use the SerializableFactory
+   *  appropriate for your backend!
+   *  example:
+   *    const dsf = new DatabaseSerializableFactory(db); 
+   *    u: User = dsf.create("User");
+   */
+  constructor(id: number) {
     super();
+    this.id = id;
+  }
+
+  readFrom(reader: Reader): void {
+    this.id = reader.readNumber("id") as number;
+    this.name = reader.readString("name");
+    this.githubUsername = reader.readString("githubUsername");
+    const emailString = reader.readString("email");
+    if (emailString != null) {
+      this.email = new Email(emailString);
+    } else {
+      this.email = null;
+    }
+    this.status = reader.readString("status") as string;
+    this.password = reader.readString("password");
+    this.resetPasswordToken = reader.readString("resetPasswordToken");
+    this.resetPasswordExpire = reader.readNumber("resetPasswordExpire");
+    this.confirmEmailToken = reader.readString("confirmEmailToken");
+    this.confirmEmailExpire = reader.readNumber("confirmEmailExpire");
+  }
+
+  writeTo(writer: Writer): void {
+    writer.writeNumber("id", this.id);
+    writer.writeString("name", this.name);
+    writer.writeString("githubUsername", this.githubUsername);
+    if (this.email === null) {
+      writer.writeString("email", null);
+    } else {
+      writer.writeString("email", this.email.toString());
+    }
+    writer.writeString("status", this.status);
+    writer.writeString("password", this.password);
+    writer.writeString("resetPasswordToken", this.resetPasswordToken);
+    writer.writeNumber("resetPasswordExpire", this.resetPasswordExpire);
+    writer.writeString("confirmEmailToken", this.confirmEmailToken);
+    writer.writeNumber("confirmEmailExpire", this.confirmEmailExpire);
   }
 
   // Getters
-  public getId(): number {
+  public getId(): number | undefined{
     return this.id;
   }
 
-  public getName(): string {
+  public getName(): string | null {
     return this.name;
   }
 
-  public getGithubUsername(): string {
+  public getGithubUsername(): string | null {
     return this.githubUsername;
   }
 
-  public getEmail(): Email{
+  public getEmailString(): string | null {
+    if (this.email === null) {
+      return null;
+    }
+    return this.email.toString();
+  }
+
+  public getEmail(): Email | null {
     return this.email;
   }
 
@@ -41,44 +91,36 @@ export class User extends Visitor {
     return this.status;
   }
 
-  public getPassword(): string {
+  public getPassword(): string | null{
     return this.password;
   }
 
-  public getResetPasswordToken(): string {
+  public getResetPasswordToken(): string | null{
     return this.resetPasswordToken;
   }
 
-  public getResetPasswordExpire(): number {
+  public getResetPasswordExpire(): number | null {
     return this.resetPasswordExpire;
   }
 
-  public getConfirmEmailToken(): string {
+  public getConfirmEmailToken(): string | null {
     return this.confirmEmailToken;
   }
 
-  public getConfirmEmailExpire(): number {
+  public getConfirmEmailExpire(): number | null {
     return this.confirmEmailExpire;
   }
 
-  public getProjectsMemberIn(): CourseProject[] {
-    return this.projectsUserIsMemberOf;
-  }
-
   // Setters
-  public setId(id: number) {
-    this.id = id;
-  }
-
-  public setName(name: string) {
+  public setName(name: string | null){
     this.name = name;
   }
 
-  public setGithubUsername(githubUsername: string) {
+  public setGithubUsername(githubUsername: string | null){
     this.githubUsername = githubUsername;
   }
 
-  public setEmail(email: Email){
+  public setEmail(email: Email | null){
     this.email = email;
   }
 
@@ -86,37 +128,23 @@ export class User extends Visitor {
     this.status = status;
   }
 
-  public setPassword(password: string) {
+  public setPassword(password: string | null){
     this.password = password;
   }
 
-  public setResetPasswordToken(resetPasswordToken: string) {
+  public setResetPasswordToken(resetPasswordToken: string | null){
     this.resetPasswordToken = resetPasswordToken;
   }
 
-  public setResetPasswordExpire(resetPasswordExpire: number) {
+  public setResetPasswordExpire(resetPasswordExpire: number | null){
     this.resetPasswordExpire = resetPasswordExpire;
   }
 
-  public setConfirmEmailToken(confirmEmailToken: string) {
+  public setConfirmEmailToken(confirmEmailToken: string | null){
     this.confirmEmailToken = confirmEmailToken;
   }
 
-  public setConfirmEmailExpire(confirmEmailExpire: number) {
+  public setConfirmEmailExpire(confirmEmailExpire: number | null){
     this.confirmEmailExpire = confirmEmailExpire;
-  }
-
-  public setProjectsMemberIn(projectsUserIsMemberOf: CourseProject[]) {
-    this.projectsUserIsMemberOf = projectsUserIsMemberOf;
-  }
-
-  // Command
-
-  public addProject(project: CourseProject) {
-    this.projectsUserIsMemberOf.push(project)
-  }
-
-  public removeProject(project: CourseProject) {
-    this.projectsUserIsMemberOf = this.projectsUserIsMemberOf.filter(projectEl => projectEl.projectName != project.projectName);
   }
 }

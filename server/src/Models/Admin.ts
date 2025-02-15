@@ -1,7 +1,7 @@
 import { User } from './User'
 
 export class Admin extends User {
-    constructor() {
-        super();
+    constructor(id: number) {
+        super(id);
     }
 }

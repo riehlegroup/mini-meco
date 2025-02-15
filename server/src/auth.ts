@@ -8,11 +8,16 @@ import { Request, Response, NextFunction } from "express";
 import { ObjectHandler } from "./ObjectHandler";
 import { comparePassword, hashPassword } from "./hash";
 import { Password } from "./Models/Password";
+import { DatabaseSerializableFactory } from './Serializer/DatabaseSerializableFactory';
+import { DatabaseWriter } from './Serializer/DatabaseWriter';
+import { DatabaseResultSetReader } from './Serializer/DatabaseResultSetReader';
+import { User } from "./Models/User";
 import { Email } from './email';
 
 dotenv.config();
 
 const secret = process.env.JWT_SECRET || "your_jwt_secret";
+
 
 export const sendConfirmEmail = async (email: Email, token: string) => {
 
@@ -75,17 +80,20 @@ export const register = async (req: Request, res: Response, db: Database) => {
   const hashedPassword = await hashPassword(passwordObj.toString());
 
   try {
-    await db.run("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", [
-      name,
-      email,
-      hashedPassword,
-    ]);
-    res.status(201).json({ message: "User registered successfully" });
+    const writer = new DatabaseWriter(db);
+    const dbsf = new DatabaseSerializableFactory(db);
+    const oh = new ObjectHandler();
+    
+    const u = await dbsf.create("User") as User;
+    u.setName(name);
+    u.setEmail(new Email(email));
+    u.setPassword(hashedPassword);
+    writer.writeRoot(u);
+    res.status(201).json({ message: 'User registered successfully' });
 
     // Generate confirm email TOKEN
-    const user = await db.get("SELECT * FROM users WHERE email = ?", [validatedEmail.toString()]);
-    if (!user) {
-      console.error("Email not found after registration");
+    if (!oh.getUserByMail(email, db)) {
+      console.error('Email not found after registration');
       return;
     }
 
@@ -94,10 +102,9 @@ export const register = async (req: Request, res: Response, db: Database) => {
 
     console.log(`Generated token: ${token}, Expiry time: ${expire}`);
 
-    await db.run(
-      'UPDATE users SET confirmEmailToken = ?, confirmEmailExpire = ? WHERE email = ?',
-      [token, expire, validatedEmail.toString()]
-    );
+    u.setConfirmEmailToken(token);
+    u.setConfirmEmailExpire(expire);
+    writer.writeRoot(u);
 
     await sendConfirmEmail(validatedEmail, token);
 
@@ -123,20 +130,26 @@ export const login = async (req: Request, res: Response, db: Database) => {
 
 
   try {
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [validatedEmail.toString()]);
+    const oh = new ObjectHandler();
+    const user = await oh.getUserByMail(email, db);
     if (!user) {
       return res.status(400).json({ message: "Invalid email" });
     }
 
-    const isValidPassword = await comparePassword(
-      passwordObj.toString(),
-      user.password
-    );
-    if (!isValidPassword) {
-      return res.status(400).json({ message: "Invalid password" });
+    const userPassword = user.getPassword();
+    if (userPassword === null) {
+      return res.status(400).json({ message: 'No password set for user' });
+    } else {
+      const isValidPassword = await comparePassword(
+        passwordObj.toString(),
+        userPassword
+      );
+      if (!isValidPassword) {
+        return res.status(400).json({ message: "Invalid password" });
+      }
     }
 
-    let st: string = user.status;
+    let st: string = user.getStatus();
     let userStatus: UserStatus = new UserStatus(st as UserStatusEnum);
     if (userStatus.getStatus() == UserStatusEnum.unconfirmed) {
       return res
@@ -152,14 +165,14 @@ export const login = async (req: Request, res: Response, db: Database) => {
       });
     }
 
-    const token = jwt.sign({ id: user.id }, "your_jwt_secret", {
+    const token = jwt.sign({ id: user.getId() }, "your_jwt_secret", {
       expiresIn: "1h",
     });
     res.status(200).json({
       token,
-      name: user.name,
-      email: user.email.toString(),
-      githubUsername: user.githubUsername,
+      name: user.getName(),
+      email: user.getEmailString(),
+      githubUsername: user.getGithubUsername(),
     });
   } catch (error) {
     console.error("Error during login:", error);
@@ -168,38 +181,30 @@ export const login = async (req: Request, res: Response, db: Database) => {
 };
 
 export const checkOwnership = (db: Database, oh: ObjectHandler) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.header("Authorization")?.replace("Bearer ", "");
-    if (!token) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
+    return async (req: Request, res: Response, next: NextFunction) => {
+        const token = req.header('Authorization')?.replace('Bearer ', '');
+        if (!token) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
 
-    try {
-      const decoded = jwt.verify(token, secret) as {
-        id: string;
-        email: string;
-      };
-      const userFromTokenId = await oh.getUser(decoded.id, db);
-      const userFromParamsId = await oh.getUserByMail(req.body.email, db);
+        try {
+            const decoded = jwt.verify(token, secret) as { id: string; email: string };
+            const userFromTokenId = await oh.getUser(Number(decoded.id), db);
+            const userFromParamsId = await oh.getUserByMail(req.body.email, db);
 
-      if (!userFromTokenId || !userFromParamsId) {
-        return res.status(404).json({ message: "User not found" });
-      }
+            if(!userFromTokenId || !userFromParamsId) {
+                return res.status(404).json({ message: 'User not found' });
+            }
 
-      if (
-        userFromTokenId?.getName() !== "admin" &&
-        userFromParamsId?.getName() !== userFromTokenId?.getName()
-      ) {
-        return res
-          .status(403)
-          .json({ message: "Forbidden: You can only edit your own data" });
-      }
+            if (userFromTokenId?.getName() !== "admin" && userFromParamsId?.getName() !== userFromTokenId?.getName()) {
+                return res.status(403).json({ message: 'Forbidden: You can only edit your own data' });
+            }
 
-      next();
-    } catch (error) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
-  };
+            next();
+        } catch (error) {
+            return res.status(401).json({ message: 'Invalid token' });
+        }
+    };
 };
 
 const sendPasswordResetEmail = async (email: Email, token: string) => {
@@ -247,7 +252,9 @@ export const forgotPassword = async (req: Request, res: Response, db: Database) 
 
 
   try {
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email.toString()]);
+    const oh = new ObjectHandler();
+    const writer = new DatabaseWriter(db);
+    const user = await oh.getUserByMail(email.toString(), db);
     if (!user) {
       return res.status(404).json({ message: "Email not found" });
     }
@@ -257,10 +264,9 @@ export const forgotPassword = async (req: Request, res: Response, db: Database) 
 
     console.log(`Generated token: ${token}, Expiry time: ${expire}`);
 
-    await db.run(
-      'UPDATE users SET resetPasswordToken = ?, resetPasswordExpire = ? WHERE email = ?',
-      [token, expire, email.toString()]
-    );
+    user.setResetPasswordToken(token);
+    user.setResetPasswordExpire(expire);
+    writer.writeRoot(user);
 
     await sendPasswordResetEmail(email, token);
 
@@ -286,16 +292,17 @@ export const resetPassword = async (
   }
 
   try {
+    const writer = new DatabaseWriter(db);
+
     const currentTime = Date.now();
-    const user = await db.get(
-      "SELECT * FROM users WHERE resetPasswordToken = ?",
-      [token]
-    );
+    const user = await db.get('SELECT * FROM users WHERE resetPasswordToken = ?', [token]);
+    const reader = new DatabaseResultSetReader(user, db);
+    const u = await reader.readRoot(user) as User;
+    
+    console.log('User retrieved from database:', user);
 
-    console.log("User retrieved from database:", user);
-
-    if (!user || user.resetPasswordExpire < currentTime) {
-      return res.status(400).json({ message: "Invalid or expired token" });
+    if (!u || u.getResetPasswordExpire() !== null || u.getResetPasswordExpire() as number < currentTime) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
     } else if (newPasswordObj.getStrength() < 3) {
       return res.status(400).json({
         message:
@@ -304,10 +311,10 @@ export const resetPassword = async (
     }
 
     const hashedPassword = await hashPassword(newPasswordObj.toString());
-    await db.run(
-      "UPDATE users SET password = ?, resetPasswordToken = NULL, resetPasswordExpire = NULL WHERE id = ?",
-      [hashedPassword, user.id]
-    );
+    u.setPassword(hashedPassword);
+    u.setResetPasswordExpire(null);
+    u.setResetPasswordToken(null);
+    writer.writeRoot(u);
 
     res.status(200).json({ message: "Password has been reset" });
   } catch (error) {
@@ -330,13 +337,16 @@ export const confirmEmail = async (
   console.log("Token:", token);
 
   try {
+    const writer = new DatabaseWriter(db);
     const currentTime = Date.now();
     const user = await db.get(
       "SELECT * FROM users WHERE confirmEmailToken = ?",
       [token]
     );
-
-    console.log("User retrieved from database:", user);
+    const reader = new DatabaseResultSetReader(user, db);
+    const u = await reader.readRoot(user) as User;
+    
+    console.log('User retrieved from database:', user);
 
     if (!user || user.confirmEmailExpire < currentTime) {
       return res.status(400).json({ message: "Invalid or expired token" });
@@ -346,6 +356,10 @@ export const confirmEmail = async (
       'UPDATE users SET status = "confirmed", confirmEmailToken = NULL, confirmEmailExpire = NULL WHERE email = ?',
       [user.email.toString()]
     );
+    u.setStatus("confirmed");
+    u.setConfirmEmailToken(null);
+    u.setConfirmEmailExpire(null);
+    writer.writeRoot(u);
 
     res.status(200).json({ message: "Email has been confirmed" });
   } catch (error) {
@@ -368,10 +382,15 @@ export const sendConfirmationEmail = async (
     return res.status(400).json({ message: 'Invalid email address' });
   }
   try {
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email.toString()]);
-    let st: string = user.status;
+    const oh = new ObjectHandler();
+    const writer = new DatabaseWriter(db);
+    const user = await oh.getUserByMail(email.toString(), db);
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+    let st: string = user.getStatus();
     let userStatus: UserStatus = new UserStatus(st as UserStatusEnum);
-    if (!user || userStatus.getStatus() != UserStatusEnum.unconfirmed) {
+    if (userStatus.getStatus() != UserStatusEnum.unconfirmed) {
       return res
         .status(400)
         .json({ message: "User not found or not unconfirmed" });
@@ -380,10 +399,9 @@ export const sendConfirmationEmail = async (
     const token = crypto.randomBytes(20).toString("hex");
     const expire = Date.now() + 3600000;
 
-    await db.run(
-      "UPDATE users SET confirmEmailToken = ?, confirmEmailExpire = ? WHERE email = ?",
-      [token, expire, email.toString()]
-    );
+    user.setConfirmEmailToken(token);
+    user.setConfirmEmailExpire(expire);
+    writer.writeRoot(user);
     await sendConfirmEmail(email, token);
 
     res.status(200).json({ message: "Confirmation email sent" });
