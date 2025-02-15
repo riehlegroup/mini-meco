@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ReturnButton from "../Components/return";
 import { Octokit } from "@octokit/rest";
+import { Endpoints } from "@octokit/types";
 import "./CodeActivity.css";
 import {
   LineChart,
@@ -14,11 +15,20 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+type ArrayElement<T> = T extends (infer U)[] ? U : never;
+type Commit = ArrayElement<Endpoints["GET /repos/{owner}/{repo}/commits"]["response"]["data"]>;
+type Sprint = {
+  id: number,
+  projectGroupName: string,
+  sprintName: string,
+  endDate: number,
+};
+
 const CodeActivity: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [commits, setCommits] = useState<any[]>([]);
+  const [commits, setCommits] = useState<Commit[]>([]);
   // GitHub API only returns 30 results on subsequent requests
   const [loading, setLoading] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
@@ -157,11 +167,11 @@ const CodeActivity: React.FC = () => {
             selectedProjectGroup
           )}`
         );
-        const fetchedSprints = await response.json();
+        const fetchedSprints: Sprint[] = await response.json();
 
         // Only have end date, so calculate start date
         const updatedSprints = fetchedSprints.map(
-          (sprint: any, index: number) => {
+          (sprint, index) => {
             const sprintName = `sprint${index}`;
             if (index === 0) {
               // First sprint: start date is one week before end date
@@ -211,7 +221,7 @@ const CodeActivity: React.FC = () => {
 
       console.log("Fetched commits:", response.data);
 
-      const filteredCommits = response.data.filter((commit) => {
+      const filteredCommits: Commit[] = response.data.filter((commit) => {
         const commitDate = commit.commit.author?.date
           ? new Date(commit.commit.author.date)
           : new Date();
@@ -269,7 +279,7 @@ const CodeActivity: React.FC = () => {
         const sprintStart = new Date(sprint.startDate);
         const sprintEnd = new Date(sprint.endDate);
         const commitsInSprint = commits.filter((commit) => {
-          const commitDate = new Date(commit.commit.author.date);
+          const commitDate = new Date(commit.commit.author?.date ?? 0);
           return commitDate >= sprintStart && commitDate <= sprintEnd;
         });
         return { sprint: sprint.name, count: commitsInSprint.length }; // Ensure `sprint` is the name

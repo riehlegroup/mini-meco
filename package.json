@@ -10,6 +10,7 @@
     "lint": "npm run lint --prefix client && npm run lint --prefix server"
   },
   "devDependencies": {
+    "@octokit/types": "^13.8.0",
     "@typescript-eslint/eslint-plugin": "^8.18.2",
     "@typescript-eslint/parser": "^8.18.2",
     "concurrently": "^9.1.0",
