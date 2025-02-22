@@ -62,7 +62,7 @@ export class ProjectManager {
         return projMems;
     }
 
-    public async isMemberIn(user: User, project: CourseProject): Promise<Boolean> {
+    public async isMemberIn(user: User, project: CourseProject): Promise<boolean> {
         const userProject = await this.db.get(`
             SELECT * 
             FROM user_projects

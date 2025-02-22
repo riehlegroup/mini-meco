@@ -18,6 +18,13 @@ export interface Reader {
     readObject(attributeName: string, className: string): Promise<Serializable | null> ;
 
     /**
+     * Reads multiple objects from backend (1 to n relation).
+     * @param referenceColumnName Name of the column in the table of @params objRefs which references this id.
+     * @param className Name of the class to read.
+     */
+    readObjects(referenceColumnName: string, className: string): Promise<Serializable[]>;
+
+    /**
      * Reads a string from backend with @param attributeName.
      * @param attributeName Name used to identify the attribute when reading/writing.
      */
@@ -31,7 +38,8 @@ export interface Reader {
 
     /**
      * 
-     * @todo Figure out, what ts type goes here!
+     * Reads a datetime from backend with @param attributeName.
+     * @param attributeName Name used to identify the attribute when reading/writing.
      */
-    // readDateTime(attributeName: String): ???; 
+    readDateTime(attributeName: string): Date | null;
 }

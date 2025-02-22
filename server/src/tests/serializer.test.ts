@@ -9,12 +9,11 @@ import { DatabaseWriter } from "../Serializer/DatabaseWriter";
 import { DatabaseResultSetReader } from "../Serializer/DatabaseResultSetReader";
 import { CourseProject } from "../Models/CourseProject";
 import { CourseManager } from "../CourseManager";
-import { getProjectsForCourse } from "../projectManagement";
 
 /** You need to delete the DB each time before running tests, unfortunately! */
 
 describe('Basic serializer read/write test', async () => {
-  const db: Database = await initializeDB();
+  const db: Database = await initializeDB(":memory:");
   const oh = new ObjectHandler();
   const dbsf = new DatabaseSerializableFactory(db);
   it('Default Admin User created properly', async () => {

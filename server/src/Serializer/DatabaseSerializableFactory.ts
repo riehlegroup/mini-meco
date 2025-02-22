@@ -5,6 +5,7 @@ import { User } from "../Models/User";
 import { DatabaseWriter } from "./DatabaseWriter";
 import { CourseProject } from "../Models/CourseProject";
 import { Course } from "../Models/Course";
+import { CourseSchedule, SubmissionDate } from "../Models/CourseSchedule";
 
 /**
  * Factory for creating Serializables in a way specific to the sqlite database.
@@ -24,6 +25,10 @@ export class DatabaseSerializableFactory implements SerializableFactory {
             return await this.createEntityIn(CourseProject, "projects");
         } else if (className === "Course") {
             return await this.createEntityIn(Course, "courses");
+        } else if (className === "CourseSchedule") {
+            return await this.createEntityIn(CourseSchedule, "schedules");
+        } else if (className === "SubmissionDate") {
+            return await this.createEntityIn(SubmissionDate, "submissions");
         } else {
             throw new Error("Serializable Creation Failed: Unknown class name: " + className);
         }
@@ -36,7 +41,7 @@ export class DatabaseSerializableFactory implements SerializableFactory {
      * @param EntityClass Class/constructor for the entity (e.g. User).
      * @param tableName Name of the Table to add the entity to.
      */
-    protected async createEntityIn<T extends User | CourseProject | Course>(
+    protected async createEntityIn<T extends User | CourseProject | Course | CourseSchedule | SubmissionDate>(
         EntityClass: new (id: number) => T, tableName: string
     ): Promise<T> {
         // Create new entity row 

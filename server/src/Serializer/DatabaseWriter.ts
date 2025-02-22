@@ -7,6 +7,8 @@ import { CourseProject } from "../Models/CourseProject";
 import { Course } from "../Models/Course";
 import { ProjectMember } from "../Models/ProjectMember";
 import { ProjectParticipation } from "../Models/ProjectParticipation";
+import { Reader } from "./Reader";
+import { CourseSchedule, SubmissionDate } from "../Models/CourseSchedule";
 
 /**
  * Reader Class
@@ -82,6 +84,18 @@ export class DatabaseWriter implements Writer {
         }
     }
 
+    writeObjects<T extends Serializable>(referenceColumnName: string, objRefs: T[]): void {
+        const id = this.attributes['id'];
+
+        if (typeof id !== 'number') {
+            throw new Error("writeObjects currently requires a numbered id!");
+        }
+
+        for (const objRef of objRefs) {
+            this.toHandle.push(new ForeignWrapper(objRef, referenceColumnName, id));
+        }
+    }
+
     writeString(attributeName: string, string: string | null): void {
         this.attributes[attributeName] = string;
     }
@@ -97,9 +111,32 @@ export class DatabaseWriter implements Writer {
             return "courses";
         } else if (s instanceof CourseProject) {
             return "projects";
+        } else if (s instanceof CourseSchedule) {
+            return "schedules";
+        } else if (s instanceof SubmissionDate) {
+            return "submissions";
+        } else if (s instanceof ForeignWrapper) {
+            return this.getTableNameFromClass(s.obj);
         /** @todo Add further tables/Classes! */
         } else {
             throw new Error("Unknown Serializable! Probably not implemented yet!");
         }
+    }
+
+    writeDateTime(attributeName: string, dateTime: Date): void {
+        this.attributes[attributeName] = dateTime.getTime() / 1000;
+    }
+}
+
+class ForeignWrapper<T extends Serializable> implements Serializable {
+    constructor(public obj: T, public referenceColumnName: string, public foreignId: number) {}
+
+    readFrom(_: Reader): void {
+        throw new Error("ForeignWrapper only supports writes");
+    }
+
+    writeTo(writer: Writer): void {
+        this.obj.writeTo(writer);
+        writer.writeNumber(this.referenceColumnName, this.foreignId)
     }
 }

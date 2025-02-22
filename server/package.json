@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon --watch src --ext .ts,.js --exec \"npm run build && node dist/server.js\"",
     "build": "tsc",
-    "test":"vitest run tests/semester.test.ts --reporter=verbose && vitest run tests/serializer.test.ts --reporter=verbose",
+    "test":"vitest run tests/semester.test.ts tests/serializer.test.ts tests/CourseSchedule.test.ts --reporter=verbose",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {

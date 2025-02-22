@@ -1,5 +1,5 @@
 import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import { Database, open } from 'sqlite';
 import { hashPassword } from './hash';
 import { ObjectHandler } from './ObjectHandler';
 import { DatabaseSerializableFactory } from './Serializer/DatabaseSerializableFactory';
@@ -13,9 +13,9 @@ const DEFAULT_USER = {
   password: "helloworld"
 };
 
-export async function initializeDB() {
+export async function initializeDB(filename = './myDatabase.db', createAdmin = true) {
   const db = await open({
-    filename: './myDatabase.db',
+    filename: filename,
     driver: sqlite3.Database,
   });
 
@@ -38,7 +38,7 @@ export async function initializeDB() {
   `);
 
   const userCount = await oh.getUserCount(db);
-  if (!userCount || userCount === 0) {
+  if ((!userCount || userCount === 0) && createAdmin) {
     const { name, email, password } = DEFAULT_USER;
     const dbsf = new DatabaseSerializableFactory(db);
     const writer = new DatabaseWriter(db);
@@ -103,5 +103,43 @@ export async function initializeDB() {
     )
   `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS schedules (
+      id INTEGER PRIMARY KEY,
+      startDate Integer,
+      endDate Integer
+    )`);
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS submissions (
+      id INTEGER PRIMARY KEY,
+      scheduleId INTEGER,
+      submissionDate INTEGER,
+      FOREIGN KEY (scheduleId) REFERENCES schedules(id) ON DELETE CASCADE,
+      UNIQUE (scheduleId, submissionDate)
+    )`);
+
+  await db.exec(`
+    CREATE TRIGGER IF NOT EXISTS submissions_insert_trigger
+    BEFORE INSERT ON submissions
+    FOR EACH ROW
+    BEGIN
+      SELECT RAISE(ABORT, 'submissionDate must be between startDate and endDate')
+      WHERE NEW.submissionDate < (SELECT startDate FROM schedules WHERE id = NEW.scheduleId)
+        OR NEW.submissionDate > (SELECT endDate FROM schedules WHERE id = NEW.scheduleId);
+    END;
+    `);
+
+  await db.exec(`
+    CREATE TRIGGER IF NOT EXISTS submissions_update_trigger
+    BEFORE UPDATE ON submissions
+    FOR EACH ROW
+    BEGIN
+      SELECT RAISE(ABORT, 'submissionDate must be between startDate and endDate')
+      WHERE NEW.submissionDate < (SELECT startDate FROM schedules WHERE id = NEW.scheduleId)
+        OR NEW.submissionDate > (SELECT endDate FROM schedules WHERE id = NEW.scheduleId);
+    END;
+    `);
+  
   return db;
 }

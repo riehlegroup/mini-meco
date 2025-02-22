@@ -2,7 +2,7 @@ import { Database } from "sqlite";
 import { Response, Request } from "express";
 import { User } from "./Models/User";
 import { CourseProject } from "./Models/CourseProject";
-import { CourseSchedule } from "./Models/CourseSchedule";
+import { CourseSchedule, SubmissionDate } from "./Models/CourseSchedule";
 import { Course } from "./Models/Course";
 import { DatabaseResultSetReader } from "./Serializer/DatabaseResultSetReader";
 import { Serializable } from "./Serializer/Serializable";
@@ -115,7 +115,16 @@ export class ObjectHandler {
         if (!scheduleRow) {
             return null;
         }
-        return new CourseSchedule(); // fill schedule object with data from row, e.g. scheduleRow.id;
+        
+        return (new DatabaseResultSetReader(scheduleRow, db))
+            .readRoot<CourseSchedule>(CourseSchedule) as Promise<CourseSchedule>;
+    }
+    
+    public async getSubmissionDates(scheduleId: number, db: Database): Promise<SubmissionDate[]> {
+        const dates = db.all('SELECT * FROM submissions WHERE scheduleId = ? ORDER BY submissionDate ASC', [scheduleId]);
+        
+        return (new DatabaseResultSetReader(dates, db))
+            .readRoot<SubmissionDate>(SubmissionDate) as Promise<SubmissionDate[]>;
     }
 
     public async getCourse(id: number, db: Database): Promise<Course | null> {
@@ -137,6 +146,16 @@ export class ObjectHandler {
                 return this.getCourseProject(id, db);
             default:
                 return null;
+        }
+    }
+
+    // For 1 to n relations
+    async getSerializablesFromId(id: number, className: string, db: Database): Promise<Serializable[]> {
+        switch (className) {
+            case "SubmissionDate":
+                return this.getSubmissionDates(id, db);
+            default:
+                return []
         }
     }
 }
