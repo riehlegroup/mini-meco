@@ -1,30 +1,22 @@
-# Winter 2024/25
-
-See https://github.com/riehlegroup/mini-meco/wiki/How-to-contribute-to-Mini-Meco
-
-----
-
-Start of original documentation
-
 # Mini-Meco Documentation
 
-##### MASTER PROJECT
-
-Friedrich-Alexander-Universität Erlangen-Nürnberg <br>
-Faculty of Engineering, Department Computer Science <br>
-Professorship for Open Source Software
-
-Supervisor:<br>
-Dr. Stefan BUCHNER, M.Sc.<br>
-Prof. Dr. Dirk Riehle, M.B.A.
-
+Friedrich-Alexander-Universität Erlangen-Nürnberg
+Faculty of Engineering, Department Computer Science
+Professorship for Open-Source Software
 
 # Overview
 
-Mini Meco is a software application designed to support teams using agile methodologies by providing simple tools for managing their projects. This application
-is particularly relevant for courses such as AMOS (Agile Methods and Open Source), where students learn about agile methods and their applications. Furthermore, Mini Meco serves as a practical teaching example in the ADAP (Advanced Design and Programming) course, where it helps to illustrate advanced
-design principles and programming practices. By integrating Mini Meco into these courses, students gain hands-on experience with agile tools and techniques,
-enhancing their understanding of both agile methodologies and software design.
+Mini-Meco is simple web-based application to support agile software development. It is also used as an example application for teaching.
+
+Mini-Meco allows for the creation of courses and projects within courses as well as self-registration of users (students) for projects.
+
+Functionality is provided as panels (the visual part of components). The three main out-of-the-box components are
+
+(1) happiness index,
+(2) standup emails, and
+(3) code contribution graph.
+
+The following information is probably out of date (because it never got updated) and should be adjusted / removed
 
 
 ## Contents

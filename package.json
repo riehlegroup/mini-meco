@@ -20,7 +20,7 @@
     "eslint-plugin-tailwindcss": "^3.17.5",
     "globals": "^15.14.0",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^3.2.4"
   },
   "workspaces": [
     "client",
