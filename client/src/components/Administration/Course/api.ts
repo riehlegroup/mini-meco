@@ -17,7 +17,7 @@ class ApiClient {
     method: string,
     endpoint: string,
     params?: Record<string, string | number> | undefined,
-    body?: Record<string, unknown | undefined>
+    body?: Record<string, string | number | boolean | string[]>
   ): Promise<T> {
     try {
       const url = new URL(this.BASE_API_URL + endpoint);
@@ -58,14 +58,14 @@ class ApiClient {
 
   async post<T>(
     endpoint: string,
-    body: Record<string, string | number | boolean>
+    body: Record<string, string | number | boolean | string[]>
   ): Promise<T> {
     return this.request<T>("POST", endpoint, undefined, body);
   }
 
   async put<T>(
     endpoint: string,
-    body: Record<string, string | number | boolean>
+    body: Record<string, string | number | boolean | string[]>
   ): Promise<T> {
     return this.request<T>("PUT", endpoint, undefined, body);
   }
@@ -143,6 +143,67 @@ const courseApi = {
     studentsCanJoinProject: boolean;
   }): Promise<Response> => {
     return ApiClient.getInstance().post<Response>("courseProject", body);
+  },
+
+  updateProject: (
+    projectId: number,
+    body: {
+      projectName: string;
+      courseId?: number;
+    }
+  ): Promise<Response> => {
+    return ApiClient.getInstance().put<Response>(
+      `courseProject/${projectId}`,
+      body
+    );
+  },
+
+  deleteProject: (projectId: number): Promise<Response> => {
+    return ApiClient.getInstance().delete<Response>(
+      `courseProject/${projectId}`
+    );
+  },
+
+  saveSchedule: (
+    courseId: number,
+    body: {
+      startDate: string;
+      endDate: string;
+      submissionDates: string[];
+    }
+  ): Promise<Response> => {
+    return ApiClient.getInstance().post<Response>(
+      `course/${courseId}/schedule`,
+      body
+    );
+  },
+
+  getSchedule: async (courseId: number): Promise<{
+    id: number;
+    startDate: string;
+    endDate: string;
+    submissionDates: string[];
+  } | null> => {
+    try {
+      const response = await ApiClient.getInstance().get<{
+        success: boolean;
+        data: {
+          id: number;
+          startDate: string;
+          endDate: string;
+          submissionDates: string[];
+        };
+      }>(`course/${courseId}/schedule`);
+
+      if (!response || !response.success) {
+        return null;
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching schedule:", error);
+      return null;
+    }
   },
 };
 export default courseApi;

@@ -1,5 +1,5 @@
 import sqlite3 from 'sqlite3';
-import { Database, open } from 'sqlite';
+import { open } from 'sqlite';
 import { hashPassword } from './hash';
 import { ObjectHandler } from './ObjectHandler';
 import { DatabaseSerializableFactory } from './Serializer/DatabaseSerializableFactory';

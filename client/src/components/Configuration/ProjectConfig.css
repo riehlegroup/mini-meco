@@ -2,7 +2,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 653px;
+    width: 90%;
+    max-width: 653px;
     height: 77px;
     flex-shrink: 0;
     border-radius: 5px;
@@ -17,18 +18,22 @@
     left: 50%;
     transform: translateX(-50%);
     margin-bottom: 50px;
+    box-sizing: border-box;
   }
-  
-  .BigContainerProjConfig {
-    width: 1300px;
+
+  .ProjectConfigContainer {
+    width: 90%;
+    max-width: 1300px;
     border-radius: 5px;
-    height: 580px;
+    min-height: 580px;
     flex-shrink: 0;
     background: #FFF;
-    padding: 10px;
+    padding: 20px;
     overflow-y: auto;
     overflow-x: hidden;
     position: relative;
+    margin: 0 auto 50px auto;
+    box-sizing: border-box;
   }
   
   .margintop{

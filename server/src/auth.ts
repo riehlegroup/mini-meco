@@ -21,7 +21,8 @@ const secret = process.env.JWT_SECRET || "your_jwt_secret";
 
 export const sendConfirmEmail = async (email: Email, token: string) => {
 
-  const transporter = nodemailer.createTransport({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _transporter = nodemailer.createTransport({
     host: "smtp-auth.fau.de",
     port: 465,
     secure: true,
@@ -32,7 +33,8 @@ export const sendConfirmEmail = async (email: Email, token: string) => {
   });
   const confirmedLink = `http://localhost:5173/confirmedEmail?token=${token}`;
 
-  const mailOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _mailOptions = {
     from: '"Mini-Meco" <shu-man.cheng@fau.de>',
     to: email.toString(),
     subject: 'Confirm Email',
@@ -73,7 +75,7 @@ export const register = async (req: Request, res: Response, db: Database) => {
     let validatedEmail: Email;
     try {
       validatedEmail = new Email(email as string);
-    } catch (IllegalArgumentException) {
+    } catch {
       return res.status(400).json({ message: 'Invalid email address' });
   }
 
@@ -121,10 +123,9 @@ export const login = async (req: Request, res: Response, db: Database) => {
     return res.status(400).json({ message: "Email and password are required" });
   }
 
-  let validatedEmail: Email;
   try {
-    validatedEmail = new Email(email as string);
-  } catch (IllegalArgumentException) {
+    new Email(email as string);
+  } catch {
     return res.status(400).json({ message: 'Invalid email address' });
   }
 
@@ -201,7 +202,7 @@ export const checkOwnership = (db: Database, oh: ObjectHandler) => {
             }
 
             next();
-        } catch (error) {
+        } catch {
             return res.status(401).json({ message: 'Invalid token' });
         }
     };
@@ -209,7 +210,8 @@ export const checkOwnership = (db: Database, oh: ObjectHandler) => {
 
 const sendPasswordResetEmail = async (email: Email, token: string) => {
 
-  const transporter = nodemailer.createTransport({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _transporter = nodemailer.createTransport({
     host: "smtp-auth.fau.de",
     port: 465,
     secure: true,
@@ -221,7 +223,8 @@ const sendPasswordResetEmail = async (email: Email, token: string) => {
 
   const resetLink = `http://localhost:5173/resetPassword?token=${token}`;
 
-  const mailOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _mailOptions = {
     from: '"Mini-Meco" <shu-man.cheng@fau.de>',
     to: email.toString(),
     subject: 'Password Reset',
@@ -246,7 +249,7 @@ export const forgotPassword = async (req: Request, res: Response, db: Database) 
   }
   try {
     email = new Email(req.body.email as string); // Validate and construct the Email instance
-  } catch (IllegalArgumentException) {
+  } catch {
   return res.status(400).json({ message: 'Invalid email address' });
 }
 
@@ -297,7 +300,7 @@ export const resetPassword = async (
     const currentTime = Date.now();
     const user = await db.get('SELECT * FROM users WHERE resetPasswordToken = ?', [token]);
     const reader = new DatabaseResultSetReader(user, db);
-    const u = await reader.readRoot(user) as User;
+    const u = await reader.readRoot(User) as User;
     
     console.log('User retrieved from database:', user);
 
@@ -344,7 +347,7 @@ export const confirmEmail = async (
       [token]
     );
     const reader = new DatabaseResultSetReader(user, db);
-    const u = await reader.readRoot(user) as User;
+    const u = await reader.readRoot(User) as User;
     
     console.log('User retrieved from database:', user);
 
@@ -378,7 +381,7 @@ export const sendConfirmationEmail = async (
     return res.status(400).json({ message: 'User email is required' });
   } try {
     email = new Email(req.body.email as string);
-  } catch (IllegalArgumentException) {
+  } catch {
     return res.status(400).json({ message: 'Invalid email address' });
   }
   try {

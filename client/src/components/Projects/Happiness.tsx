@@ -23,6 +23,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Happiness: React.FC = (): React.ReactNode => {
   const navigate = useNavigate();
@@ -37,11 +38,21 @@ const Happiness: React.FC = (): React.ReactNode => {
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [values, setValues] = useState<DateObject[]>([]);
   const [happiness, setHappiness] = useState<number>(0);
-  const [happinessData, setHappinessData] = useState<any[]>([]);
+  const [happinessData, setHappinessData] = useState<Array<{
+    id: number;
+    projectId: number;
+    userId: number;
+    happiness: number;
+    sprintId: number | null;
+    timestamp: string;
+    sprintName: string | null;
+    userEmail: string;
+  }>>([]);
   const [currentSprint, setCurrentSprint] = useState<{
     endDate: string;
     sprintName?: string;
   } | null>(null);
+  const userRole = useUserRole();
 
   const handleNavigation = () => {
     navigate("/happiness");
@@ -62,8 +73,9 @@ const Happiness: React.FC = (): React.ReactNode => {
     const fetchCourses = async () => {
       try {
         const response = await fetch("http://localhost:3000/course");
-        const data = await response.json();
-        setCourses(data.map((item: any) => item.CourseName));
+        const result = await response.json();
+        const data = result.data || [];
+        setCourses(data.map((item: { courseName: string }) => item.courseName));
         console.log("Fetched project groups:", data);
       } catch (error: unknown) {
         if (error instanceof Error) {
@@ -228,8 +240,10 @@ const Happiness: React.FC = (): React.ReactNode => {
       }, 100%, 50%)`;
   });
 
-  const formattedData: { [sprintName: string]: any } = {};
+  const formattedData: { [sprintName: string]: { sprintName: string; [userEmail: string]: number | string } } = {};
   happinessData.forEach((data) => {
+    if (!data.sprintName) return;
+
     if (!formattedData[data.sprintName]) {
       formattedData[data.sprintName] = { sprintName: data.sprintName };
     }
@@ -247,13 +261,15 @@ const Happiness: React.FC = (): React.ReactNode => {
       </div>
       <Tabs defaultValue="User" className="Tabs">
         <TabsList className="TabsList">
-          <TabsTrigger
-            value="Admin"
-            onClick={() => setActiveTab("Admin")}
-            className={`Admin ${activeTab === "Admin" ? "active" : ""}`}
-          >
-            Admin
-          </TabsTrigger>
+          {userRole === "ADMIN" && (
+            <TabsTrigger
+              value="Admin"
+              onClick={() => setActiveTab("Admin")}
+              className={`Admin ${activeTab === "Admin" ? "active" : ""}`}
+            >
+              Admin
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="User"
             onClick={() => setActiveTab("User")}
@@ -300,7 +316,7 @@ const Happiness: React.FC = (): React.ReactNode => {
                 value={values}
                 onChange={setValues}
                 multiple
-                plugins={[<TimePicker />]}
+                plugins={[<TimePicker key="time-picker" />]}
               />
             </div>
             <Button className="save" type="submit" onClick={handleDate}>
@@ -310,50 +326,57 @@ const Happiness: React.FC = (): React.ReactNode => {
         </TabsContent>
         <TabsContent value="User">
           <div className="BigContainerUser">
-            <div className="UserSentence1">
-              Please Enter Before{" "}
-              {currentSprint &&
-                moment(currentSprint.endDate).format("DD-MM-YYYY HH:mm:ss")}
-            </div>
-            <div className="UserSentence2">
-              How happy are you doing this project?
-            </div>
-            <div className="slider-container">
-              <ReactSlider
-                className="horizontal-slider"
-                marks
-                markClassName="example-mark"
-                min={-3}
-                max={3}
-                thumbClassName="example-thumb"
-                trackClassName="example-track"
-                renderThumb={(props, state) => {
-                  const { key, ...otherProps } = props;
-                  return (
-                    <div key={state.index} {...otherProps}>
-                      {state.valueNow}
-                    </div>
-                  );
-                }}
-                onChange={(value) => setHappiness(value)}
-              />
-              <div className="scale">
-                <span>-3</span>
-                <span>-2</span>
-                <span>-1</span>
-                <span>0</span>
-                <span>1</span>
-                <span>2</span>
-                <span>3</span>
+            {!currentSprint ? (
+              <div className="my-5 p-5 text-center text-lg font-bold text-red-700">
+                No active sprint available. Please contact an administrator to create sprints first.
               </div>
-            </div>
-            <Button
-              className="confirm"
-              type="submit"
-              onClick={handleHappinessSubmit}
-            >
-              Confirm
-            </Button>
+            ) : (
+              <>
+                <div className="UserSentence1">
+                  Please Enter Before{" "}
+                  {moment(currentSprint.endDate).format("DD-MM-YYYY HH:mm:ss")}
+                </div>
+                <div className="UserSentence2">
+                  How happy are you doing this project?
+                </div>
+                <div className="slider-container">
+                  <ReactSlider
+                    className="horizontal-slider"
+                    marks
+                    markClassName="example-mark"
+                    min={-3}
+                    max={3}
+                    thumbClassName="example-thumb"
+                    trackClassName="example-track"
+                    renderThumb={(props, state) => {
+                      const { key, ...restProps } = props;
+                      return (
+                        <div key={key} {...restProps}>
+                          {state.valueNow}
+                        </div>
+                      );
+                    }}
+                    onChange={(value) => setHappiness(value)}
+                  />
+                  <div className="scale">
+                    <span>-3</span>
+                    <span>-2</span>
+                    <span>-1</span>
+                    <span>0</span>
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                  </div>
+                </div>
+                <Button
+                  className="confirm"
+                  type="submit"
+                  onClick={handleHappinessSubmit}
+                >
+                  Confirm
+                </Button>
+              </>
+            )}
           </div>
         </TabsContent>
         <TabsContent value="Display">

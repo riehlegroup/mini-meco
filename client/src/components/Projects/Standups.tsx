@@ -30,6 +30,7 @@ const Standups: React.FC = () => {
   const [doneText, setDoneText] = useState("");
   const [plansText, setPlansText] = useState("");
   const [challengesText, setChallengesText] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleSendStandups = async (e: React.FormEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -57,15 +58,16 @@ const Standups: React.FC = () => {
         throw new Error(data.message || "Something went wrong");
       }
 
-      console.log(data.message || "Success!");
-      if (data.message.includes("successfully")) {
-        window.location.reload();
-      }
+      setMessage(data.message || "Standup email sent successfully");
+      // Clear form fields
+      setDoneText("");
+      setPlansText("");
+      setChallengesText("");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.log(error.message);
+        setMessage(error.message);
       } else {
-        console.log("An unexpected error occurred");
+        setMessage("An unexpected error occurred");
       }
     }
   };
@@ -132,6 +134,7 @@ const Standups: React.FC = () => {
         >
           Send Email
         </Button>
+        {message && <div className="my-5 p-3 text-center text-base font-semibold text-green-700">{message}</div>}
       </div>
     </div>
   );

@@ -155,12 +155,53 @@ export const useCourse = () => {
     try {
       await courseApi.addProject(body);
       showMessage(
-        `Course: "${project.projectName}" created successfully`,
+        `Project: "${project.projectName}" created successfully`,
         "success"
       );
     } catch (error) {
       showMessage(
         `Fail to create Project: "${project.projectName}" for courseId: "${project.courseId}, Error: ${error}"`,
+        "error"
+      );
+    }
+  };
+
+  const updateProject = async (project: Project) => {
+    if (!project) return;
+    setMessage(null);
+
+    const body = {
+      projectName: project.projectName,
+      courseId: project.courseId,
+    };
+
+    try {
+      await courseApi.updateProject(project.id, body);
+      showMessage(
+        `Project: "${project.projectName}" updated successfully`,
+        "success"
+      );
+    } catch (error) {
+      showMessage(
+        `Failed to update Project: "${project.projectName}". Error: ${error}`,
+        "error"
+      );
+    }
+  };
+
+  const deleteProject = async (project: Project) => {
+    if (!project) return;
+    setMessage(null);
+
+    try {
+      await courseApi.deleteProject(project.id);
+      showMessage(
+        `Project: "${project.projectName}" deleted successfully`,
+        "success"
+      );
+    } catch (error) {
+      showMessage(
+        `Failed to delete Project: "${project.projectName}". Error: ${error}`,
         "error"
       );
     }
@@ -177,5 +218,7 @@ export const useCourse = () => {
     deleteCourse,
     getCourseProjects,
     addProject,
+    updateProject,
+    deleteProject,
   };
 };

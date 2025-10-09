@@ -22,7 +22,9 @@ const Settings: React.FC = () => {
 
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [githubMessage, setGithubMessage] = useState("");
   const [githubUsername, setGithubUsername] = useState("");
 
   const [user, setUser] = useState<{
@@ -49,7 +51,7 @@ const Settings: React.FC = () => {
       if (userEmail) {
         try {
           const response = await fetch(
-            `http://localhost:3000/user/githubUsername?email=${userEmail}`
+            `http://localhost:3000/user/githubUsername?userEmail=${userEmail}`
           );
           const data = await response.json();
           if (!response.ok) {
@@ -69,7 +71,7 @@ const Settings: React.FC = () => {
 
   const handleEmailChange = async () => {
     if (!user) {
-      setMessage("User data not available. Please log in again.");
+      setEmailMessage("User data not available. Please log in again.");
       return;
     }
 
@@ -80,7 +82,7 @@ const Settings: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/user/${user.email}/email`,
+        "http://localhost:3000/user/mail",
         {
           method: "POST",
           headers: {
@@ -94,24 +96,23 @@ const Settings: React.FC = () => {
         throw new Error(data.message || "Something went wrong");
       }
 
-      setMessage(data.message || "Email changed successfully!");
+      setEmailMessage(data.message || "Email changed successfully!");
       if (data.message.includes("successfully")) {
         const updatedUser = { ...user, email: newEmail };
         setUser(updatedUser);
         localStorage.setItem("email", newEmail);
-        window.location.reload();
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
-        setMessage(error.message);
+        setEmailMessage(error.message);
       }
     }
   };
 
   const handlePasswordChange = async () => {
     if (!user) {
-      setMessage("User data not available. Please log in again.");
+      setPasswordMessage("User data not available. Please log in again.");
       return;
     }
 
@@ -122,7 +123,7 @@ const Settings: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/user/${encodeURIComponent(user.email)}/password`,
+        "http://localhost:3000/user/password/change",
         {
           method: "POST",
           headers: {
@@ -136,26 +137,23 @@ const Settings: React.FC = () => {
         throw new Error(data.message || "Something went wrong");
       }
 
-      setMessage(data.message || "Password changed successfully!");
-      if (data.message.includes("successfully")) {
-        window.location.reload();
-      }
+      setPasswordMessage(data.message || "Password changed successfully!");
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
-        setMessage(error.message);
+        setPasswordMessage(error.message);
       }
     }
   };
 
   const handleAddGithubUsername = async () => {
     if (!githubUsername) {
-      setMessage("GitHub username cannot be empty");
+      setGithubMessage("GitHub username cannot be empty");
       return;
     }
 
     const body = {
-      email: user?.email,
+      userEmail: user?.email,
       newGithubUsername: githubUsername,
     };
 
@@ -177,16 +175,16 @@ const Settings: React.FC = () => {
         throw new Error(data.message || "Something went wrong");
       }
 
-      setMessage(data.message || "GitHub username added successfully!");
+      setGithubMessage(data.message || "GitHub username added successfully!");
       if (data.message.includes("successfully")) {
-        setGithubUsername(githubUsername);
         localStorage.setItem("githubUsername", githubUsername);
-        window.location.reload();
+        const updatedUser = { ...user, UserGithubUsername: githubUsername } as typeof user;
+        setUser(updatedUser);
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
-        setMessage(error.message);
+        setGithubMessage(error.message);
       }
     }
   };
@@ -197,12 +195,11 @@ const Settings: React.FC = () => {
       <div className="DashboardContainer">
         <h1>Settings</h1>
       </div>
-      <div className="BigContainer">
-        <div className="AccountInfoContainer">
-          <div className="AccountTitle">
-            <h3>Account Info</h3>
-          </div>
-          <div className="PersonalDataContainer">
+      <div className="ProjectContainer">
+        <div className="ProjectTitle">
+          <h3>Account Info</h3>
+        </div>
+        <div className="PersonalDataContainer">
             <div className="PersonalData">
               <div className="Email">
                 Email: {user?.email || "Email not available"}
@@ -237,7 +234,7 @@ const Settings: React.FC = () => {
                       Change
                     </Button>
                   </DialogFooter>
-                  {message && <div className="Message">{message}</div>}
+                  {emailMessage && <div className="Message">{emailMessage}</div>}
                 </DialogContent>
               </Dialog>
             </div>
@@ -272,7 +269,7 @@ const Settings: React.FC = () => {
                       Change
                     </Button>
                   </DialogFooter>
-                  {message && <div className="Message">{message}</div>}
+                  {passwordMessage && <div className="Message">{passwordMessage}</div>}
                 </DialogContent>
               </Dialog>
             </div>
@@ -309,12 +306,11 @@ const Settings: React.FC = () => {
                       Confirm
                     </Button>
                   </DialogFooter>
-                  {message && <div className="Message">{message}</div>}
+                  {githubMessage && <div className="Message">{githubMessage}</div>}
                 </DialogContent>
               </Dialog>
             </div>
           </div>
-        </div>
       </div>
     </div>
   );

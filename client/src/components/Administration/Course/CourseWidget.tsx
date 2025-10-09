@@ -12,6 +12,7 @@ interface CourseProps {
   action: "add" | "edit" | "delete" | "schedule";
   type?: "course" | "project" | "schedule";
   course?: Course | null;
+  project?: Project | null;
   onFetch?: () => void;
 }
 
@@ -26,9 +27,10 @@ const CourseWidget: React.FC<CourseProps> = ({
   action,
   type = "course",
   course = null,
+  project = null,
   onFetch,
 }: CourseProps) => {
-  const { message, DEFAULT, createCourse, addProject } = useCourse();
+  const { message, DEFAULT, createCourse, updateCourse, addProject, updateProject, deleteProject } = useCourse();
   const [showSchedule, setShowSchedule] = useState(false);
   const {
     dialogState,
@@ -45,18 +47,25 @@ const CourseWidget: React.FC<CourseProps> = ({
         setShowSchedule((prev) => !prev);
         break;
       case "edit":
-        if (!course) {
-          console.error("Edit action requires a course!");
+        if (type === "project" && project) {
+          openEditDialog(project);
+        } else if (type === "course" && course) {
+          openEditDialog(course);
+        } else {
+          console.error("Edit action requires a course or project!");
           return;
         }
-        openEditDialog(course);
         break;
       case "add":
         openCreateDialog();
         break;
       case "delete":
-        if (!course) {
-          console.error("Delete action requires a course!");
+        if (type === "project" && project) {
+          handleDelete();
+        } else if (type === "course" && course) {
+          handleDelete();
+        } else {
+          console.error("Delete action requires a course or project!");
           return;
         }
         break;
@@ -65,22 +74,35 @@ const CourseWidget: React.FC<CourseProps> = ({
     }
   };
 
+  const handleDelete = async () => {
+    if (type === "project" && project) {
+      if (window.confirm(`Are you sure you want to delete project "${project.projectName}"?`)) {
+        await deleteProject(project);
+        onFetch?.();
+      }
+    } else if (type === "course" && course) {
+      // Course delete functionality (not implemented yet)
+      console.warn("Course delete not implemented");
+    }
+  };
+
   const handleSubmit = async () => {
     if (!dialogState.data) return;
 
     try {
       if (type === "project") {
-        if (!course) return;
         const projectData = dialogState.data as Project;
 
         if (dialogState.mode === "create") {
+          if (!course) return;
           await addProject({
             ...projectData,
             courseId: course.id, // Ensure courseId is set
           });
           onFetch?.(); // Callback for updating table
         } else if (dialogState.mode === "edit") {
-          // await editProject({...projectData, courseId: course.id});
+          await updateProject(projectData);
+          onFetch?.();
         }
       } else {
         const courseData = dialogState.data as Course;
@@ -88,10 +110,11 @@ const CourseWidget: React.FC<CourseProps> = ({
           await createCourse(courseData);
           onFetch?.();
         } else if (dialogState.mode === "edit") {
-          // await updateCourse({...courseData, courseId: course.id});
+          await updateCourse(courseData);
+          onFetch?.();
         }
       }
-      // closeDialog(); // Close dialog after successful submission
+      closeDialog(); // Close dialog after successful submission
     } catch (error) {
       console.error("Submission error:", error);
     }

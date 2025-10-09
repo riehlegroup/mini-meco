@@ -5,8 +5,6 @@ import { User } from "../Models/User";
 import { Writer } from "./Writer";
 import { CourseProject } from "../Models/CourseProject";
 import { Course } from "../Models/Course";
-import { ProjectMember } from "../Models/ProjectMember";
-import { ProjectParticipation } from "../Models/ProjectParticipation";
 import { Reader } from "./Reader";
 import { CourseSchedule, SubmissionDate } from "../Models/CourseSchedule";
 
@@ -21,17 +19,17 @@ export class DatabaseWriter implements Writer {
      * Dictionary to be filled with attributes to be written in a single SQL call.
      */
     protected attributes: {[attributeName: string]: string | number | null} = {};
-    protected toHandle: Array<Serializable> = new Array();
-    protected wasHandled: Set<{tableName: string, id: number}> = new Set();
+    protected toHandle: Serializable[] = [];
+    protected wasHandled: Set<{tableName: string; id: number}> = new Set();
     protected db: Database;
 
-    constructor(db: Database) {    
+    constructor(db: Database) {
         this.db = db;
     }
 
     async writeRoot(rootObject: Serializable) {
         /** handle writing referenced objects recursively if required! */
-        this.toHandle = new Array();
+        this.toHandle = [];
         this.wasHandled = new Set();
         this.toHandle.push(rootObject);
 
@@ -131,7 +129,8 @@ export class DatabaseWriter implements Writer {
 class ForeignWrapper<T extends Serializable> implements Serializable {
     constructor(public obj: T, public referenceColumnName: string, public foreignId: number) {}
 
-    readFrom(_: Reader): void {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    readFrom(_reader: Reader): void {
         throw new Error("ForeignWrapper only supports writes");
     }
 

@@ -64,16 +64,33 @@ const CourseAdmin: React.FC = () => {
   }, [courses]);
 
   const tableProjects = useMemo(() => {
-    return projects.map((prj) => [
-      prj.id,
-      prj.projectName,
-      prj.courseId,
-      <div key={prj.id} className="flex">
-        <CourseWidget type="project" label="edit" action="edit" />
-        <CourseWidget type="project" label="delete" action="delete" />
-      </div>,
-    ]);
-  }, [projects]);
+    return projects.map((prj) => {
+      const parentCourse = courses.find((c) => c.id === prj.courseId);
+      return [
+        prj.id,
+        prj.projectName,
+        prj.courseId,
+        <div key={prj.id} className="flex">
+          <CourseWidget
+            type="project"
+            label="edit"
+            action="edit"
+            course={parentCourse}
+            project={prj}
+            onFetch={fetchCourse}
+          />
+          <CourseWidget
+            type="project"
+            label="delete"
+            action="delete"
+            course={parentCourse}
+            project={prj}
+            onFetch={fetchCourse}
+          />
+        </div>,
+      ];
+    });
+  }, [projects, courses, fetchCourse]);
 
   useEffect(() => {
     fetchCourse();

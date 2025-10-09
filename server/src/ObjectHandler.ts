@@ -25,7 +25,7 @@ export class ObjectHandler {
         }
 
         try {
-            const result = await (user[functionName as keyof User] as Function).apply(user, args);
+            const result = await (user[functionName as keyof User] as (...args: unknown[]) => unknown).apply(user, args);
             res.status(200).json({ result });
         } catch (error) {
             res.status(500).json({ message: `Error invoking function ${functionName}`, error });
@@ -48,7 +48,7 @@ export class ObjectHandler {
         }
 
         try {
-            const result = await (courseProject[functionName as keyof CourseProject] as unknown as Function).apply(courseProject, args);
+            const result = await (courseProject[functionName as keyof CourseProject] as unknown as (...args: unknown[]) => unknown).apply(courseProject, args);
             res.status(200).json({ result });
         } catch (error) {
             res.status(500).json({ message: `Error invoking function ${functionName}`, error });
@@ -72,7 +72,7 @@ export class ObjectHandler {
         }
 
         try {
-            const result = await (course[functionName as keyof Course] as Function).apply(course, args);
+            const result = await (course[functionName as keyof Course] as (...args: unknown[]) => unknown).apply(course, args);
             res.status(200).json({ result });
         } catch (error) {
             res.status(500).json({ message: `Error invoking function ${functionName}`, error });
@@ -116,14 +116,14 @@ export class ObjectHandler {
         if (!scheduleRow) {
             return null;
         }
-        
+
         return (new DatabaseResultSetReader(scheduleRow, db))
             .readRoot<CourseSchedule>(CourseSchedule) as Promise<CourseSchedule>;
     }
-    
+
     public async getSubmissionDates(scheduleId: number, db: Database): Promise<SubmissionDate[]> {
         const dates = db.all('SELECT * FROM submissions WHERE scheduleId = ? ORDER BY submissionDate ASC', [scheduleId]);
-        
+
         return (new DatabaseResultSetReader(dates, db))
             .readRoot<SubmissionDate>(SubmissionDate) as Promise<SubmissionDate[]>;
     }

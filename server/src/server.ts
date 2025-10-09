@@ -8,12 +8,13 @@ import {
   register, login, forgotPassword, resetPassword, confirmEmail, sendConfirmationEmail
 } from './auth';
 import {
-  createProject, editProject, getProjects,
+  editProject, getProjects,
   joinProject, leaveProject, getUserProjects, getUsersByStatus,
   updateUserStatus, updateAllConfirmedUsers,
   getEnrolledCourses,
   getRoleForProject,
-  getUsers
+  getUsers,
+  getCourseForProject
 } from './projectManagement';
 import { 
     sendStandupEmails, saveHappinessMetric, createSprints, getProjectHappinessMetrics, getSprints, 
@@ -48,6 +49,7 @@ initializeDB().then((db) => {
 
   // courseProject endpoints
   app.get('/courseProject', (req, res) => { getProjects(req, res, db) });
+  app.get('/courseProject/course', (req, res) => getCourseForProject(req, res, db));
   app.get('/courseProject/user/role', (req, res) => getRoleForProject(req, res, db));
   // app.post('/courseProject', (req, res) => { createProject(req, res, db); });
   app.put('/courseProject', (req, res) => { editProject(req, res, db); });
@@ -65,7 +67,8 @@ initializeDB().then((db) => {
   app.get('/getUsers', (req, res) => { getUsers(req, res, db) });
   app.get('/user/project/url', (req, res) => { getUserProjectURL(req, res, db) }); // to be removed, duplicate of /user/project/url
   app.post('/user/password/forgotMail', (req, res) => forgotPassword(req, res, db));
-  app.post('/user/password', (req, res) => resetPassword(req, res, db));
+  app.post('/user/password/reset', (req, res) => resetPassword(req, res, db));
+  app.post('/user/password/change', (req, res) => changePassword(req, res, db));
   app.get('/user/projects', (req, res) => { getUserProjects(req, res, db) });
   app.post('/user/project/url', (req, res) => setUserProjectURL(req, res, db));
   app.get('/user/githubUsername', (req, res) => { getUserGitHubUsername(req, res, db) });
@@ -74,10 +77,9 @@ initializeDB().then((db) => {
   app.post('/user/confirmation/trigger', (req, res) => sendConfirmationEmail(req, res, db))
   app.post('/user/status/all', (req, res) => updateAllConfirmedUsers(req, res, db));
   app.post('/user/mail', (req, res) => changeEmail(req, res, db));
-  app.post('/user/password', (req, res) => changePassword(req, res, db));
   app.post('/user/project', (req, res) => joinProject(req, res, db));
   app.delete('/user/project', (req, res) => leaveProject(req, res, db));
-  app.post('/user/gitubUsername', (req, res) => setUserGitHubUsername(req, res, db));
+  app.post('/user/githubUsername', (req, res) => setUserGitHubUsername(req, res, db));
   app.get('/user/status', (req, res) => { getUsersByStatus(req, res, db) });
   app.get('/user/role', (req, res) => { getUserRole(req, res, db) });
   app.post('/user/role', (req, res) => { updateUserRole(req, res, db) });

@@ -18,7 +18,7 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const endpoint = "/user/password";
+    const endpoint = "/user/password/reset";
     const body = { token, newPassword };
 
     try {
