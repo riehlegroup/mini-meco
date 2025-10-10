@@ -18,10 +18,17 @@ import {
 type ArrayElement<T> = T extends (infer U)[] ? U : never;
 type Commit = ArrayElement<Endpoints["GET /repos/{owner}/{repo}/commits"]["response"]["data"]>;
 type Sprint = {
-  id: number,
-  projectGroupName: string,
-  sprintName: string,
-  endDate: number,
+  id: number;
+  projectGroupName: string;
+  sprintName: string;
+  endDate: number;
+  startDate: Date;
+  name: string;
+};
+
+type CommitCount = {
+  sprint: string;
+  count: number;
 };
 
 const CodeActivity: React.FC = () => {
@@ -38,7 +45,7 @@ const CodeActivity: React.FC = () => {
     owner: string;
     repo: string;
   } | null>(null);
-  const [sprints, setSprints] = useState<any[]>([]);
+  const [sprints, setSprints] = useState<Sprint[]>([]);
 
   const [projectName, setProjectName] = useState<string | null>("");
   const [user, setUser] = useState<{
@@ -47,7 +54,7 @@ const CodeActivity: React.FC = () => {
     githubUsername: string;
   } | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
-  const [commitsPerSprint, setCommitsPerSprint] = useState<any[]>([]);
+  const [commitsPerSprint, setCommitsPerSprint] = useState<CommitCount[]>([]);
 
   const handleNavigation = () => {
     navigate("/code-activity");
@@ -70,19 +77,14 @@ const CodeActivity: React.FC = () => {
 
       try {
         const response = await fetch(
-          `http://localhost:3000/course/user?projectName=${encodeURIComponent(
+          `http://localhost:3000/courseProject/course?projectName=${encodeURIComponent(
             projectName
           )}`
         );
         if (response.ok) {
-          const text = await response.text();
-          if (text) {
-            const data = JSON.parse(text);
-            if (data && data.courseName) {
-              setSelectedCourse(data.courseName);
-            }
-          } else {
-            console.error("Empty response body");
+          const data = await response.json();
+          if (data && data.courseName) {
+            setSelectedCourse(data.courseName);
           }
         } else {
           console.error(`Error: ${response.status} ${response.statusText}`);
@@ -100,6 +102,9 @@ const CodeActivity: React.FC = () => {
       const userName = localStorage.getItem("username");
       const userEmail = localStorage.getItem("email");
       const githubUsername = localStorage.getItem("githubUsername");
+
+      console.log("CodeActivity - Loading user data:", { userName, userEmail, githubUsername });
+
       if (userName && userEmail && githubUsername) {
         setUser({
           name: userName,
@@ -107,7 +112,7 @@ const CodeActivity: React.FC = () => {
           githubUsername: githubUsername,
         });
       } else {
-        console.warn("User data not found in localStorage");
+        console.warn("User data not found in localStorage", { userName, userEmail, githubUsername });
       }
     };
 
@@ -129,7 +134,7 @@ const CodeActivity: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/user/projects?userEmail=${encodeURIComponent(
+        `http://localhost:3000/user/project/url?userEmail=${encodeURIComponent(
           user.email.toString()
         )}&projectName=${encodeURIComponent(projectName)}`
       );
@@ -163,7 +168,7 @@ const CodeActivity: React.FC = () => {
   
       try {
         const response = await fetch(
-          `http://localhost:3000/sprints?courseName=${encodeURIComponent(
+          `http://localhost:3000/courseProject/sprints?courseName=${encodeURIComponent(
             selectedCourse
           )}`
         );
@@ -255,7 +260,7 @@ const CodeActivity: React.FC = () => {
   };
 
   useEffect(() => {
-    if (hasMore && repoDetails && sprints.length) {
+    if (hasMore && repoDetails && sprints.length && user) {
       console.log("Loading more commits...");
       getCommits(page);
     } else {
@@ -263,9 +268,10 @@ const CodeActivity: React.FC = () => {
         hasMore,
         repoDetails,
         sprints,
+        user,
       });
     }
-  }, [page, repoDetails, sprints]);
+  }, [page, repoDetails, sprints, user]);
 
   useEffect(() => {
     if (hasMore && !loading) {

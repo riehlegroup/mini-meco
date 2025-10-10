@@ -71,7 +71,8 @@ const CourseParticipation: React.FC = () => {
     const fetchCourses = async () => {
       try {
         const response = await fetch("http://localhost:3000/course");
-        const data = await response.json();
+        const result = await response.json();
+        const data = result.success ? result.data : [];
         setCourses(data.map((item: Project) => item.courseName));
         console.log("Fetched project groups:", data);
       } catch (error: unknown) {
@@ -255,8 +256,7 @@ const CourseParticipation: React.FC = () => {
       <div className="DashboardContainer">
         <h1>Course Participation</h1>
       </div>
-      <div className="BigContainer">
-        <div className="ProjectContainer">
+      <div className="ProjectContainer">
           <div className="ProjectTitle">
             <h3>Project Lists - Enrolled Courses</h3>
           </div>
@@ -280,34 +280,36 @@ const CourseParticipation: React.FC = () => {
           </div>
           <div>
             {filteredEnrolledProjects.map((project: Project) => (
-              <div className="ProjectItem3" key={project.id}>
-                <div className="ProjectName">{project.projectName}</div>
-                <div className="Imgs">
-                  <Dialog>
-                    <DialogTrigger className="DialogTrigger">
-                      <img className="Delete" src={Delete} alt="Delete" />
-                    </DialogTrigger>
-                    <DialogContent className="DialogContent">
-                      <DialogHeader>
-                        <DialogTitle className="DialogTitle">
-                          Leave Project
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="LeaveText">
-                        Are you sure you want to leave {project.projectName} ?{" "}
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          className="create"
-                          variant="primary"
-                          onClick={() => handleLeave(project.projectName)}
-                        >
-                          Confirm
-                        </Button>
-                      </DialogFooter>
-                      {message && <div className="Message">{message}</div>}
-                    </DialogContent>
-                  </Dialog>
+              <div key={project.id}>
+                <div className="ProjectItem3">
+                  <div className="ProjectName">{project.projectName}</div>
+                  <div className="Imgs">
+                    <Dialog>
+                      <DialogTrigger className="DialogTrigger">
+                        <img className="Delete" src={Delete} alt="Delete" />
+                      </DialogTrigger>
+                      <DialogContent className="DialogContent">
+                        <DialogHeader>
+                          <DialogTitle className="DialogTitle">
+                            Leave Project
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="LeaveText">
+                          Are you sure you want to leave {project.projectName} ?{" "}
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            className="create"
+                            variant="primary"
+                            onClick={() => handleLeave(project.projectName)}
+                          >
+                            Confirm
+                          </Button>
+                        </DialogFooter>
+                        {message && <div className="Message">{message}</div>}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
                 <hr className="ProjectDivider" />
               </div>
@@ -339,48 +341,48 @@ const CourseParticipation: React.FC = () => {
           </div>
           <div>
             {filteredAvailableProjects.map((project: Project) => (
-              <div className="ProjectItem3" key={project.id}>
-                <div className="ProjectName">{project.projectName}</div>
-                <div className="Imgs">
-                  <Dialog>
-                    <DialogTrigger className="DialogTrigger">
-                      <img className="Add" src={Add} alt="Add" />
-                    </DialogTrigger>
-                    <DialogContent className="DialogContent">
-                      <DialogHeader>
-                        <DialogTitle className="DialogTitle">
-                          Join Project
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="RoleInput">
-                        <div className="Role">Role: </div>
-                        <input
-                          type="text"
-                          className="ProjAdmin-inputBox"
-                          placeholder="Enter your role"
-                          value={role}
-                          onChange={(e) => setRole(e.target.value)}
-                        />
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          className="create"
-                          variant="primary"
-                          onClick={() => handleJoin(project.projectName)}
-                        >
-                          Join
-                        </Button>
-                      </DialogFooter>
-                      {message && <div className="Message">{message}</div>}
-                    </DialogContent>
-                  </Dialog>
+              <div key={project.id}>
+                <div className="ProjectItem3">
+                  <div className="ProjectName">{project.projectName}</div>
+                  <div className="Imgs">
+                    <Dialog>
+                      <DialogTrigger className="DialogTrigger">
+                        <img className="Add" src={Add} alt="Add" />
+                      </DialogTrigger>
+                      <DialogContent className="DialogContent">
+                        <DialogHeader>
+                          <DialogTitle className="DialogTitle">
+                            Join Project
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="RoleInput">
+                          <div className="Role">Role: </div>
+                          <input
+                            type="text"
+                            className="ProjAdmin-inputBox"
+                            placeholder="Enter your role"
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                          />
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            className="create"
+                            variant="primary"
+                            onClick={() => handleJoin(project.projectName)}
+                          >
+                            Join
+                          </Button>
+                        </DialogFooter>
+                        {message && <div className="Message">{message}</div>}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
                 <hr className="ProjectDivider" />
               </div>
             ))}
           </div>
-        </div>
-
       </div>
     </div>
   );

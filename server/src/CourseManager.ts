@@ -8,6 +8,7 @@ import { MethodFailedException } from "./Exceptions/MethodFailedException";
 import { Semester } from "./Models/Semester";
 import { IllegalArgumentException } from "./Exceptions/IllegalArgumentException";
 import { ProjectManager } from "./ProjectManager";
+import { CourseSchedule, SubmissionDate } from "./Models/CourseSchedule";
 
 /**
  * Manages Course operations and writes them persistent.
@@ -184,5 +185,139 @@ export class CourseManager {
     }
 
     return projects;
+  }
+
+  /**
+   * Updates a project's name and optionally its course association.
+   * @param projectId ID of the project to update
+   * @param projectName New project name
+   * @param courseId Optional new course ID
+   * @returns Updated project instance
+   */
+  async updateProject(
+    projectId: number,
+    projectName: string,
+    courseId?: number
+  ): Promise<CourseProject | null> {
+    try {
+      const project = await this.oh.getCourseProject(projectId, this.db);
+      if (!project) {
+        return null;
+      }
+
+      project.setName(projectName);
+
+      if (courseId !== undefined) {
+        const course = await this.readCourse(courseId);
+        if (!course) {
+          throw new IllegalArgumentException("Course not found");
+        }
+        project.setCourse(course);
+      }
+
+      const writer = new DatabaseWriter(this.db);
+      writer.writeRoot(project);
+
+      return project;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Deletes a project from the database.
+   * @param projectId ID of the project to delete
+   * @returns True if deletion was successful, false if project not found
+   */
+  async deleteProject(projectId: number): Promise<boolean> {
+    try {
+      const project = await this.oh.getCourseProject(projectId, this.db);
+      if (!project) {
+        return false;
+      }
+
+      // Delete from database
+      await this.db.run("DELETE FROM projects WHERE id = ?", [projectId]);
+
+      // Also delete related user_projects entries
+      await this.db.run("DELETE FROM user_projects WHERE projectId = ?", [projectId]);
+
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Saves or updates a course schedule with submission dates.
+   * @param courseId ID of the course
+   * @param startDate Schedule start date
+   * @param endDate Schedule end date
+   * @param submissionDates Array of submission dates
+   * @returns Saved schedule instance
+   */
+  async saveSchedule(
+    courseId: number,
+    startDate: Date,
+    endDate: Date,
+    submissionDates: Date[]
+  ): Promise<CourseSchedule> {
+    try {
+      // Check if course exists
+      const course = await this.readCourse(courseId);
+      if (!course) {
+        throw new IllegalArgumentException("Course not found");
+      }
+
+      // Check if schedule already exists
+      let schedule = await this.oh.getCourseSchedule(courseId, this.db);
+
+      if (!schedule) {
+        // Create new schedule
+        schedule = await this.factory.create("CourseSchedule") as CourseSchedule;
+        if (!schedule) {
+          throw new MethodFailedException("Schedule creation failed");
+        }
+        schedule.setId(courseId); // Use courseId as schedule ID (1:1 relationship)
+      }
+
+      schedule.setStartDate(startDate);
+      schedule.setEndDate(endDate);
+
+      // Delete existing submission dates
+      await this.db.run("DELETE FROM submissions WHERE scheduleId = ?", [courseId]);
+
+      // Create new submission dates
+      const submissionDateObjects: SubmissionDate[] = [];
+      for (const date of submissionDates) {
+        const subDate = await this.factory.create("SubmissionDate") as SubmissionDate;
+        if (subDate) {
+          subDate.setSubmissionDate(date);
+          submissionDateObjects.push(subDate);
+        }
+      }
+      schedule.setSubmissionDates(submissionDateObjects);
+
+      // Write to database
+      const writer = new DatabaseWriter(this.db);
+      writer.writeRoot(schedule);
+
+      return schedule;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves a course schedule by course ID.
+   * @param courseId ID of the course
+   * @returns Schedule instance or null if not found
+   */
+  async getSchedule(courseId: number): Promise<CourseSchedule | null> {
+    try {
+      return await this.oh.getCourseSchedule(courseId, this.db);
+    } catch {
+      return null;
+    }
   }
 }

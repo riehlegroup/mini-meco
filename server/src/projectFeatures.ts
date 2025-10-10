@@ -1,7 +1,6 @@
 import { Database } from "sqlite";
 import { Request, Response } from "express";
 import nodemailer from "nodemailer";
-import { Email } from './email';
 
 export const sendStandupEmails = async (req: Request, res: Response, db: Database) => {
   const { projectName, userName, doneText, plansText, challengesText } = req.body;
@@ -15,14 +14,16 @@ export const sendStandupEmails = async (req: Request, res: Response, db: Databas
               WHERE projects.projectName = ?`,
       [projectName]);
 
+    console.log(`Found ${members.length} members for project "${projectName}":`, members);
 
     if (members.length === 0) {
       return res.status(400).json({ message: "No members in the project group" });
     }
-  
-      const recipientEmails = members.map(member => member.memberEmail).join(",");
-  
-      const transporter = nodemailer.createTransport({
+
+      const recipientEmails = members.map(member => member.email).join(",");
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _transporter = nodemailer.createTransport({
         host: 'smtp-auth.fau.de',
         port: 465,
         secure: true,
@@ -38,10 +39,14 @@ export const sendStandupEmails = async (req: Request, res: Response, db: Databas
         subject: `Standup Update for ${projectName}`,
         text: `Standup report from ${userName}\n\nDone: ${doneText}\nPlans: ${plansText}\nChallenges: ${challengesText}`,
       };
-  
+
+      // Log the email that would have been sent
+      console.log("Email would have been sent with the following options:");
+      console.log(JSON.stringify(mailOptions, null, 2));
+
       // @todo: Uncomment the following lines to send email
       // await transporter.sendMail(mailOptions);
-  
+
       res.status(200).json({ message: "Standup email sent successfully" });
     } catch (error) {
       console.error("Error sending standup email:", error);
@@ -64,8 +69,9 @@ export const createSprints = async (req: Request, res: Response, db: Database) =
     }
     const courseId = courseIdObj.id;
 
-    const existingSprints = await db.all(`SELECT endDate 
-      FROM sprints 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _existingSprints = await db.all(`SELECT endDate
+      FROM sprints
       WHERE courseId = ?`, [courseId]);
     
     const latestSprint = await db.get(`SELECT sprintName 
@@ -101,10 +107,10 @@ export const saveHappinessMetric = async (req: Request, res: Response, db: Datab
 
   try {
     //this return { projectGroupName: "AMOSXX" } [object Object], so we need to change it into string
-    await db.run(`INSERT INTO happiness (projectId, userId, happiness, sprintId, timestamp) 
-      SELECT 
+    await db.run(`INSERT INTO happiness (projectId, userId, happiness, sprintId, timestamp)
+      SELECT
         (SELECT id AS projectId FROM projects WHERE projectName = ?),
-        (SELECT id AS userId FROM users WHERE userEmail = ?),
+        (SELECT id AS userId FROM users WHERE email = ?),
         ?,
         (SELECT id AS sprintId FROM sprints WHERE sprintName = ?),
         ?
@@ -121,9 +127,12 @@ export const getProjectHappinessMetrics = async (req: Request, res: Response, db
   const { projectName } = req.query;
   try {
     const happinessData = await db.all(
-      `SELECT * FROM happiness
-      WHERE projectId = (SELECT id FROM projects WHERE projectName = ?)
-      ORDER BY sprintName ASC, timestamp ASC`,
+      `SELECT happiness.*, sprints.sprintName, users.email as userEmail
+      FROM happiness
+      LEFT JOIN sprints ON happiness.sprintId = sprints.id
+      LEFT JOIN users ON happiness.userId = users.id
+      WHERE happiness.projectId = (SELECT id FROM projects WHERE projectName = ?)
+      ORDER BY sprints.sprintName ASC, happiness.timestamp ASC`,
       [projectName]
     );
     res.json(happinessData);

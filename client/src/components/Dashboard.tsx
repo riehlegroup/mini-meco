@@ -8,12 +8,13 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<string[]>([]);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string>("ADMIN");
+  const userRole = useUserRole();
 
   const username = localStorage.getItem("username");
   console.log("[Dashboard] username: ", username)
@@ -42,27 +43,6 @@ const Dashboard: React.FC = () => {
 
     fetchProjects();
   }, [navigate]);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      const userEmail = localStorage.getItem("email");
-      console.log("[Dashboard] userEmail: ", userEmail)
-      if (userEmail) {
-        try {
-          const response = await fetch(
-            `http://localhost:3000/user/role?userEmail=${userEmail}`
-          );
-          const data = await response.json();
-          console.log("[Dashboard] setUserRole: ", data.userRole)
-          setUserRole(data.userRole);
-        } catch (error) {
-          console.error("Error fetching user role:", error);
-        }
-      }
-    };
-
-    fetchUserRole();
-  }, []);
 
   const handleProjectChange = (projectName: string) => {
     setSelectedProject(projectName);

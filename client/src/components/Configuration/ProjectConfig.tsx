@@ -34,8 +34,8 @@ const ProjectConfig: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selectedAvailableProject, setSelectedAvailableProject] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [courses, setCourses] = useState<string[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [courses, setCourses] = useState<{ id: number; courseName: string }[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<{ id: number; courseName: string } | null>(null);
   const [user, setUser] = useState<{
     name: string;
     email: string;
@@ -77,7 +77,7 @@ const ProjectConfig: React.FC = () => {
             `http://localhost:3000/user/courses?userEmail=${userEmail}`
           );
           const data = await response.json();
-          setCourses(data.map((course: { courseName: string }) => course.courseName));
+          setCourses(data);
         } catch (error) {
           console.error("Error fetching courses:", error);
         }
@@ -87,18 +87,21 @@ const ProjectConfig: React.FC = () => {
     fetchCourses();
   }, [navigate]);
 
-  const handleCourseChange = (courseName: string) => {
-    setSelectedCourse(courseName);
-    setSelectedProject(null);
-    fetchProjects(courseName);
+  const handleCourseChange = (courseId: string) => {
+    const course = courses.find(c => c.id.toString() === courseId);
+    if (course) {
+      setSelectedCourse(course);
+      setSelectedProject(null);
+      fetchProjects(course.id);
+    }
   };
 
-  const fetchProjects = async (courseName: string) => {
+  const fetchProjects = async (courseId: number) => {
     const userEmail = localStorage.getItem("email");
     if (userEmail) {
       try {
         const response = await fetch(
-          `http://localhost:3000/course/courseProjects?courseName=${courseName}&userEmail=${userEmail}`
+          `http://localhost:3000/course/courseProjects?courseId=${courseId}&userEmail=${userEmail}`
         );
         if (!response.ok) {
           throw new Error(`Error: ${response.status}`);
@@ -110,7 +113,7 @@ const ProjectConfig: React.FC = () => {
         for (const project of data.enrolledProjects) {
           try {
             const roleResponse = await fetch(
-              `http://localhost:3000/courseProject/user/role?projectName=${project.projectName}&userEmail=${userEmail}`
+              `http://localhost:3000/courseProject/user/role?projectName=${encodeURIComponent(project.projectName)}&email=${encodeURIComponent(userEmail)}`
             );
 
             const roleData = await roleResponse.json();
@@ -147,9 +150,9 @@ const ProjectConfig: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/user/project/url?email=${localStorage.getItem(
-          "email"
-        )}&project=${projectName}`,
+        `http://localhost:3000/user/project/url?userEmail=${encodeURIComponent(
+          localStorage.getItem("email") || ""
+        )}&projectName=${encodeURIComponent(projectName)}`,
         {
           method: "GET",
           headers: {
@@ -193,19 +196,22 @@ const ProjectConfig: React.FC = () => {
         });
         const data = await response.json();
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Error changing URL:", errorData);
+          setMessage(data.message || "Failed to update URL");
         } else {
           setMessage(data.message || "URL changed successfully");
-          if (data.message.includes("successfully")) {
-            window.location.reload();
-          }
+          // Update the displayed URL and clear input
+          setURL(newURL);
+          setNewURL("");
         }
-      } catch (error) {
-        console.error("Error changed URL:", error);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          setMessage(error.message);
+        } else {
+          setMessage("An unexpected error occurred");
+        }
       }
     } else {
-      console.error("User email or selected project is missing");
+      setMessage("User email or selected project is missing");
     }
   };
   const handleJoin = async (projectName: string, role: string) => {
@@ -290,7 +296,7 @@ const ProjectConfig: React.FC = () => {
 
   const handleCreate = async (projectName: string) => {
     const body = {
-      courseName: selectedCourse,
+      courseId: selectedCourse?.id,
       projectName,
     };
 
@@ -342,7 +348,7 @@ const ProjectConfig: React.FC = () => {
       <div className="DashboardContainer">
         <h1>Project Configuration</h1>
       </div>
-      <div className="BigContainerProjConfig">
+      <div className="ProjectConfigContainer">
         <div className="margintop">
           <h2>Enrolled Courses</h2>
           <Select onValueChange={handleCourseChange}>
@@ -351,8 +357,8 @@ const ProjectConfig: React.FC = () => {
             </SelectTrigger>
             <SelectContent className="SelectCourse">
               {courses.map((course) => (
-                <SelectItem key={course} value={course}>
-                  {course}
+                <SelectItem key={course.id} value={course.id.toString()}>
+                  {course.courseName}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -370,12 +376,18 @@ const ProjectConfig: React.FC = () => {
                       <div className="project-buttons">
 
                         {projectRoles[project] === "owner" && (
-                          <Dialog>
+                          <Dialog onOpenChange={(open) => {
+                            if (open) {
+                              handleProjectChange(project);
+                            } else {
+                              setMessage("");
+                              setNewURL("");
+                            }
+                          }}>
                             <DialogTrigger asChild>
                               <Button
                                 className="editButton"
                                 type="button"
-                                onClick={() => handleProjectChange(project)}
                               >
                                 <img src={Edit} alt="Edit" />
                               </Button>
@@ -386,13 +398,14 @@ const ProjectConfig: React.FC = () => {
                                   Edit Project URL
                                 </DialogTitle>
                               </DialogHeader>
-                              <div className="URLInput">
-                                <div className="URL">
-                                  {url ? `Current URL: ${url}` : "No URL currently set"}
+                              <div className="mb-4 space-y-3">
+                                <div className="break-words text-sm text-gray-700">
+                                  <span className="font-semibold">Current URL: </span>
+                                  {url ? <span className="break-all">{url}</span> : <span className="italic">No URL currently set</span>}
                                 </div>
                                 <input
                                   type="text"
-                                  className="ProjAdmin-inputBox"
+                                  className="w-full rounded border border-gray-300 p-2"
                                   placeholder="Enter new URL"
                                   value={newURL}
                                   onChange={(e) => setNewURL(e.target.value)}

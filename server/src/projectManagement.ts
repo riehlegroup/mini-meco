@@ -16,13 +16,13 @@ export const createProject = async (req: Request, res: Response, db: Database) =
   }
 
   try {
-    const courseId = DatabaseManager.getCourseIdFromName(db, courseName);
+    const courseId = await DatabaseManager.getCourseIdFromName(db, courseName);
     const user = await db.get('SELECT * FROM courses WHERE id = ?', [courseId]);
     if (!user) {
       return res.status(400).json({ message: 'Course Not Found' });
     }
 
-    await db.run(`INSERT INTO project (projectName, courseId) VALUES (?, ?)`, [projectName, courseId]);
+    await db.run(`INSERT INTO projects (projectName, courseId) VALUES (?, ?)`, [projectName, courseId]);
 
     res.status(201).json({ message: "Project created successfully" });
   } catch (error) {
@@ -39,8 +39,8 @@ export const editProject = async (req: Request, res: Response, db: Database) => 
   }
 
   try {
-    const newCourseId = DatabaseManager.getCourseIdFromName(db, newCourseName);
-    const projectId = DatabaseManager.getProjectIdFromName(db, projectName);
+    const newCourseId = await DatabaseManager.getCourseIdFromName(db, newCourseName);
+    const projectId = await DatabaseManager.getProjectIdFromName(db, projectName);
     await db.run(
       `UPDATE projects SET projectName = ?, courseId = ? WHERE id = ?`,
       [newProjectName, newCourseId, projectId]
@@ -60,7 +60,7 @@ export const getProjects = async (req: Request, res: Response, db: Database) => 
   }
 
   try {
-    const courseId = DatabaseManager.getCourseIdFromName(db, courseName.toString());
+    const courseId = await DatabaseManager.getCourseIdFromName(db, courseName.toString());
     const projects = await db.all("SELECT * FROM projects WHERE courseId = ?", [courseId]);
     res.json(projects);
   } catch (error) {
@@ -70,15 +70,15 @@ export const getProjects = async (req: Request, res: Response, db: Database) => 
 };
 
 export const joinProject = async (req: Request, res: Response, db: Database) => {
-  const { projectName, memberName, memberRole } = req.body;
+  const { projectName, memberRole, memberEmail: memberEmailStr } = req.body;
 
   let memberEmail: Email;
-  if (!req.query.memberEmail || typeof req.query.memberEmail !== 'string') {
+  if (!memberEmailStr || typeof memberEmailStr !== 'string') {
       return res.status(400).json({ message: 'User email is required' });
   }
   try {
-      memberEmail = new Email(req.query.memberEmail as string);
-  } catch (IllegalArgumentException) {
+      memberEmail = new Email(memberEmailStr);
+  } catch {
       return res.status(400).json({ message: 'Invalid email address' });
   }
 
@@ -87,14 +87,14 @@ export const joinProject = async (req: Request, res: Response, db: Database) => 
   }
 
   try {
-    const projectId = DatabaseManager.getProjectIdFromName(db, projectName);
-    const userId = DatabaseManager.getUserIdFromEmail(db, memberEmail.toString());
+    const projectId = await DatabaseManager.getProjectIdFromName(db, projectName);
+    const userId = await DatabaseManager.getUserIdFromEmail(db, memberEmail.toString());
     const isMember = await db.get(`SELECT * FROM user_projects WHERE userId = ? AND projectId = ?`, [userId, projectId]);
     if (isMember) {
       return res.status(400).json({ message: "You have already joined this project" });
     }
 
-    await db.run('INSERT INTO user_projects (userId, projectId, memberRole ) VALUES (?, ?, ?)', [userId, projectId, memberRole]);
+    await db.run('INSERT INTO user_projects (userId, projectId, role) VALUES (?, ?, ?)', [userId, projectId, memberRole]);
     res.status(201).json({ message: "Joined project successfully" });
 
   } catch (error) {
@@ -107,8 +107,8 @@ export const leaveProject = async (req: Request, res: Response, db: Database) =>
   const { userEmail, projectName } = req.body;
 
   try {
-    const projectId = DatabaseManager.getProjectIdFromName(db, projectName);
-    const userId = DatabaseManager.getUserIdFromEmail(db, userEmail);
+    const projectId = await DatabaseManager.getProjectIdFromName(db, projectName);
+    const userId = await DatabaseManager.getUserIdFromEmail(db, userEmail);
     const isMember = await db.get(`SELECT * FROM user_projects WHERE userId = ? AND projectId = ?`, [userId, projectId]);
     if (!isMember) {
       return res.status(400).json({ message: "You are not a member of this project" });
@@ -128,14 +128,20 @@ export const getUserProjects = async (req: Request, res: Response, db: Database)
       return res.status(400).json({ message: 'User email is required' });
   }
   try {
-      userEmail = new Email(req.query.email as string);
-  } catch (IllegalArgumentException) {
+      userEmail = new Email(req.query.userEmail as string);
+  } catch {
       return res.status(400).json({ message: 'Invalid email address' });
   }
 
   try {
-    const userId = DatabaseManager.getUserIdFromEmail(db, userEmail.toString());
-    const projects = await db.all('SELECT projectId FROM user_projects WHERE userId = ?', [userId]);
+    const userId = await DatabaseManager.getUserIdFromEmail(db, userEmail.toString());
+    const projects = await db.all(
+      `SELECT p.id, p.projectName
+       FROM user_projects up
+       INNER JOIN projects p ON up.projectId = p.id
+       WHERE up.userId = ?`,
+      [userId]
+    );
     res.json(projects);
   } catch (error) {
     console.error("Error during retrieving user projects:", error);
@@ -152,7 +158,7 @@ export const getUserCourses = async (req: Request, res: Response, db: Database) 
 
 
   try {
-    const projectId = DatabaseManager.getProjectIdFromName(db, projectName?.toString());
+    const projectId = await DatabaseManager.getProjectIdFromName(db, projectName?.toString());
     const allCourse = await db.get('SELECT DISTINCT courseId FROM projects WHERE id = ?', [projectId]);
     if (allCourse) {
       res.json(allCourse);
@@ -242,7 +248,8 @@ export const updateAllConfirmedUsers = async (req: Request, res: Response, db: D
 };
 
 export const sendSuspendedEmail = async (email: string) => {
-  const transporter = nodemailer.createTransport({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _transporter = nodemailer.createTransport({
     host: 'smtp-auth.fau.de',
     port: 465,
     secure: true,
@@ -252,7 +259,8 @@ export const sendSuspendedEmail = async (email: string) => {
     },
   });
 
-  const mailOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _mailOptions = {
     from: '"Mini-Meco" <shu-man.cheng@fau.de>',
     to: email,
     subject: 'Account Suspended',
@@ -270,7 +278,8 @@ export const sendSuspendedEmail = async (email: string) => {
 }
 
 export const sendRemovedEmail = async (email: string) => {
-  const transporter = nodemailer.createTransport({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _transporter = nodemailer.createTransport({
     host: 'smtp-auth.fau.de',
     port: 465,
     secure: true,
@@ -280,7 +289,8 @@ export const sendRemovedEmail = async (email: string) => {
     },
   });
 
-  const mailOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _mailOptions = {
     from: '"Mini-Meco" <shu-man.cheng@fau.de>',
     to: email,
     subject: 'Account Removed',
@@ -300,22 +310,23 @@ export const sendRemovedEmail = async (email: string) => {
 
 export const getEnrolledCourses = async (req: Request, res: Response, db: Database) => {
   let userEmail : Email;
-  if (!req.query.email || typeof req.query.email !== 'string') {
+  if (!req.query.userEmail || typeof req.query.userEmail !== 'string') {
       return res.status(400).json({ message: 'User email is required' });
     }
   try {
-      userEmail = new Email(req.query.email as string);
-  } catch (IllegalArgumentException) {
+      userEmail = new Email(req.query.userEmail as string);
+  } catch {
       return res.status(400).json({ message: 'Invalid email address' });
   }
 
   try {
-    const userId = DatabaseManager.getUserIdFromEmail(db, userEmail.toString());
+    const userId = await DatabaseManager.getUserIdFromEmail(db, userEmail.toString());
     const courses = await db.all(
-      `SELECT DISTINCT projects.courseId 
-         FROM user_projects 
-         INNER JOIN projects ON user_projects.projectId = projects.id
-         WHERE user_projects.userId = ?`,
+      `SELECT DISTINCT c.id, c.courseName
+         FROM user_projects up
+         INNER JOIN projects p ON up.projectId = p.id
+         INNER JOIN courses c ON p.courseId = c.id
+         WHERE up.userId = ?`,
       [userId]
     );
     res.json(courses);
@@ -335,7 +346,7 @@ export const getRoleForProject = async (req: Request, res: Response, db: Databas
       }
     try {
         userEmail = new Email(req.query.email as string);
-    } catch (IllegalArgumentException) {
+    } catch {
         return res.status(400).json({ message: 'Invalid email address' });
     }
 
@@ -344,10 +355,10 @@ export const getRoleForProject = async (req: Request, res: Response, db: Databas
   }
 
   try {
-    const projectId = DatabaseManager.getProjectIdFromName(db, projectName.toString());
-    const userId = DatabaseManager.getUserIdFromEmail(db, userEmail.toString());
+    const projectId = await DatabaseManager.getProjectIdFromName(db, projectName.toString());
+    const userId = await DatabaseManager.getUserIdFromEmail(db, userEmail.toString());
     const role = await db.get(
-      `SELECT memberRole
+      `SELECT role
              FROM user_projects
              WHERE userId = ? AND projectId = ?`,
       [userId, projectId]
@@ -356,9 +367,35 @@ export const getRoleForProject = async (req: Request, res: Response, db: Databas
     if (!role) {
       return res.status(404).json({ message: "Role not found" });
     }
-    res.json({ role: role.memberRole });
+    res.json({ role: role.role });
   } catch (error) {
     console.error("Error retrieving project role", error);
     res.status(500).json({ message: "Failed to retrieve project role", error });
+  }
+}
+
+export const getCourseForProject = async (req: Request, res: Response, db: Database) => {
+  const { projectName } = req.query;
+
+  if (!projectName) {
+    return res.status(400).json({ message: 'Project name is required' });
+  }
+
+  try {
+    const course = await db.get(
+      `SELECT c.courseName FROM courses c
+       INNER JOIN projects p ON p.courseId = c.id
+       WHERE p.projectName = ?`,
+      [projectName]
+    );
+
+    if (course) {
+      res.json(course);
+    } else {
+      res.status(404).json({ message: 'Course not found for this project' });
+    }
+  } catch (error) {
+    console.error('Error fetching course for project:', error);
+    res.status(500).json({ message: 'Failed to fetch course', error });
   }
 }

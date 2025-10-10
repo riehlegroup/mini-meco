@@ -40,7 +40,7 @@ export class DatabaseManager {
             FROM users
             WHERE users.email = ?`, [userEmail]);
         if (userIdObj === undefined) {
-        throw new Error("Unknown Course Name!");
+        throw new Error("User not found with email: " + userEmail);
         }
         const userId = userIdObj.id;
         return userId;

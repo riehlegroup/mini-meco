@@ -78,8 +78,9 @@ body {
   }
   
   .ProjectContainer {
-    width: 1232px;
-    height: 472px;
+    width: 90%;
+    max-width: 1300px;
+    min-height: 400px;
     color: #000;
     flex-shrink: 0;
     border-radius: 5px;
@@ -92,6 +93,7 @@ body {
     margin-bottom: 50px;
     padding: 10px;
     position: relative;
+    box-sizing: border-box;
   }
   
   .title {
@@ -395,9 +397,10 @@ margin-bottom: 50px;
   .ProjectItem3 {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    width: 1200px;
-    margin: 30px;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 15px 20px;
+    box-sizing: border-box;
   }
   
   .Add{

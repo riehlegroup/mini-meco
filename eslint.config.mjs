@@ -8,7 +8,7 @@ import globals from "globals"
 export default [
     // Global
     {
-        ignores: ['node_modules/**', 'dist/**'],
+        ignores: ['node_modules/**', 'dist/**', '**/dist/**', 'client/dist/**', 'server/dist/**'],
     },
         
     // Client Typescript src
