@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import "./LoginScreen.css";
+import "./AuthScreens.css";
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search); // search: '?query=string'
