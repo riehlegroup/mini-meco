@@ -1,0 +1,34 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      CLIENT_URL: ${CLIENT_URL}
+      DB_PATH: ${DB_PATH}
+      JWT_SECRET: ${JWT_SECRET}
+      EMAIL_USER_FAU: ${EMAIL_USER_FAU}
+      EMAIL_PASS_FAU: ${EMAIL_PASS_FAU}
+    volumes:
+      - mini-meco-db:/app/server/data
+    restart: unless-stopped
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_GITHUB_TOKEN: ${VITE_GITHUB_TOKEN}
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  mini-meco-db:

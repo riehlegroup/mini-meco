@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/config/api";
 
 /**
  * Custom hook to fetch and manage user role from the backend.
@@ -13,7 +14,7 @@ export const useUserRole = (): string => {
       if (userEmail) {
         try {
           const response = await fetch(
-            `http://localhost:3000/user/role?userEmail=${userEmail}`
+            `${API_BASE_URL}/user/role?userEmail=${userEmail}`
           );
           const data = await response.json();
           setUserRole(data.userRole);

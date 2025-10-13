@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUserRole } from "@/hooks/useUserRole";
+import { API_BASE_URL } from "@/config/api";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ const Dashboard: React.FC = () => {
       if (userEmail) {
         try {
           const response = await fetch(
-            `http://localhost:3000/user/projects?userEmail=${userEmail}`
+            `${API_BASE_URL}/user/projects?userEmail=${userEmail}`
           );
           const data = await response.json();
           setProjects(

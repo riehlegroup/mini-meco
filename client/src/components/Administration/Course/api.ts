@@ -1,8 +1,9 @@
 import { Course, Project } from "./types";
+import { API_BASE_URL } from "@/config/api";
 
 class ApiClient {
   private static instnace: ApiClient;
-  private BASE_API_URL: string = "http://localhost:3000/";
+  private BASE_API_URL: string = `${API_BASE_URL}/`;
 
   private constructor() {}
 

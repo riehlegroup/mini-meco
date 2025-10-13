@@ -12,6 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Button from "react-bootstrap/esm/Button";
+import { API_BASE_URL } from "@/config/api";
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ const Settings: React.FC = () => {
       if (userEmail) {
         try {
           const response = await fetch(
-            `http://localhost:3000/user/githubUsername?userEmail=${userEmail}`
+            `${API_BASE_URL}/user/githubUsername?userEmail=${userEmail}`
           );
           const data = await response.json();
           if (!response.ok) {
@@ -82,7 +83,7 @@ const Settings: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/user/mail",
+        "${API_BASE_URL}/user/mail",
         {
           method: "POST",
           headers: {
@@ -123,7 +124,7 @@ const Settings: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/user/password/change",
+        "${API_BASE_URL}/user/password/change",
         {
           method: "POST",
           headers: {
@@ -159,7 +160,7 @@ const Settings: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/user/githubUsername",
+        "${API_BASE_URL}/user/githubUsername",
         {
           method: "POST",
           headers: {

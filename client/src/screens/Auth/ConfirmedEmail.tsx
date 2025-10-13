@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { API_BASE_URL } from "@/config/api";
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search); // search: '?query=string'
@@ -25,7 +26,7 @@ const ConfirmedEmail = () => {
     const body = { token };
 
     try {
-      const response = await fetch(`http://localhost:3000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

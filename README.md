@@ -4,6 +4,10 @@ Friedrich-Alexander-Universität Erlangen-Nürnberg
 Faculty of Engineering, Department Computer Science
 Professorship for Open-Source Software
 
+## Quick Links
+
+- **[Deployment Guide](DEPLOYMENT.md)** - Production deployment with Docker and local development setup
+
 # Overview
 
 Mini-Meco is simple web-based application to support agile software development. It is also used as an example application for teaching.

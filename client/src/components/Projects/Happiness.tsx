@@ -24,6 +24,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useUserRole } from "@/hooks/useUserRole";
+import { API_BASE_URL } from "@/config/api";
 
 const Happiness: React.FC = (): React.ReactNode => {
   const navigate = useNavigate();
@@ -72,7 +73,7 @@ const Happiness: React.FC = (): React.ReactNode => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await fetch("http://localhost:3000/course");
+        const response = await fetch(`${API_BASE_URL}/course`);
         const result = await response.json();
         const data = result.data || [];
         setCourses(data.map((item: { courseName: string }) => item.courseName));
@@ -106,7 +107,7 @@ const Happiness: React.FC = (): React.ReactNode => {
 
       try {
         const response = await fetch(
-          `http://localhost:3000/courseProject/sprints?courseName=${encodeURIComponent(
+          `${API_BASE_URL}/courseProject/sprints?courseName=${encodeURIComponent(
             selectedCourse
           )}`
         );
@@ -132,7 +133,7 @@ const Happiness: React.FC = (): React.ReactNode => {
 
       try {
         const response = await fetch(
-          `http://localhost:3000/courseProject/currentSprint?projectName=${encodeURIComponent(
+          `${API_BASE_URL}/courseProject/currentSprint?projectName=${encodeURIComponent(
             projectName
           )}`
         );
@@ -164,7 +165,7 @@ const Happiness: React.FC = (): React.ReactNode => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/courseProject/sprints",
+        `${API_BASE_URL}/courseProject/sprints`,
         {
           method: "POST",
           headers: {
@@ -190,7 +191,7 @@ const Happiness: React.FC = (): React.ReactNode => {
 
   const handleHappinessSubmit = async () => {
     try {
-      await fetch("http://localhost:3000/courseProject/happiness", {
+      await fetch(`${API_BASE_URL}/courseProject/happiness`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -211,7 +212,7 @@ const Happiness: React.FC = (): React.ReactNode => {
   const fetchHappinessData = async () => {
     try {
       const response = await fetch(
-        `http://localhost:3000/courseProject/happiness?projectName=${encodeURIComponent(
+        `${API_BASE_URL}/courseProject/happiness?projectName=${encodeURIComponent(
           projectName ?? ""
         )}`
       );

@@ -2,6 +2,7 @@ import "./UserPanel.css";
 import React, { useState, useEffect } from "react";
 import {useNavigate } from "react-router-dom";
 import ReturnButton from "../Components/return";
+import { API_BASE_URL } from "@/config/api";
 
 
 let pwErrormessage = ""
@@ -46,7 +47,7 @@ const UserPanel: React.FC = () => {
     if (userEmail) {
       try {
         const response = await fetch(
-          `http://localhost:3000/user/githubUsername?userEmail=${userEmail}`
+          `${API_BASE_URL}/user/githubUsername?userEmail=${userEmail}`
         );
         const data = await response.json();
         if (!response.ok) {
@@ -81,7 +82,7 @@ const UserPanel: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/settings/changeEmail",
+        `${API_BASE_URL}/settings/changeEmail`,
         {
           method: "POST",
           headers: {
@@ -120,7 +121,7 @@ const UserPanel: React.FC = () => {
     };
     try {
       const response = await fetch(
-        "http://localhost:3000/user/password/change",
+        `${API_BASE_URL}/user/password/change`,
         {
           method: "POST",
           headers: {
@@ -167,7 +168,7 @@ const UserPanel: React.FC = () => {
     let msg = document.getElementById('ErrorMessageGithub');
     try {
       const response = await fetch(
-        "http://localhost:3000/user/githubUsername",
+        `${API_BASE_URL}/user/githubUsername`,
         {
           method: "POST",
           headers: {

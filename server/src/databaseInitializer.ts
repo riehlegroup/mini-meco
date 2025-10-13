@@ -13,7 +13,7 @@ const DEFAULT_USER = {
   password: "helloworld"
 };
 
-export async function initializeDB(filename = './myDatabase.db', createAdmin = true) {
+export async function initializeDB(filename: string, createAdmin = true) {
   const db = await open({
     filename: filename,
     driver: sqlite3.Database,
