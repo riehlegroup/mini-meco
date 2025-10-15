@@ -1,18 +1,17 @@
 import { Application, Request, Response } from "express";
 import { Database } from "sqlite";
-import nodemailer from "nodemailer";
 import { hashPassword } from "../Utils/hash";
 import { DatabaseHelpers } from "../Models/DatabaseHelpers";
 import { checkOwnership } from "../Middleware/checkOwnership";
 import { IAppController } from "./IAppController";
-import { EMAIL_CONFIG } from "../Config/email";
+import { IEmailService } from "../Services/IEmailService";
 
 /**
  * Controller for handling user-related HTTP requests.
  * Manages user administration, status, and configuration (email, password, GitHub, URLs, roles).
  */
 export class UserController implements IAppController {
-  constructor(private db: Database) {}
+  constructor(private db: Database, private emailService: IEmailService) {}
 
   /**
    * Initializes API routes for user management.
@@ -298,66 +297,18 @@ export class UserController implements IAppController {
   }
 
   private async sendSuspendedEmail(email: string): Promise<void> {
-    const mailOptions = {
-      from: `"${EMAIL_CONFIG.sender.name}" <${EMAIL_CONFIG.sender.address}>`,
-      to: email,
-      subject: "Account Suspended",
-      text: `Your account has been suspended. Please contact the administrator for more information.`,
-    };
-
-    if (process.env.NODE_ENV === "production") {
-      const transporter = nodemailer.createTransport({
-        host: EMAIL_CONFIG.smtp.host,
-        port: EMAIL_CONFIG.smtp.port,
-        secure: EMAIL_CONFIG.smtp.secure,
-        auth: {
-          user: process.env.EMAIL_USER_FAU,
-          pass: process.env.EMAIL_PASS_FAU,
-        },
-      });
-
-      try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log("Account suspended email sent: %s", info.messageId);
-      } catch (error) {
-        console.error("Error sending suspended email:", error);
-        throw new Error("There was an error sending the email");
-      }
-    } else {
-      console.log("Email would have been sent with the following options:");
-      console.log(JSON.stringify(mailOptions, null, 2));
-    }
+    await this.emailService.sendEmail(
+      email,
+      "Account Suspended",
+      "Your account has been suspended. Please contact the administrator for more information."
+    );
   }
 
   private async sendRemovedEmail(email: string): Promise<void> {
-    const mailOptions = {
-      from: `"${EMAIL_CONFIG.sender.name}" <${EMAIL_CONFIG.sender.address}>`,
-      to: email,
-      subject: "Account Removed",
-      text: `Your account has been removed. Please contact the administrator for more information.`,
-    };
-
-    if (process.env.NODE_ENV === "production") {
-      const transporter = nodemailer.createTransport({
-        host: EMAIL_CONFIG.smtp.host,
-        port: EMAIL_CONFIG.smtp.port,
-        secure: EMAIL_CONFIG.smtp.secure,
-        auth: {
-          user: process.env.EMAIL_USER_FAU,
-          pass: process.env.EMAIL_PASS_FAU,
-        },
-      });
-
-      try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log("Account removed email sent: %s", info.messageId);
-      } catch (error) {
-        console.error("Error sending removed email:", error);
-        throw new Error("There was an error sending the email");
-      }
-    } else {
-      console.log("Email would have been sent with the following options:");
-      console.log(JSON.stringify(mailOptions, null, 2));
-    }
+    await this.emailService.sendEmail(
+      email,
+      "Account Removed",
+      "Your account has been removed. Please contact the administrator for more information."
+    );
   }
 }

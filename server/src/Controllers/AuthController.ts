@@ -2,7 +2,6 @@ import { Application, Request, Response } from "express";
 import { Database } from "sqlite";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import { UserStatus, UserStatusEnum } from "../Utils/UserStatus";
 import { ObjectHandler } from "../ObjectHandler";
@@ -14,7 +13,7 @@ import { DatabaseResultSetReader } from "../Serializer/DatabaseResultSetReader";
 import { User } from "../Models/User";
 import { Email } from "../ValueTypes/Email";
 import { IAppController } from "./IAppController";
-import { EMAIL_CONFIG } from "../Config/email";
+import { IEmailService } from "../Services/IEmailService";
 
 dotenv.config();
 
@@ -23,7 +22,7 @@ dotenv.config();
  * Manages user registration, login, password reset, and email confirmation.
  */
 export class AuthController implements IAppController {
-  constructor(private db: Database) {}
+  constructor(private db: Database, private emailService: IEmailService) {}
 
   /**
    * Initializes API routes for authentication.
@@ -381,69 +380,21 @@ export class AuthController implements IAppController {
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
     const confirmedLink = `${clientUrl}/confirmedEmail?token=${token}`;
 
-    const mailOptions = {
-      from: `"${EMAIL_CONFIG.sender.name}" <${EMAIL_CONFIG.sender.address}>`,
-      to: email.toString(),
-      subject: "Confirm Email",
-      text: `You registered for Mini-Meco. Click the link to confirm your email: ${confirmedLink}`,
-    };
-
-    if (process.env.NODE_ENV === "production") {
-      const transporter = nodemailer.createTransport({
-        host: EMAIL_CONFIG.smtp.host,
-        port: EMAIL_CONFIG.smtp.port,
-        secure: EMAIL_CONFIG.smtp.secure,
-        auth: {
-          user: process.env.EMAIL_USER_FAU,
-          pass: process.env.EMAIL_PASS_FAU,
-        },
-      });
-
-      try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log("Confirm email sent: %s", info.messageId);
-      } catch (error) {
-        console.error("Error sending confirm email:", error);
-        throw new Error("There was an error sending the email");
-      }
-    } else {
-      console.log("Email would have been sent with the following options:");
-      console.log(JSON.stringify(mailOptions, null, 2));
-    }
+    await this.emailService.sendEmail(
+      email.toString(),
+      "Confirm Email",
+      `You registered for Mini-Meco. Click the link to confirm your email: ${confirmedLink}`
+    );
   }
 
   private async sendPasswordResetEmail(email: Email, token: string): Promise<void> {
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
     const resetLink = `${clientUrl}/resetPassword?token=${token}`;
 
-    const mailOptions = {
-      from: `"${EMAIL_CONFIG.sender.name}" <${EMAIL_CONFIG.sender.address}>`,
-      to: email.toString(),
-      subject: "Password Reset",
-      text: `You requested a password reset. Click the link to reset your password: ${resetLink}`,
-    };
-
-    if (process.env.NODE_ENV === "production") {
-      const transporter = nodemailer.createTransport({
-        host: EMAIL_CONFIG.smtp.host,
-        port: EMAIL_CONFIG.smtp.port,
-        secure: EMAIL_CONFIG.smtp.secure,
-        auth: {
-          user: process.env.EMAIL_USER_FAU,
-          pass: process.env.EMAIL_PASS_FAU,
-        },
-      });
-
-      try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log("Password reset email sent: %s", info.messageId);
-      } catch (error) {
-        console.error("Error sending password reset email:", error);
-        throw new Error("There was an error sending the email");
-      }
-    } else {
-      console.log("Email would have been sent with the following options:");
-      console.log(JSON.stringify(mailOptions, null, 2));
-    }
+    await this.emailService.sendEmail(
+      email.toString(),
+      "Password Reset",
+      `You requested a password reset. Click the link to reset your password: ${resetLink}`
+    );
   }
 }

@@ -5,7 +5,7 @@
 export const EMAIL_CONFIG = {
   sender: {
     name: "Mini-Meco",
-    address: "shu-man.cheng@fau.de"
+    address: "dirk.riehle@fau.de"
   },
   smtp: {
     host: "smtp-auth.fau.de",

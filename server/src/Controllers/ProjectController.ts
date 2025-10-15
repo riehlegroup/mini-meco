@@ -1,10 +1,9 @@
 import { Application, Request, Response } from "express";
 import { Database } from "sqlite";
-import nodemailer from "nodemailer";
 import { DatabaseHelpers } from "../Models/DatabaseHelpers";
 import { Email } from "../ValueTypes/Email";
 import { IAppController } from "./IAppController";
-import { EMAIL_CONFIG } from "../Config/email";
+import { IEmailService } from "../Services/IEmailService";
 
 /**
  * Controller for handling project-related HTTP requests.
@@ -12,7 +11,7 @@ import { EMAIL_CONFIG } from "../Config/email";
  * (happiness metrics, sprints, standups).
  */
 export class ProjectController implements IAppController {
-  constructor(private db: Database) {}
+  constructor(private db: Database, private emailService: IEmailService) {}
 
   /**
    * Initializes API routes for project management.
@@ -479,30 +478,11 @@ export class ProjectController implements IAppController {
 
       const recipientEmails = members.map((member) => member.email).join(",");
 
-      const mailOptions = {
-        from: `"${EMAIL_CONFIG.sender.name}" <${EMAIL_CONFIG.sender.address}>`,
-        to: recipientEmails,
-        subject: `Standup Update for ${projectName}`,
-        text: `Standup report from ${userName}\n\nDone: ${doneText}\nPlans: ${plansText}\nChallenges: ${challengesText}`,
-      };
-
-      if (process.env.NODE_ENV === "production") {
-        const transporter = nodemailer.createTransport({
-          host: EMAIL_CONFIG.smtp.host,
-          port: EMAIL_CONFIG.smtp.port,
-          secure: EMAIL_CONFIG.smtp.secure,
-          auth: {
-            user: process.env.EMAIL_USER_FAU,
-            pass: process.env.EMAIL_PASS_FAU,
-          },
-        });
-
-        await transporter.sendMail(mailOptions);
-        console.log("Standup email sent successfully");
-      } else {
-        console.log("Email would have been sent with the following options:");
-        console.log(JSON.stringify(mailOptions, null, 2));
-      }
+      await this.emailService.sendEmail(
+        recipientEmails,
+        `Standup Update for ${projectName}`,
+        `Standup report from ${userName}\n\nDone: ${doneText}\nPlans: ${plansText}\nChallenges: ${challengesText}`
+      );
 
       res.status(200).json({ message: "Standup email sent successfully" });
     } catch (error) {
