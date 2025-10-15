@@ -1,16 +1,17 @@
 import { Application, Request, Response } from "express";
 import { Database } from "sqlite";
-import { CourseManager } from "./CourseManager";
-import { Course } from "./Models/Course";
-import { Exception } from "./Exceptions/Exception";
-import { IllegalArgumentException } from "./Exceptions/IllegalArgumentException";
+import { CourseManager } from "../CourseManager";
+import { Course } from "../Models/Course";
+import { Exception } from "../Exceptions/Exception";
+import { IllegalArgumentException } from "../Exceptions/IllegalArgumentException";
+import { IAppController } from "./IAppController";
 
 /**
  * Controller for handling course-related HTTP requests.
  * Connects API routes to the CourseManager, which interacts with the database.
  * Each method processing HTTP requests and returning JSON responses.
  */
-export class CourseController {
+export class CourseController implements IAppController {
   private cm: CourseManager;
 
   constructor(private db: Database) {
