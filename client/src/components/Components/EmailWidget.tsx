@@ -54,36 +54,27 @@ const EmailWidget: React.FC<EmailWidgetProps> = ({ onEmailChange, action }) => {
     }
 
     return (
-        <>
+        <div className="space-y-2">
             <input
-                className="inputBox"
                 type="email"
                 placeholder="Please enter your email address"
                 value={values.email}
-                onChange={validateEmailInput} />
-            <br />
+                onChange={validateEmailInput}
+                className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
             {/* Show negative feedback */}
             {Object.entries(errors).map(([key, error]) => (
-                <span key={`${key}: ${String(error)}`}
-                      style={{
-                          fontWeight: 'bold',
-                          color: 'red'
-                      }}>
+                <p key={`${key}: ${String(error)}`} className="text-sm font-semibold text-red-600">
                     {String(error)}
-                    </span>
+                </p>
             ))}
             {/* Show positive feedback */}
             {successMessage && (
-                <div
-                    style={{
-                        fontWeight: "bold",
-                        color: "green",
-                    }}
-                >
+                <p className="text-sm font-semibold text-green-600">
                     {successMessage}
-                </div>
+                </p>
             )}
-        </>
+        </div>
     )
 }
 

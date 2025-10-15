@@ -59,22 +59,21 @@ const PasswordWidget: React.FC<PasswordWidgetProps> = ({
   const { label, color } = getStrengthInfo(strength);
 
   return (
-    <>
+    <div className="space-y-2">
       <input
-        className="inputBox"
         type="password"
         placeholder="Please enter your password"
         value={password}
         onChange={(e) => onPasswordChange(e.target.value)}
+        className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
       />
       {action === "Registration" && password !== "" && (
-        <div style={{ whiteSpace: "nowrap" }}>
-          <span style={{ color: "black" }}>Password Strength: </span>
-          <br />
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-slate-700">Password Strength:</span>
           <strong style={{ color }}>{label}</strong>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

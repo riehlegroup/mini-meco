@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./LoginScreen.css";
+import "./AuthScreens.css";
 import EmailIcon from "./../../assets/EmailIcon.png";
 import { API_BASE_URL } from "@/config/api";
 
