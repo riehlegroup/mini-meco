@@ -22,17 +22,6 @@ export const sendStandupEmails = async (req: Request, res: Response, db: Databas
 
       const recipientEmails = members.map(member => member.email).join(",");
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _transporter = nodemailer.createTransport({
-        host: 'smtp-auth.fau.de',
-        port: 465,
-        secure: true,
-        auth: {
-          user: process.env.EMAIL_USER_FAU,
-          pass: process.env.EMAIL_PASS_FAU,
-        },
-      });
-  
       const mailOptions = {
         from: '"Mini-Meco" <shu-man.cheng@fau.de>',
         to: recipientEmails,
@@ -40,12 +29,23 @@ export const sendStandupEmails = async (req: Request, res: Response, db: Databas
         text: `Standup report from ${userName}\n\nDone: ${doneText}\nPlans: ${plansText}\nChallenges: ${challengesText}`,
       };
 
-      // Log the email that would have been sent
-      console.log("Email would have been sent with the following options:");
-      console.log(JSON.stringify(mailOptions, null, 2));
+      if (process.env.NODE_ENV === 'production') {
+        const transporter = nodemailer.createTransport({
+          host: 'smtp-auth.fau.de',
+          port: 465,
+          secure: true,
+          auth: {
+            user: process.env.EMAIL_USER_FAU,
+            pass: process.env.EMAIL_PASS_FAU,
+          },
+        });
 
-      // @todo: Uncomment the following lines to send email
-      // await transporter.sendMail(mailOptions);
+        await transporter.sendMail(mailOptions);
+        console.log('Standup email sent successfully');
+      } else {
+        console.log("Email would have been sent with the following options:");
+        console.log(JSON.stringify(mailOptions, null, 2));
+      }
 
       res.status(200).json({ message: "Standup email sent successfully" });
     } catch (error) {

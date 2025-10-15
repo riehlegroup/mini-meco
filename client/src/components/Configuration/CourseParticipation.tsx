@@ -20,6 +20,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Button from "react-bootstrap/esm/Button";
+import { API_BASE_URL } from "@/config/api";
 
 const CourseParticipation: React.FC = () => {
   type Project = {
@@ -70,7 +71,7 @@ const CourseParticipation: React.FC = () => {
 
     const fetchCourses = async () => {
       try {
-        const response = await fetch("http://localhost:3000/course");
+        const response = await fetch("${API_BASE_URL}/course");
         const result = await response.json();
         const data = result.success ? result.data : [];
         setCourses(data.map((item: Project) => item.courseName));
@@ -87,7 +88,7 @@ const CourseParticipation: React.FC = () => {
     const fetchUserProjects = async() => {
       try {
         const userEmail = localStorage.getItem("email")
-        const response = await fetch(`http://localhost:3000/user/projects?userEmail=${userEmail}`);
+        const response = await fetch(`${API_BASE_URL}/user/projects?userEmail=${userEmail}`);
         const data = await response.json();
         setUserProjects(data.map((item: Project) => item.projectName));
         console.log("Fetched user projects:", data);
@@ -106,7 +107,7 @@ const CourseParticipation: React.FC = () => {
       if (selectedEnrolledCourse) {
         try {
           const response = await fetch(
-            `http://localhost:3000/courseProject?courseName=${selectedEnrolledCourse}`
+            `${API_BASE_URL}/courseProject?courseName=${selectedEnrolledCourse}`
           );
           const data = await response.json();
           const mappedProjects = data.map((item: Project) => ({
@@ -140,7 +141,7 @@ const CourseParticipation: React.FC = () => {
       if (selectedAvailableCourse) {
         try {
           const response = await fetch(
-            `http://localhost:3000/courseProject?courseName=${selectedAvailableCourse}`
+            `${API_BASE_URL}/courseProject?courseName=${selectedAvailableCourse}`
           );
           const data = await response.json();
           const mappedProjects = data.map((item: Project) => ({
@@ -184,7 +185,7 @@ const CourseParticipation: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/user/project",
+        "${API_BASE_URL}/user/project",
         {
           method: "POST",
           headers: {
@@ -224,7 +225,7 @@ const CourseParticipation: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/user/project",
+        "${API_BASE_URL}/user/project",
         {
           method: "DELETE",
           headers: {

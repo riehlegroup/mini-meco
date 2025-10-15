@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "./AuthScreens.css";
 import EmailIcon from "./../../assets/EmailIcon.png";
+import { API_BASE_URL } from "@/config/api";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -12,7 +13,7 @@ const ForgotPassword = () => {
     const body = { email };
 
     try {
-      const response = await fetch(`http://localhost:3000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

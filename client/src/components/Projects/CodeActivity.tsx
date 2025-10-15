@@ -14,6 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { API_BASE_URL } from "@/config/api";
 
 type ArrayElement<T> = T extends (infer U)[] ? U : never;
 type Commit = ArrayElement<Endpoints["GET /repos/{owner}/{repo}/commits"]["response"]["data"]>;
@@ -77,7 +78,7 @@ const CodeActivity: React.FC = () => {
 
       try {
         const response = await fetch(
-          `http://localhost:3000/courseProject/course?projectName=${encodeURIComponent(
+          `${API_BASE_URL}/courseProject/course?projectName=${encodeURIComponent(
             projectName
           )}`
         );
@@ -134,7 +135,7 @@ const CodeActivity: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/user/project/url?userEmail=${encodeURIComponent(
+        `${API_BASE_URL}/user/project/url?userEmail=${encodeURIComponent(
           user.email.toString()
         )}&projectName=${encodeURIComponent(projectName)}`
       );
@@ -168,7 +169,7 @@ const CodeActivity: React.FC = () => {
   
       try {
         const response = await fetch(
-          `http://localhost:3000/courseProject/sprints?courseName=${encodeURIComponent(
+          `${API_BASE_URL}/courseProject/sprints?courseName=${encodeURIComponent(
             selectedCourse
           )}`
         );

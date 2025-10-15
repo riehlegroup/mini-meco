@@ -19,6 +19,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { API_BASE_URL } from "@/config/api";
 
 const ProjectConfig: React.FC = () => {
   const navigate = useNavigate();
@@ -74,7 +75,7 @@ const ProjectConfig: React.FC = () => {
       if (userEmail) {
         try {
           const response = await fetch(
-            `http://localhost:3000/user/courses?userEmail=${userEmail}`
+            `${API_BASE_URL}/user/courses?userEmail=${userEmail}`
           );
           const data = await response.json();
           setCourses(data);
@@ -101,7 +102,7 @@ const ProjectConfig: React.FC = () => {
     if (userEmail) {
       try {
         const response = await fetch(
-          `http://localhost:3000/course/courseProjects?courseId=${courseId}&userEmail=${userEmail}`
+          `${API_BASE_URL}/course/courseProjects?courseId=${courseId}&userEmail=${userEmail}`
         );
         if (!response.ok) {
           throw new Error(`Error: ${response.status}`);
@@ -113,7 +114,7 @@ const ProjectConfig: React.FC = () => {
         for (const project of data.enrolledProjects) {
           try {
             const roleResponse = await fetch(
-              `http://localhost:3000/courseProject/user/role?projectName=${encodeURIComponent(project.projectName)}&email=${encodeURIComponent(userEmail)}`
+              `${API_BASE_URL}/courseProject/user/role?projectName=${encodeURIComponent(project.projectName)}&email=${encodeURIComponent(userEmail)}`
             );
 
             const roleData = await roleResponse.json();
@@ -150,7 +151,7 @@ const ProjectConfig: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/user/project/url?userEmail=${encodeURIComponent(
+        `${API_BASE_URL}/user/project/url?userEmail=${encodeURIComponent(
           localStorage.getItem("email") || ""
         )}&projectName=${encodeURIComponent(projectName)}`,
         {
@@ -183,7 +184,7 @@ const ProjectConfig: React.FC = () => {
     const userEmail = localStorage.getItem("email");
     if (userEmail && selectedProject) {
       try {
-        const response = await fetch("http://localhost:3000/user/project/url", {
+        const response = await fetch("${API_BASE_URL}/user/project/url", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -229,7 +230,7 @@ const ProjectConfig: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/user/project",
+        "${API_BASE_URL}/user/project",
         {
           method: "POST",
           headers: {
@@ -268,7 +269,7 @@ const ProjectConfig: React.FC = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/user/project",
+        "${API_BASE_URL}/user/project",
         {
           method: "DELETE",
           headers: {
@@ -302,7 +303,7 @@ const ProjectConfig: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/courseProject`,
+        `${API_BASE_URL}/courseProject`,
         {
           method: "POST",
           headers: {

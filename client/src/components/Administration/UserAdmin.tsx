@@ -9,6 +9,7 @@ import Edit from "./../../assets/Edit.png";
 import EmailIcon from "./../../assets/EmailIcon.png";
 
 import { Email } from '../../../../server/src/email';
+import { API_BASE_URL } from "@/config/api";
 
 const userStatus = ["unconfirmed", "confirmed", "suspended", "removed"];
 
@@ -40,7 +41,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
     function onSave() {
         const promises = []
         if (githubUsername && githubUsername !== user.githubUsername) {
-            promises.push(fetch(`http://localhost:3000/user/githubUsername`,
+            promises.push(fetch(`${API_BASE_URL}/user/githubUsername`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -50,7 +51,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
                 .catch(console.error));
         }
         if (status !== user.status) {
-            promises.push(fetch(`http://localhost:3000/updateUserStatus`,
+            promises.push(fetch(`${API_BASE_URL}/updateUserStatus`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -60,7 +61,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
                 .catch(console.error));
         }
         if (password) {
-            promises.push(fetch(`http://localhost:3000/user/password/change`,
+            promises.push(fetch(`${API_BASE_URL}/user/password/change`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -70,7 +71,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
                 .catch(console.error));
         }
         if (userRole !== user.userRole) {
-            promises.push(fetch(`http://localhost:3000/user/role`,
+            promises.push(fetch(`${API_BASE_URL}/user/role`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -82,7 +83,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
 
         Promise.all(promises).then(() =>
             email.toString() !== user.email.toString() ?
-                fetch(`http://localhost:3000/user/mail`,
+                fetch(`${API_BASE_URL}/user/mail`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -155,7 +156,7 @@ const UserAdmin = () => {
 
     function fetchUsers() {
         setLoading(true);
-        fetch(`http://localhost:3000/getUsers`, { method: "GET", headers: { "Content-Type": "application/json" }, })
+        fetch(`${API_BASE_URL}/getUsers`, { method: "GET", headers: { "Content-Type": "application/json" }, })
             .then(checkError)
             .then((response: Response) => response.json())
             .then((us: Array<User>) => setUsers(us))

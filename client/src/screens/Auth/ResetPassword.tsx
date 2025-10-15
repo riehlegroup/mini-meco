@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { API_BASE_URL } from "@/config/api";
 import "./AuthScreens.css";
 
 const useQuery = () => {
@@ -22,7 +23,7 @@ const ResetPassword = () => {
     const body = { token, newPassword };
 
     try {
-      const response = await fetch(`http://localhost:3000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

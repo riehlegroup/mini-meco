@@ -4,6 +4,7 @@ import * as Form from "@radix-ui/react-form";
 import * as Tabs from "@radix-ui/react-tabs";
 import EmailWidget from "@/components/Components/EmailWidget.tsx";
 import PasswordWidget from "@/components/Components/PasswordWidget";
+import { API_BASE_URL } from "@/config/api";
 
 const LoginScreen = () => {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ const LoginScreen = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -30,12 +30,13 @@ import { CourseController } from './CourseController';
 dotenv.config();
 
 const app = express();
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
 
 app.use(bodyParser.json());
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 
-initializeDB().then((db) => {
+const dbPath = process.env.DB_PATH || './myDatabase.db';
+initializeDB(dbPath).then((db) => {
   const oh = new ObjectHandler();
   const course = new CourseController(db);
   console.log("Database initialized, starting server...");

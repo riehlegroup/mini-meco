@@ -20,35 +20,37 @@ const secret = process.env.JWT_SECRET || "your_jwt_secret";
 
 
 export const sendConfirmEmail = async (email: Email, token: string) => {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const confirmedLink = `${clientUrl}/confirmedEmail?token=${token}`;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _transporter = nodemailer.createTransport({
-    host: "smtp-auth.fau.de",
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER_FAU,
-      pass: process.env.EMAIL_PASS_FAU,
-    },
-  });
-  const confirmedLink = `http://localhost:5173/confirmedEmail?token=${token}`;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _mailOptions = {
+  const mailOptions = {
     from: '"Mini-Meco" <shu-man.cheng@fau.de>',
     to: email.toString(),
     subject: 'Confirm Email',
     text: `You registered for Mini-Meco. Click the link to confirm your email: ${confirmedLink}`,
   };
 
-  try {
-    // @todo: Uncomment the following lines to send email
-    // const info = await transporter.sendMail(mailOptions);
-    // console.log('Confirm email sent: %s', info.messageId);
-    // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
-  } catch (error) {
-    console.error("Error sending confirm email:", error);
-    throw new Error("There was an error sending the email");
+  if (process.env.NODE_ENV === 'production') {
+    const transporter = nodemailer.createTransport({
+      host: "smtp-auth.fau.de",
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.EMAIL_USER_FAU,
+        pass: process.env.EMAIL_PASS_FAU,
+      },
+    });
+
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log('Confirm email sent: %s', info.messageId);
+    } catch (error) {
+      console.error("Error sending confirm email:", error);
+      throw new Error("There was an error sending the email");
+    }
+  } else {
+    console.log("Email would have been sent with the following options:");
+    console.log(JSON.stringify(mailOptions, null, 2));
   }
 };
 
@@ -209,36 +211,37 @@ export const checkOwnership = (db: Database, oh: ObjectHandler) => {
 };
 
 const sendPasswordResetEmail = async (email: Email, token: string) => {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const resetLink = `${clientUrl}/resetPassword?token=${token}`;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _transporter = nodemailer.createTransport({
-    host: "smtp-auth.fau.de",
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER_FAU,
-      pass: process.env.EMAIL_PASS_FAU,
-    },
-  });
-
-  const resetLink = `http://localhost:5173/resetPassword?token=${token}`;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _mailOptions = {
+  const mailOptions = {
     from: '"Mini-Meco" <shu-man.cheng@fau.de>',
     to: email.toString(),
     subject: 'Password Reset',
     text: `You requested a password reset. Click the link to reset your password: ${resetLink}`,
   };
 
-  try {
-    // @todo: Uncomment the following lines to send email
-    // const info = await transporter.sendMail(mailOptions);
-    // console.log('Password reset email sent: %s', info.messageId);
-    // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
-  } catch (error) {
-    console.error("Error sending password reset email:", error);
-    throw new Error("There was an error sending the email");
+  if (process.env.NODE_ENV === 'production') {
+    const transporter = nodemailer.createTransport({
+      host: "smtp-auth.fau.de",
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.EMAIL_USER_FAU,
+        pass: process.env.EMAIL_PASS_FAU,
+      },
+    });
+
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log('Password reset email sent: %s', info.messageId);
+    } catch (error) {
+      console.error("Error sending password reset email:", error);
+      throw new Error("There was an error sending the email");
+    }
+  } else {
+    console.log("Email would have been sent with the following options:");
+    console.log(JSON.stringify(mailOptions, null, 2));
   }
 };
 

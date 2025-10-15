@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import ReturnButton from "../Components/return";
 import "./Standups.css";
 import Button from "react-bootstrap/esm/Button";
+import { API_BASE_URL } from "@/config/api";
 
 const Standups: React.FC = () => {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ const Standups: React.FC = () => {
     const body = { projectName, userName, doneText, plansText, challengesText };
 
     try {
-      const response = await fetch(`http://localhost:3000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
