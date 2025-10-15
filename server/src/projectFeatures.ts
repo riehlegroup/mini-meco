@@ -59,13 +59,20 @@ export const createSprints = async (req: Request, res: Response, db: Database) =
 
   const { courseName, dates } = req.body;
 
+  if (!courseName) {
+    return res.status(400).json({ message: "Course name is required" });
+  }
+
+  if (!dates || !Array.isArray(dates)) {
+    return res.status(400).json({ message: "Dates array is required" });
+  }
 
   try {
     const courseIdObj = await db.get(`SELECT id
       FROM courses
       WHERE courses.courseName = ?`, [courseName]);
     if (courseIdObj === undefined) {
-      throw new Error("Unknown Course Name!");
+      return res.status(404).json({ message: "Course not found" });
     }
     const courseId = courseIdObj.id;
 

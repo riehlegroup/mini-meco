@@ -193,7 +193,7 @@ export const checkOwnership = (db: Database, oh: ObjectHandler) => {
         try {
             const decoded = jwt.verify(token, secret) as { id: string; email: string };
             const userFromTokenId = await oh.getUser(Number(decoded.id), db);
-            const userFromParamsId = await oh.getUserByMail(req.body.email, db);
+            const userFromParamsId = await oh.getUserByMail(req.body.userEmail, db);
 
             if(!userFromTokenId || !userFromParamsId) {
                 return res.status(404).json({ message: 'User not found' });
@@ -302,12 +302,17 @@ export const resetPassword = async (
 
     const currentTime = Date.now();
     const user = await db.get('SELECT * FROM users WHERE resetPasswordToken = ?', [token]);
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid or expired reset token' });
+    }
+
     const reader = new DatabaseResultSetReader(user, db);
     const u = await reader.readRoot(User) as User;
-    
+
     console.log('User retrieved from database:', user);
 
-    if (!u || u.getResetPasswordExpire() !== null || u.getResetPasswordExpire() as number < currentTime) {
+    if (!u || u.getResetPasswordExpire() === null || u.getResetPasswordExpire() as number < currentTime) {
       return res.status(400).json({ message: 'Invalid or expired token' });
     } else if (newPasswordObj.getStrength() < 3) {
       return res.status(400).json({
@@ -349,12 +354,17 @@ export const confirmEmail = async (
       "SELECT * FROM users WHERE confirmEmailToken = ?",
       [token]
     );
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid or expired confirmation token' });
+    }
+
     const reader = new DatabaseResultSetReader(user, db);
     const u = await reader.readRoot(User) as User;
-    
+
     console.log('User retrieved from database:', user);
 
-    if (!user || user.confirmEmailExpire < currentTime) {
+    if (user.confirmEmailExpire < currentTime) {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 

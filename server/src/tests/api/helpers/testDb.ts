@@ -1,0 +1,104 @@
+import { Database } from 'sqlite';
+import { initializeDB } from '../../../databaseInitializer';
+import { hashPassword } from '../../../hash';
+
+/**
+ * Creates an in-memory SQLite database for testing
+ */
+export async function createTestDb(): Promise<Database> {
+  return await initializeDB(':memory:', false);
+}
+
+/**
+ * Seeds the database with test data
+ */
+export async function seedDatabase(db: Database) {
+  // Create admin user
+  await db.run(
+    `INSERT INTO users (name, email, password, status, userRole) VALUES (?, ?, ?, ?, ?)`,
+    ['admin', 'admin@test.com', await hashPassword('Admin123!'), 'confirmed', 'ADMIN']
+  );
+
+  // Create regular confirmed user
+  await db.run(
+    `INSERT INTO users (name, email, password, status, userRole) VALUES (?, ?, ?, ?, ?)`,
+    ['testuser', 'test@test.com', await hashPassword('Test123!'), 'confirmed', 'USER']
+  );
+
+  // Create unconfirmed user
+  await db.run(
+    `INSERT INTO users (name, email, password, status, userRole) VALUES (?, ?, ?, ?, ?)`,
+    ['unconfirmed', 'unconfirmed@test.com', await hashPassword('Test123!'), 'unconfirmed', 'USER']
+  );
+
+  // Create suspended user
+  await db.run(
+    `INSERT INTO users (name, email, password, status, userRole) VALUES (?, ?, ?, ?, ?)`,
+    ['suspended', 'suspended@test.com', await hashPassword('Test123!'), 'suspended', 'USER']
+  );
+
+  // Create removed user
+  await db.run(
+    `INSERT INTO users (name, email, password, status, userRole) VALUES (?, ?, ?, ?, ?)`,
+    ['removed', 'removed@test.com', await hashPassword('Test123!'), 'removed', 'USER']
+  );
+
+  // Create test course
+  await db.run(
+    `INSERT INTO courses (courseName, semester) VALUES (?, ?)`,
+    ['Test Course', 'WS2024']
+  );
+
+  // Create test project
+  await db.run(
+    `INSERT INTO projects (projectName, courseId) VALUES (?, ?)`,
+    ['Test Project', 1]
+  );
+
+  // Associate user with project
+  await db.run(
+    `INSERT INTO user_projects (userId, projectId, role) VALUES (?, ?, ?)`,
+    [2, 1, 'Developer']
+  );
+
+  // Create sprints
+  await db.run(
+    `INSERT INTO sprints (courseId, sprintName, endDate) VALUES (?, ?, ?)`,
+    [1, 'sprint0', '2024-12-31']
+  );
+
+  return db;
+}
+
+/**
+ * Creates a minimal database with just the admin user
+ */
+export async function createMinimalDb(): Promise<Database> {
+  const db = await createTestDb();
+  await db.run(
+    `INSERT INTO users (name, email, password, status, userRole) VALUES (?, ?, ?, ?, ?)`,
+    ['admin', 'admin@test.com', await hashPassword('Admin123!'), 'confirmed', 'ADMIN']
+  );
+  return db;
+}
+
+/**
+ * Gets a user by email
+ */
+export async function getUserByEmail(db: Database, email: string) {
+  return await db.get('SELECT * FROM users WHERE email = ?', [email]);
+}
+
+/**
+ * Gets a course by name
+ */
+export async function getCourseByName(db: Database, courseName: string) {
+  return await db.get('SELECT * FROM courses WHERE courseName = ?', [courseName]);
+}
+
+/**
+ * Gets a project by name
+ */
+export async function getProjectByName(db: Database, projectName: string) {
+  return await db.get('SELECT * FROM projects WHERE projectName = ?', [projectName]);
+}

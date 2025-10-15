@@ -97,9 +97,14 @@ export const setUserGitHubUsername = async (req: Request, res: Response, db: Dat
   }
 
   try {
-    const userId = await DatabaseManager.getUserIdFromEmail(db, userEmail);
-    if (!userId) {
-      return res.status(404).json({ message: 'User not found!' });
+    let userId;
+    try {
+      userId = await DatabaseManager.getUserIdFromEmail(db, userEmail);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('User not found')) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      throw error;
     }
 
     await db.run(`UPDATE users SET githubUsername = ? WHERE id = ?`, [newGithubUsername, userId]);

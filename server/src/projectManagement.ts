@@ -60,7 +60,16 @@ export const getProjects = async (req: Request, res: Response, db: Database) => 
   }
 
   try {
-    const courseId = await DatabaseManager.getCourseIdFromName(db, courseName.toString());
+    let courseId;
+    try {
+      courseId = await DatabaseManager.getCourseIdFromName(db, courseName.toString());
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Unknown Course Name!')) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      throw error;
+    }
+
     const projects = await db.all("SELECT * FROM projects WHERE courseId = ?", [courseId]);
     res.json(projects);
   } catch (error) {
@@ -87,7 +96,16 @@ export const joinProject = async (req: Request, res: Response, db: Database) => 
   }
 
   try {
-    const projectId = await DatabaseManager.getProjectIdFromName(db, projectName);
+    let projectId;
+    try {
+      projectId = await DatabaseManager.getProjectIdFromName(db, projectName);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Unknown Course Name!')) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      throw error;
+    }
+
     const userId = await DatabaseManager.getUserIdFromEmail(db, memberEmail.toString());
     const isMember = await db.get(`SELECT * FROM user_projects WHERE userId = ? AND projectId = ?`, [userId, projectId]);
     if (isMember) {
@@ -107,7 +125,16 @@ export const leaveProject = async (req: Request, res: Response, db: Database) =>
   const { userEmail, projectName } = req.body;
 
   try {
-    const projectId = await DatabaseManager.getProjectIdFromName(db, projectName);
+    let projectId;
+    try {
+      projectId = await DatabaseManager.getProjectIdFromName(db, projectName);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Unknown Course Name!')) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      throw error;
+    }
+
     const userId = await DatabaseManager.getUserIdFromEmail(db, userEmail);
     const isMember = await db.get(`SELECT * FROM user_projects WHERE userId = ? AND projectId = ?`, [userId, projectId]);
     if (!isMember) {
