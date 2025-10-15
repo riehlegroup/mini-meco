@@ -1,17 +1,12 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
-import { hashPassword } from './hash';
+import { hashPassword } from './Utils/hash';
 import { ObjectHandler } from './ObjectHandler';
 import { DatabaseSerializableFactory } from './Serializer/DatabaseSerializableFactory';
 import { User } from './Models/User';
 import { DatabaseWriter } from './Serializer/DatabaseWriter';
-import { Email } from './email';
-
-const DEFAULT_USER = {
-  name: "admin",
-  email: "sys@admin.org",
-  password: "helloworld"
-};
+import { Email } from './ValueTypes/Email';
+import { DEFAULT_USER } from './Config/database';
 
 export async function initializeDB(filename: string, createAdmin = true) {
   const db = await open({

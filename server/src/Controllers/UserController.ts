@@ -1,10 +1,11 @@
 import { Application, Request, Response } from "express";
 import { Database } from "sqlite";
 import nodemailer from "nodemailer";
-import { hashPassword } from "../hash";
-import { DatabaseManager } from "../Models/DatabaseManager";
+import { hashPassword } from "../Utils/hash";
+import { DatabaseHelpers } from "../Models/DatabaseHelpers";
 import { checkOwnership } from "../Middleware/checkOwnership";
 import { IAppController } from "./IAppController";
+import { EMAIL_CONFIG } from "../Config/email";
 
 /**
  * Controller for handling user-related HTTP requests.
@@ -125,7 +126,7 @@ export class UserController implements IAppController {
     }
 
     try {
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, oldEmail);
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, oldEmail);
       await this.db.run(`UPDATE users SET email = ? WHERE id = ?`, [newEmail, userId]);
       res.status(200).json({ message: "Email updated successfully" });
     } catch (error) {
@@ -148,7 +149,7 @@ export class UserController implements IAppController {
     const hashedPassword = await hashPassword(password);
 
     try {
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail);
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail);
       await this.db.run(`UPDATE users SET password = ? WHERE id = ?`, [hashedPassword, userId]);
       res.status(200).json({ message: "Password updated successfully" });
     } catch (error) {
@@ -169,8 +170,8 @@ export class UserController implements IAppController {
     }
 
     try {
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail);
-      const projectId = await DatabaseManager.getProjectIdFromName(this.db, projectName);
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail);
+      const projectId = await DatabaseHelpers.getProjectIdFromName(this.db, projectName);
 
       await this.db.run(
         `UPDATE user_projects SET url = ? WHERE userId = ? AND projectId = ?`,
@@ -192,8 +193,8 @@ export class UserController implements IAppController {
     }
 
     try {
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail.toString());
-      const projectId = await DatabaseManager.getProjectIdFromName(this.db, projectName.toString());
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail.toString());
+      const projectId = await DatabaseHelpers.getProjectIdFromName(this.db, projectName.toString());
       const urlObj = await this.db.get(
         `SELECT url FROM user_projects WHERE userId = ? AND projectId = ?`,
         [userId, projectId]
@@ -222,7 +223,7 @@ export class UserController implements IAppController {
     try {
       let userId;
       try {
-        userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail);
+        userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail);
       } catch (error) {
         if (error instanceof Error && error.message.includes("User not found")) {
           res.status(404).json({ message: "User not found" });
@@ -251,7 +252,7 @@ export class UserController implements IAppController {
     }
 
     try {
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail?.toString());
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail?.toString());
       const githubUsernameObj = await this.db.get(`SELECT githubUsername FROM users WHERE id = ?`, [
         userId,
       ]);
@@ -298,7 +299,7 @@ export class UserController implements IAppController {
 
   private async sendSuspendedEmail(email: string): Promise<void> {
     const mailOptions = {
-      from: '"Mini-Meco" <shu-man.cheng@fau.de>',
+      from: `"${EMAIL_CONFIG.sender.name}" <${EMAIL_CONFIG.sender.address}>`,
       to: email,
       subject: "Account Suspended",
       text: `Your account has been suspended. Please contact the administrator for more information.`,
@@ -306,9 +307,9 @@ export class UserController implements IAppController {
 
     if (process.env.NODE_ENV === "production") {
       const transporter = nodemailer.createTransport({
-        host: "smtp-auth.fau.de",
-        port: 465,
-        secure: true,
+        host: EMAIL_CONFIG.smtp.host,
+        port: EMAIL_CONFIG.smtp.port,
+        secure: EMAIL_CONFIG.smtp.secure,
         auth: {
           user: process.env.EMAIL_USER_FAU,
           pass: process.env.EMAIL_PASS_FAU,
@@ -330,7 +331,7 @@ export class UserController implements IAppController {
 
   private async sendRemovedEmail(email: string): Promise<void> {
     const mailOptions = {
-      from: '"Mini-Meco" <shu-man.cheng@fau.de>',
+      from: `"${EMAIL_CONFIG.sender.name}" <${EMAIL_CONFIG.sender.address}>`,
       to: email,
       subject: "Account Removed",
       text: `Your account has been removed. Please contact the administrator for more information.`,
@@ -338,9 +339,9 @@ export class UserController implements IAppController {
 
     if (process.env.NODE_ENV === "production") {
       const transporter = nodemailer.createTransport({
-        host: "smtp-auth.fau.de",
-        port: 465,
-        secure: true,
+        host: EMAIL_CONFIG.smtp.host,
+        port: EMAIL_CONFIG.smtp.port,
+        secure: EMAIL_CONFIG.smtp.secure,
         auth: {
           user: process.env.EMAIL_USER_FAU,
           pass: process.env.EMAIL_PASS_FAU,

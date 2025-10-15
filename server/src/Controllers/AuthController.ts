@@ -4,16 +4,17 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-import { UserStatus, UserStatusEnum } from "../userStatus";
+import { UserStatus, UserStatusEnum } from "../Utils/UserStatus";
 import { ObjectHandler } from "../ObjectHandler";
-import { comparePassword, hashPassword } from "../hash";
+import { comparePassword, hashPassword } from "../Utils/hash";
 import { Password } from "../Models/Password";
 import { DatabaseSerializableFactory } from "../Serializer/DatabaseSerializableFactory";
 import { DatabaseWriter } from "../Serializer/DatabaseWriter";
 import { DatabaseResultSetReader } from "../Serializer/DatabaseResultSetReader";
 import { User } from "../Models/User";
-import { Email } from "../email";
+import { Email } from "../ValueTypes/Email";
 import { IAppController } from "./IAppController";
+import { EMAIL_CONFIG } from "../Config/email";
 
 dotenv.config();
 
@@ -381,7 +382,7 @@ export class AuthController implements IAppController {
     const confirmedLink = `${clientUrl}/confirmedEmail?token=${token}`;
 
     const mailOptions = {
-      from: '"Mini-Meco" <shu-man.cheng@fau.de>',
+      from: `"${EMAIL_CONFIG.sender.name}" <${EMAIL_CONFIG.sender.address}>`,
       to: email.toString(),
       subject: "Confirm Email",
       text: `You registered for Mini-Meco. Click the link to confirm your email: ${confirmedLink}`,
@@ -389,9 +390,9 @@ export class AuthController implements IAppController {
 
     if (process.env.NODE_ENV === "production") {
       const transporter = nodemailer.createTransport({
-        host: "smtp-auth.fau.de",
-        port: 465,
-        secure: true,
+        host: EMAIL_CONFIG.smtp.host,
+        port: EMAIL_CONFIG.smtp.port,
+        secure: EMAIL_CONFIG.smtp.secure,
         auth: {
           user: process.env.EMAIL_USER_FAU,
           pass: process.env.EMAIL_PASS_FAU,
@@ -416,7 +417,7 @@ export class AuthController implements IAppController {
     const resetLink = `${clientUrl}/resetPassword?token=${token}`;
 
     const mailOptions = {
-      from: '"Mini-Meco" <shu-man.cheng@fau.de>',
+      from: `"${EMAIL_CONFIG.sender.name}" <${EMAIL_CONFIG.sender.address}>`,
       to: email.toString(),
       subject: "Password Reset",
       text: `You requested a password reset. Click the link to reset your password: ${resetLink}`,
@@ -424,9 +425,9 @@ export class AuthController implements IAppController {
 
     if (process.env.NODE_ENV === "production") {
       const transporter = nodemailer.createTransport({
-        host: "smtp-auth.fau.de",
-        port: 465,
-        secure: true,
+        host: EMAIL_CONFIG.smtp.host,
+        port: EMAIL_CONFIG.smtp.port,
+        secure: EMAIL_CONFIG.smtp.secure,
         auth: {
           user: process.env.EMAIL_USER_FAU,
           pass: process.env.EMAIL_PASS_FAU,

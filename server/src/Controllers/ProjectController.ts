@@ -1,9 +1,10 @@
 import { Application, Request, Response } from "express";
 import { Database } from "sqlite";
 import nodemailer from "nodemailer";
-import { DatabaseManager } from "../Models/DatabaseManager";
-import { Email } from "../email";
+import { DatabaseHelpers } from "../Models/DatabaseHelpers";
+import { Email } from "../ValueTypes/Email";
 import { IAppController } from "./IAppController";
+import { EMAIL_CONFIG } from "../Config/email";
 
 /**
  * Controller for handling project-related HTTP requests.
@@ -54,7 +55,7 @@ export class ProjectController implements IAppController {
     try {
       let courseId;
       try {
-        courseId = await DatabaseManager.getCourseIdFromName(this.db, courseName.toString());
+        courseId = await DatabaseHelpers.getCourseIdFromName(this.db, courseName.toString());
       } catch (error) {
         if (error instanceof Error && error.message.includes("Unknown Course Name!")) {
           res.status(404).json({ message: "Course not found" });
@@ -82,8 +83,8 @@ export class ProjectController implements IAppController {
     }
 
     try {
-      const newCourseId = await DatabaseManager.getCourseIdFromName(this.db, newCourseName);
-      const projectId = await DatabaseManager.getProjectIdFromName(this.db, projectName);
+      const newCourseId = await DatabaseHelpers.getCourseIdFromName(this.db, newCourseName);
+      const projectId = await DatabaseHelpers.getProjectIdFromName(this.db, projectName);
       await this.db.run(`UPDATE projects SET projectName = ?, courseId = ? WHERE id = ?`, [
         newProjectName,
         newCourseId,
@@ -144,8 +145,8 @@ export class ProjectController implements IAppController {
     }
 
     try {
-      const projectId = await DatabaseManager.getProjectIdFromName(this.db, projectName.toString());
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail.toString());
+      const projectId = await DatabaseHelpers.getProjectIdFromName(this.db, projectName.toString());
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail.toString());
       const role = await this.db.get(
         `SELECT role
          FROM user_projects
@@ -187,16 +188,16 @@ export class ProjectController implements IAppController {
     try {
       let projectId;
       try {
-        projectId = await DatabaseManager.getProjectIdFromName(this.db, projectName);
+        projectId = await DatabaseHelpers.getProjectIdFromName(this.db, projectName);
       } catch (error) {
-        if (error instanceof Error && error.message.includes("Unknown Course Name!")) {
+        if (error instanceof Error && error.message.includes("Unknown Project Name!")) {
           res.status(404).json({ message: "Project not found" });
           return;
         }
         throw error;
       }
 
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, memberEmail.toString());
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, memberEmail.toString());
       const isMember = await this.db.get(
         `SELECT * FROM user_projects WHERE userId = ? AND projectId = ?`,
         [userId, projectId]
@@ -224,16 +225,16 @@ export class ProjectController implements IAppController {
     try {
       let projectId;
       try {
-        projectId = await DatabaseManager.getProjectIdFromName(this.db, projectName);
+        projectId = await DatabaseHelpers.getProjectIdFromName(this.db, projectName);
       } catch (error) {
-        if (error instanceof Error && error.message.includes("Unknown Course Name!")) {
+        if (error instanceof Error && error.message.includes("Unknown Project Name!")) {
           res.status(404).json({ message: "Project not found" });
           return;
         }
         throw error;
       }
 
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail);
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail);
       const isMember = await this.db.get(
         `SELECT * FROM user_projects WHERE userId = ? AND projectId = ?`,
         [userId, projectId]
@@ -268,7 +269,7 @@ export class ProjectController implements IAppController {
     }
 
     try {
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail.toString());
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail.toString());
       const projects = await this.db.all(
         `SELECT p.id, p.projectName
          FROM user_projects up
@@ -297,7 +298,7 @@ export class ProjectController implements IAppController {
     }
 
     try {
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail.toString());
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail.toString());
       const courses = await this.db.all(
         `SELECT DISTINCT c.id, c.courseName
          FROM user_projects up
@@ -479,7 +480,7 @@ export class ProjectController implements IAppController {
       const recipientEmails = members.map((member) => member.email).join(",");
 
       const mailOptions = {
-        from: '"Mini-Meco" <shu-man.cheng@fau.de>',
+        from: `"${EMAIL_CONFIG.sender.name}" <${EMAIL_CONFIG.sender.address}>`,
         to: recipientEmails,
         subject: `Standup Update for ${projectName}`,
         text: `Standup report from ${userName}\n\nDone: ${doneText}\nPlans: ${plansText}\nChallenges: ${challengesText}`,
@@ -487,9 +488,9 @@ export class ProjectController implements IAppController {
 
       if (process.env.NODE_ENV === "production") {
         const transporter = nodemailer.createTransport({
-          host: "smtp-auth.fau.de",
-          port: 465,
-          secure: true,
+          host: EMAIL_CONFIG.smtp.host,
+          port: EMAIL_CONFIG.smtp.port,
+          secure: EMAIL_CONFIG.smtp.secure,
           auth: {
             user: process.env.EMAIL_USER_FAU,
             pass: process.env.EMAIL_PASS_FAU,

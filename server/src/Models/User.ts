@@ -2,7 +2,7 @@ import { Visitor } from "./Visitor";
 import { Serializable } from "../Serializer/Serializable";
 import { Reader } from "../Serializer/Reader";
 import { Writer } from "../Serializer/Writer";
-import { Email } from "../email";
+import { Email } from "../ValueTypes/Email";
 
 export class User extends Visitor implements Serializable {
   protected id: number;

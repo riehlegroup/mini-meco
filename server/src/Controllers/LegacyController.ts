@@ -1,6 +1,6 @@
 import { Application, Request, Response } from "express";
 import { Database } from "sqlite";
-import { DatabaseManager } from "../Models/DatabaseManager";
+import { DatabaseHelpers } from "../Models/DatabaseHelpers";
 import { IAppController } from "./IAppController";
 
 /**
@@ -31,8 +31,8 @@ export class LegacyController implements IAppController {
     }
 
     try {
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail);
-      const projectId = await DatabaseManager.getProjectIdFromName(this.db, projectName);
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail);
+      const projectId = await DatabaseHelpers.getProjectIdFromName(this.db, projectName);
 
       await this.db.run(
         `UPDATE user_projects SET url = ? WHERE userId = ? AND projectId = ?`,
@@ -51,7 +51,7 @@ export class LegacyController implements IAppController {
     try {
       let projectId;
       try {
-        projectId = await DatabaseManager.getProjectIdFromName(this.db, projectName);
+        projectId = await DatabaseHelpers.getProjectIdFromName(this.db, projectName);
       } catch (error) {
         if (error instanceof Error && error.message.includes("Unknown Course Name!")) {
           res.status(404).json({ message: "Project not found" });
@@ -60,7 +60,7 @@ export class LegacyController implements IAppController {
         throw error;
       }
 
-      const userId = await DatabaseManager.getUserIdFromEmail(this.db, userEmail);
+      const userId = await DatabaseHelpers.getUserIdFromEmail(this.db, userEmail);
       const isMember = await this.db.get(
         `SELECT * FROM user_projects WHERE userId = ? AND projectId = ?`,
         [userId, projectId]

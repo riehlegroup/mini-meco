@@ -1,6 +1,6 @@
 import { Database } from 'sqlite';
 import { initializeDB } from '../../../databaseInitializer';
-import { hashPassword } from '../../../hash';
+import { hashPassword } from '../../../Utils/hash';
 
 /**
  * Creates an in-memory SQLite database for testing

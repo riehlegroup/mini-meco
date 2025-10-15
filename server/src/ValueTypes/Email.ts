@@ -1,4 +1,4 @@
-import { IllegalArgumentException } from "./Exceptions/IllegalArgumentException";
+import { IllegalArgumentException } from "../Exceptions/IllegalArgumentException";
 
 export class Email {
   private readonly value: string;
