@@ -1,10 +1,11 @@
 import { Application, Request, Response } from "express";
 import { Database } from "sqlite";
-import { CourseManager } from "../CourseManager";
+import { CourseManager } from "../Managers/CourseManager";
 import { Course } from "../Models/Course";
 import { Exception } from "../Exceptions/Exception";
 import { IllegalArgumentException } from "../Exceptions/IllegalArgumentException";
 import { IAppController } from "./IAppController";
+import { ObjectHandler } from "../ObjectHandler";
 
 /**
  * Controller for handling course-related HTTP requests.
@@ -15,7 +16,8 @@ export class CourseController implements IAppController {
   private cm: CourseManager;
 
   constructor(private db: Database) {
-    this.cm = new CourseManager(db);
+    const oh = new ObjectHandler();
+    this.cm = new CourseManager(db, oh);
   }
 
   /**

@@ -1,29 +1,31 @@
 import { Database } from "sqlite";
-import { ObjectHandler } from "./ObjectHandler";
-import { DatabaseSerializableFactory } from "./Serializer/DatabaseSerializableFactory";
-import { Course } from "./Models/Course";
-import { CourseProject } from "./Models/CourseProject";
-import { DatabaseWriter } from "./Serializer/DatabaseWriter";
-import { MethodFailedException } from "./Exceptions/MethodFailedException";
-import { Semester } from "./Models/Semester";
-import { IllegalArgumentException } from "./Exceptions/IllegalArgumentException";
+import { ObjectHandler } from "../ObjectHandler";
+import { DatabaseSerializableFactory } from "../Serializer/DatabaseSerializableFactory";
+import { Course } from "../Models/Course";
+import { CourseProject } from "../Models/CourseProject";
+import { DatabaseWriter } from "../Serializer/DatabaseWriter";
+import { MethodFailedException } from "../Exceptions/MethodFailedException";
+import { Semester } from "../Models/Semester";
+import { IllegalArgumentException } from "../Exceptions/IllegalArgumentException";
 import { ProjectManager } from "./ProjectManager";
-import { CourseSchedule, SubmissionDate } from "./Models/CourseSchedule";
+import { CourseSchedule, SubmissionDate } from "../Models/CourseSchedule";
+import { IManager } from "./IManager";
 
 /**
  * Manages Course operations and writes them persistent.
  * This implementation handles a database schema where courseName/projectName is defined as UNIQUE.
  */
-export class CourseManager {
+export class CourseManager implements IManager {
+  protected db: Database;
+  protected oh: ObjectHandler;
   private factory: DatabaseSerializableFactory;
   private pm: ProjectManager;
 
-  constructor(
-    private db: Database,
-    private oh: ObjectHandler = new ObjectHandler()
-  ) {
+  constructor(db: Database, oh: ObjectHandler) {
+    this.db = db;
+    this.oh = oh;
     this.factory = new DatabaseSerializableFactory(db);
-    this.pm = new ProjectManager(db);
+    this.pm = new ProjectManager(db, oh);
   }
 
   /**
