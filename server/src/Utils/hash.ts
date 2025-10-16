@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
-
-const DEFAULT_SALT_ROUNDS = 10;
+import { DEFAULT_SALT_ROUNDS } from '../Config/constants';
 
 export async function hashPassword(password: string) {
   return await bcrypt.hash(password, DEFAULT_SALT_ROUNDS);

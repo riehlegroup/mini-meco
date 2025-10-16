@@ -77,7 +77,7 @@ const UserPanel: React.FC = () => {
 
     const body = {
       newEmail: newEmail,
-      oldEmail: user.email.toString(),
+      oldEmail: user.email,
     };
 
     try {

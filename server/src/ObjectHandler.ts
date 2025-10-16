@@ -1,5 +1,4 @@
 import { Database } from "sqlite";
-import { Response, Request } from "express";
 import { User } from "./Models/User";
 import { CourseProject } from "./Models/CourseProject";
 import { CourseSchedule, SubmissionDate } from "./Models/CourseSchedule";
@@ -7,77 +6,7 @@ import { Course } from "./Models/Course";
 import { DatabaseResultSetReader } from "./Serializer/DatabaseResultSetReader";
 import { Serializable } from "./Serializer/Serializable";
 
-export class ObjectHandler { 
-
-    public async invokeOnUser(functionName: string, req: Request, res: Response, db: Database): Promise<void> {
-        const userEmail = req.body.userEmail;
-
-        const args = req.body.args || [];
-        const user = await this.getUserByMail(userEmail, db);
-        if (!user) {
-            res.status(400).json({ message: 'User not found' });
-            return;
-        }
-
-        if (!(functionName in user) || typeof user[functionName as keyof User] !== 'function') {
-            res.status(400).json({ message: `Function ${functionName} not found on User` });
-            return;
-        }
-
-        try {
-            const result = await (user[functionName as keyof User] as (...args: unknown[]) => unknown).apply(user, args);
-            res.status(200).json({ result });
-        } catch (error) {
-            res.status(500).json({ message: `Error invoking function ${functionName}`, error });
-        }
-    }
-
-    public async invokeOnCourseProject(functionName: string, req: Request, res: Response, db: Database): Promise<void> {
-        const courseProjectId = req.body.courseProjectId;
-
-        const args = req.body.args || [];
-        const courseProject = await this.getCourseProject(courseProjectId, db);
-        if (!courseProject) {
-            res.status(400).json({ message: 'Course Project not found' });
-            return;
-        }
-
-        if (!(functionName in courseProject) || typeof courseProject[functionName as keyof CourseProject] !== 'function') {
-            res.status(400).json({ message: `Function ${functionName} not found on Course Project` });
-            return;
-        }
-
-        try {
-            const result = await (courseProject[functionName as keyof CourseProject] as unknown as (...args: unknown[]) => unknown).apply(courseProject, args);
-            res.status(200).json({ result });
-        } catch (error) {
-            res.status(500).json({ message: `Error invoking function ${functionName}`, error });
-        }
-    }
-
-    public async invokeOnCourse(functionName: string, req: Request, res: Response, db: Database): Promise<void> {
-        const courseId = req.body.courseId;
-
-        const args = req.body.args || [];
-        const course = await this.getCourse(courseId, db);
-        // const couse = await this.cm.getCourse(courseId, db);
-        if (!course) {
-            res.status(400).json({ message: 'Course not found' });
-            return;
-        }
-
-        if (!(functionName in course) || typeof course[functionName as keyof Course] !== 'function') {
-            res.status(400).json({ message: `Function ${functionName} not found on Course` });
-            return;
-        }
-
-        try {
-            const result = await (course[functionName as keyof Course] as (...args: unknown[]) => unknown).apply(course, args);
-            res.status(200).json({ result });
-        } catch (error) {
-            res.status(500).json({ message: `Error invoking function ${functionName}`, error });
-        }
-    }
+export class ObjectHandler {
 
     public async getUserCount(db: Database): Promise<number | undefined> {
         return (await db.get('SELECT COUNT(*) AS count FROM users')).count;

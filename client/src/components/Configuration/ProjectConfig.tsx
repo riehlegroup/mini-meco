@@ -184,7 +184,7 @@ const ProjectConfig: React.FC = () => {
     const userEmail = localStorage.getItem("email");
     if (userEmail && selectedProject) {
       try {
-        const response = await fetch("${API_BASE_URL}/user/project/url", {
+        const response = await fetch(`${API_BASE_URL}/user/project/url`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -230,7 +230,7 @@ const ProjectConfig: React.FC = () => {
 
     try {
       const response = await fetch(
-        "${API_BASE_URL}/user/project",
+        `${API_BASE_URL}/user/project`,
         {
           method: "POST",
           headers: {
@@ -269,7 +269,7 @@ const ProjectConfig: React.FC = () => {
 
     try {
       const response = await fetch(
-        "${API_BASE_URL}/user/project",
+        `${API_BASE_URL}/user/project`,
         {
           method: "DELETE",
           headers: {

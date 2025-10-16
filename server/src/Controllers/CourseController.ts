@@ -1,19 +1,23 @@
 import { Application, Request, Response } from "express";
 import { Database } from "sqlite";
-import { CourseManager } from "./CourseManager";
-import { Course } from "./Models/Course";
-import { Exception } from "./Exceptions/Exception";
+import { CourseManager } from "../Managers/CourseManager";
+import { Course } from "../Models/Course";
+import { Exception } from "../Exceptions/Exception";
+import { IllegalArgumentException } from "../Exceptions/IllegalArgumentException";
+import { IAppController } from "./IAppController";
+import { ObjectHandler } from "../ObjectHandler";
 
 /**
  * Controller for handling course-related HTTP requests.
  * Connects API routes to the CourseManager, which interacts with the database.
  * Each method processing HTTP requests and returning JSON responses.
  */
-export class CourseController {
+export class CourseController implements IAppController {
   private cm: CourseManager;
 
   constructor(private db: Database) {
-    this.cm = new CourseManager(db);
+    const oh = new ObjectHandler();
+    this.cm = new CourseManager(db, oh);
   }
 
   /**
@@ -60,6 +64,14 @@ export class CourseController {
         res.status(400).json({
           success: false,
           message: "Course name and semester is required and must be a string",
+        });
+        return;
+      }
+
+      if (typeof semester !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: "Semester must be a string",
         });
         return;
       }
@@ -144,7 +156,25 @@ export class CourseController {
   async addProject(req: Request, res: Response): Promise<void> {
     try {
       const { courseId, projectName } = req.body;
+
+      // Validate courseId is provided
+      if (courseId === undefined || courseId === null) {
+        res.status(400).json({
+          success: false,
+          message: "Course ID is required",
+        });
+        return;
+      }
+
+      // Validate courseId is numeric
       const id = parseInt(courseId);
+      if (isNaN(id)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid course ID format",
+        });
+        return;
+      }
 
       const proj = await this.cm.addProjectToCourse(id, projectName);
 
@@ -394,17 +424,39 @@ export class CourseController {
     console.error("Controller error:", error);
 
     // Check for specific error types and return responses
-    if (error.name === "IllegalArgumentException") {
+    if (error instanceof IllegalArgumentException) {
+      const msg = error.message.toLowerCase();
+      // Check for "not found" patterns → 404
+      if (msg.includes('not found')) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+      // All other IllegalArgumentException are validation errors → 400
       res.status(400).json({
         success: false,
         message: error.message,
       });
+      return;
     } else if (error.name === "MethodFailedException") {
       res.status(500).json({
         success: false,
         message: "An error occurred while processing your request",
       });
+      return;
     } else {
+      // Check for DatabaseManager "not found" patterns → 404
+      const msg = error.message || '';
+      if (msg.includes('Unknown Course Name!') || msg.includes('User not found')) {
+        res.status(404).json({
+          success: false,
+          message: "Resource not found",
+        });
+        return;
+      }
+
       res.status(500).json({
         success: false,
         message: "Internal server error",

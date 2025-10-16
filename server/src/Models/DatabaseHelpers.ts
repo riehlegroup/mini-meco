@@ -1,6 +1,6 @@
 import { Database } from "sqlite";
 
-export class DatabaseManager {
+export class DatabaseHelpers {
     static async getCourseIdFromName(db: Database, courseName: string): Promise<number> {
         const courseIdObj = await db.get(`SELECT id
             FROM courses
@@ -17,7 +17,7 @@ export class DatabaseManager {
             FROM projects
             WHERE projects.projectName = ?`, [projectName]);
         if (projectIdObj === undefined) {
-        throw new Error("Unknown Course Name!");
+        throw new Error("Unknown Project Name!");
         }
         const projectId = projectIdObj.id;
         return projectId;
@@ -29,7 +29,7 @@ export class DatabaseManager {
             FROM users
             WHERE users.name = ?`, [userName]);
         if (userIdObj === undefined) {
-        throw new Error("Unknown Course Name!");
+        throw new Error("Unknown User Name!");
         }
         const userId = userIdObj.id;
         return userId;

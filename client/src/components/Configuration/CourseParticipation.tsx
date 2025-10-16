@@ -71,7 +71,7 @@ const CourseParticipation: React.FC = () => {
 
     const fetchCourses = async () => {
       try {
-        const response = await fetch("${API_BASE_URL}/course");
+        const response = await fetch(`${API_BASE_URL}/course`);
         const result = await response.json();
         const data = result.success ? result.data : [];
         setCourses(data.map((item: Project) => item.courseName));
@@ -185,7 +185,7 @@ const CourseParticipation: React.FC = () => {
 
     try {
       const response = await fetch(
-        "${API_BASE_URL}/user/project",
+        `${API_BASE_URL}/user/project`,
         {
           method: "POST",
           headers: {
@@ -225,7 +225,7 @@ const CourseParticipation: React.FC = () => {
 
     try {
       const response = await fetch(
-        "${API_BASE_URL}/user/project",
+        `${API_BASE_URL}/user/project`,
         {
           method: "DELETE",
           headers: {

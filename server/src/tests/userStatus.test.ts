@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { UserStatus, UserStatusEnum } from "../userStatus"; // Adjust path as neededSS
+import { UserStatus, UserStatusEnum } from "../Utils/UserStatus";
 
 describe("UserStatus", () => {
     it("should initialize with the default status 'unconfirmed'", () => {

@@ -1,25 +1,26 @@
 import { Database } from "sqlite";
-import { User } from "./Models/User";
-import { CourseProject } from "./Models/CourseProject";
-import { ObjectHandler } from "./ObjectHandler";
-import { ProjectParticipation } from "./Models/ProjectParticipation";
-import { ProjectMember } from "./Models/ProjectMember";
-import { DatabaseSerializableFactory } from "./Serializer/DatabaseSerializableFactory";
+import { User } from "../Models/User";
+import { CourseProject } from "../Models/CourseProject";
+import { ObjectHandler } from "../ObjectHandler";
+import { ProjectParticipation } from "../Models/ProjectParticipation";
+import { ProjectMember } from "../Models/ProjectMember";
+import { DatabaseSerializableFactory } from "../Serializer/DatabaseSerializableFactory";
+import { IManager } from "./IManager";
 
 
 /**
- * This class manages the n:m relation between CourseProject and User. 
+ * This class manages the n:m relation between CourseProject and User.
  * Serializing this is a nightmare, so we are using a direct approach querying the db.
  * Please treat all outputs of this classes methods as readonly immutables.
  * Only use the setter and command methods to change the relation!
  */
-export class ProjectManager {
+export class ProjectManager implements IManager {
     protected db: Database;
     protected oh: ObjectHandler;
 
-    constructor (db: Database) {
+    constructor(db: Database, oh: ObjectHandler) {
         this.db = db;
-        this.oh = new ObjectHandler();
+        this.oh = oh;
     }
 
     public async createProject (): Promise<CourseProject> {

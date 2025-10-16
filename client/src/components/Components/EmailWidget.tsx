@@ -1,4 +1,5 @@
 import React, {useState} from "react";
+import { isValidEmail } from "@/utils/emailValidation";
 
 interface EmailWidgetProps {
     onEmailChange: (email: string) => void; // Callback-Prop
@@ -43,14 +44,6 @@ const EmailWidget: React.FC<EmailWidgetProps> = ({ onEmailChange, action }) => {
             errors.emailErrors = "invalid email address.";
             setErrors(errors);
         }
-    }
-
-    // Copy&pasted EmailValidation from ../server/src/email
-    function isValidEmail (email: string): boolean {
-        // Valid email string format: must not contain '@', followed by '@', must include a '.',
-        // and end with a string without '@'
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
     }
 
     return (
