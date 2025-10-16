@@ -8,14 +8,14 @@ import Table from "../Components/Table";
 import Edit from "./../../assets/Edit.png";
 import EmailIcon from "./../../assets/EmailIcon.png";
 
-import { Email } from '../../../../server/src/email';
+import { isValidEmail } from "@/utils/emailValidation";
 import { API_BASE_URL } from "@/config/api";
 
 const userStatus = ["unconfirmed", "confirmed", "suspended", "removed"];
 
 interface User {
     id: number;
-    email: Email;
+    email: string;
     name: string;
     githubUsername: string | null;
     status: string;
@@ -32,7 +32,7 @@ function checkError(response: Response) {
 }
 
 function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) => void }) {
-    const [email, setEmail] = useState<Email>(user.email);
+    const [email, setEmail] = useState<string>(user.email);
     const [githubUsername, setGithubUsername] = useState<string>(user.githubUsername || "");
     const [status, setStatus] = useState<string>(user.status);
     const [password, setPassword] = useState<string>();
@@ -45,7 +45,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "userEmail": user.email.toString(), "newGithubUsername": githubUsername })
+                    body: JSON.stringify({ "userEmail": user.email, "newGithubUsername": githubUsername })
                 })
                 .then(checkError)
                 .catch(console.error));
@@ -55,7 +55,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "userEmail": user.email.toString(), "status": status })
+                    body: JSON.stringify({ "userEmail": user.email, "status": status })
                 })
                 .then(checkError)
                 .catch(console.error));
@@ -65,7 +65,7 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "userEmail": user.email.toString(), "password": password })
+                    body: JSON.stringify({ "userEmail": user.email, "password": password })
                 })
                 .then(checkError)
                 .catch(console.error));
@@ -82,12 +82,12 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
         }
 
         Promise.all(promises).then(() =>
-            email.toString() !== user.email.toString() ?
+            email !== user.email ?
                 fetch(`${API_BASE_URL}/user/mail`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ "newEmail": email.toString(), "oldEmail": user.email.toString() })
+                        body: JSON.stringify({ "newEmail": email, "oldEmail": user.email })
                     })
                     .then(checkError)
                     .catch(console.error) : null).then(() => onClose(true));
@@ -114,7 +114,17 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
                             </div>
                             <div className="mb-5">
                                 <label className="mb-2 block text-sm font-medium text-gray-900">Email</label>
-                                <input type="email" value={email.toString()} onChange={e => setEmail(new Email(e.target.value))} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900" />
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={e => {
+                                        const newEmail = e.target.value;
+                                        if (isValidEmail(newEmail) || newEmail === '') {
+                                            setEmail(newEmail);
+                                        }
+                                    }}
+                                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900"
+                                />
                             </div>
                             <div className="mb-5">
                                 <label className="mb-2 block text-sm font-medium text-gray-900">GitHub Username</label>
@@ -168,7 +178,7 @@ const UserAdmin = () => {
         fetch(`/user/confirmation/trigger`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userEmail: user.email.toString() }),
+          body: JSON.stringify({ userEmail: user.email }),
         })
           .then(checkError)
           .catch(console.error);
@@ -176,7 +186,7 @@ const UserAdmin = () => {
 
     const tableData = users.map(user => [
         user.name,
-        user.email.toString(),
+        user.email,
         user.githubUsername ? user.githubUsername : "N/A",
         user.status,
         user.userRole,

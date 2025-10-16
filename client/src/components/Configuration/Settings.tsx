@@ -78,7 +78,7 @@ const Settings: React.FC = () => {
 
     const body = {
       newEmail: newEmail,
-      oldEmail: user.email.toString(),
+      oldEmail: user.email,
     };
 
     try {
@@ -118,7 +118,7 @@ const Settings: React.FC = () => {
     }
 
     const body = {
-      userEmail: user.email.toString(),
+      userEmail: user.email,
       password: newPassword,
     };
 
