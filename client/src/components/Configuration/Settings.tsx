@@ -2,7 +2,7 @@ import "./Settings.css";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Edit from "./../../assets/Edit.png";
-import ReturnButton from "../common/ReturnButton";
+import TopNavBar from "../common/TopNavBar";
 import {
   Dialog,
   DialogContent,
@@ -142,10 +142,7 @@ const Settings: React.FC = () => {
 
   return (
     <div onClick={handleNavigation}>
-      <ReturnButton />
-      <div className="DashboardContainer">
-        <h1>Settings</h1>
-      </div>
+      <TopNavBar title="Settings" showBackButton={true} showUserInfo={true} />
       <div className="ProjectContainer">
         <div className="ProjectTitle">
           <h3>Account Info</h3>

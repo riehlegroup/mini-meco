@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import ReturnButton from "../common/ReturnButton";
+import TopNavBar from "../common/TopNavBar";
 import "./Happiness.css";
 import {
   Select,
@@ -254,10 +254,7 @@ const Happiness: React.FC = (): React.ReactNode => {
 
   return (
     <div onClick={handleNavigation}>
-      <ReturnButton />
-      <div className="DashboardContainer">
-        <h1>Happiness</h1>
-      </div>
+      <TopNavBar title="Happiness" showBackButton={true} showUserInfo={true} />
       <Tabs defaultValue="User" className="Tabs">
         <TabsList className="TabsList">
           {userRole === "ADMIN" && (

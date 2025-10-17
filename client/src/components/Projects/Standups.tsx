@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import ReturnButton from "../common/ReturnButton";
+import TopNavBar from "../common/TopNavBar";
 import "./Standups.css";
 import Button from "react-bootstrap/esm/Button";
 import AuthStorage from "@/services/storage/auth";
@@ -95,10 +95,7 @@ const Standups: React.FC = () => {
 
   return (
     <div onClick={handleStandups}>
-      <ReturnButton />
-      <div className="DashboardContainerStandups">
-        <h1>Standup Emails</h1>
-      </div>
+      <TopNavBar title="Standup Emails" showBackButton={true} showUserInfo={true} />
       <div className="BigContainerStandups">
         <div className="InputContainer">
           <div className="Done">

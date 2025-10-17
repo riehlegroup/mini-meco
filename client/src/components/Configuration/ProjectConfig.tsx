@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ReturnButton from "../common/ReturnButton";
+import TopNavBar from "../common/TopNavBar";
 import "./ProjectConfig.css";
 import {
   Select,
@@ -277,10 +277,7 @@ const ProjectConfig: React.FC = () => {
 
   return (
     <div onClick={handleNavigation}>
-      <ReturnButton />
-      <div className="DashboardContainer">
-        <h1>Project Configuration</h1>
-      </div>
+      <TopNavBar title="Project Configuration" showBackButton={true} showUserInfo={true} />
       <div className="ProjectConfigContainer">
         <div className="margintop">
           <h2>Enrolled Courses</h2>

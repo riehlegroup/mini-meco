@@ -8,6 +8,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+import TopNavBar from "@/components/common/TopNavBar";
 import { useUserRole } from "@/hooks/useUserRole";
 import AuthStorage from "@/services/storage/auth";
 import projectsApi from "@/services/api/projects";
@@ -19,8 +20,7 @@ const Dashboard: React.FC = () => {
   const userRole = useUserRole();
 
   const authStorage = AuthStorage.getInstance();
-  const username = authStorage.getUserName();
-  console.log("[Dashboard] username: ", username);
+  console.log("[Dashboard] mounted");
 
   useEffect(() => {
     const token = authStorage.getToken();
@@ -65,11 +65,6 @@ const Dashboard: React.FC = () => {
     }
   }
 
-  function logout() {
-    authStorage.clear();
-    navigate("/login");
-  }
-
   function goSettings() {
     navigate("/settings");
   }
@@ -94,17 +89,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div>
-      <div className="DashboardContainer">
-        <h1>Dashboard</h1>
-      </div>
-      <div className="UserLogoutContainer">
-        <div className="UserAttribute">
-          <h3>User: {username}</h3>
-        </div>
-        <div className="Logout" onClick={logout}>
-          <h3>Log out</h3>
-        </div>
-      </div>
+      <TopNavBar title="Dashboard" showBackButton={false} showUserInfo={true} />
 
       <div>
         <div className="Title">

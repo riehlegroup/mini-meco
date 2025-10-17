@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import ReturnButton from "../common/ReturnButton";
+import TopNavBar from "../common/TopNavBar";
 import { Octokit } from "@octokit/rest";
 import { Endpoints } from "@octokit/types";
 import "./CodeActivity.css";
@@ -299,10 +299,7 @@ const CodeActivity: React.FC = () => {
 
   return (
     <div onClick={handleNavigation}>
-      <ReturnButton />
-      <div className="DashboardContainerStandups">
-        <h1>Code Activity</h1>
-      </div>
+      <TopNavBar title="Code Activity" showBackButton={true} showUserInfo={true} />
       <div className="BigContainerCodeActivity">
         <div className="GitHubTitle">
           <h2>Commits on GitHub</h2>

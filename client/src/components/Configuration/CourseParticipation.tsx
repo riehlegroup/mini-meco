@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import Add from "./../../assets/Add.png";
 import Delete from "./../../assets/Line 20.png";
-import ReturnButton from "../common/ReturnButton";
+import TopNavBar from "../common/TopNavBar";
 import {
   Dialog,
   DialogContent,
@@ -223,10 +223,7 @@ const CourseParticipation: React.FC = () => {
 
   return (
     <div onClick={handleNavigation}>
-      <ReturnButton />
-      <div className="DashboardContainer">
-        <h1>Course Participation</h1>
-      </div>
+      <TopNavBar title="Course Participation" showBackButton={true} showUserInfo={true} />
       <div className="ProjectContainer">
           <div className="ProjectTitle">
             <h3>Project Lists - Enrolled Courses</h3>

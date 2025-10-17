@@ -17,7 +17,7 @@ import CourseAdmin from "./components/Administration/CourseAdmin";
 
 function App() {
   return (
-    <div>
+    <div className="pt-16">
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />

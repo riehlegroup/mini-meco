@@ -1,7 +1,7 @@
 import "./UserPanel.css";
 import React, { useState, useEffect } from "react";
 import {useNavigate } from "react-router-dom";
-import ReturnButton from "../common/ReturnButton";
+import TopNavBar from "../common/TopNavBar";
 import AuthStorage from "@/services/storage/auth";
 import usersApi from "@/services/api/users";
 
@@ -166,10 +166,7 @@ const UserPanel: React.FC = () => {
   return (
     
     <div onClick={handleNavigation}>
-      <ReturnButton />
-      <div className="DashboardContainer">
-        <h1 className="text-4xl">User profile</h1>
-      </div>
+      <TopNavBar title="User profile" showBackButton={true} showUserInfo={true} />
       <div className="BigContainer">
       <form className="mx-auto max-w-md content-center space-y-10">
         <div className="group relative z-0 mb-5 w-full">

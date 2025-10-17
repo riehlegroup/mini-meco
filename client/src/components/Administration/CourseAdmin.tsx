@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import ReturnButton from "../common/ReturnButton";
+import TopNavBar from "../common/TopNavBar";
 import Table from "../common/Table";
 import CourseWidget from "./Course/CourseWidget";
 import { useCourse } from "@/hooks/useCourse";
@@ -99,10 +99,7 @@ const CourseAdmin: React.FC = () => {
   return (
     <div className="flex">
       <div className="flex-1">
-        <ReturnButton />
-        <div className="DashboardContainer">
-          <h1>Manage Courses</h1>
-        </div>
+        <TopNavBar title="Manage Courses" showBackButton={true} showUserInfo={true} />
 
         {/* Course Section */}
         <div className="mt-4 flex bg-gray-500 p-3">

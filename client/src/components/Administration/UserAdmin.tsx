@@ -2,7 +2,7 @@ import "./UserAdmin.css"
 
 import { useState } from 'react';
 
-import ReturnButton from "../common/ReturnButton";
+import TopNavBar from "../common/TopNavBar";
 import Table from "../common/Table";
 
 import Edit from "./../../assets/Edit.png";
@@ -162,10 +162,7 @@ const UserAdmin = () => {
 
     return (
         <>
-            <ReturnButton />
-            <div className="DashboardContainer">
-                <h1>User Admin</h1>
-            </div>
+            <TopNavBar title="User Admin" showBackButton={true} showUserInfo={true} />
             <div className="BigContainerUserAdmin">
                 <Table
                     headings={["username", "email", "github username", "status", "userRole", "action"]}

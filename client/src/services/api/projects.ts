@@ -26,16 +26,17 @@ const projectsApi = {
 
   getUserProjects: async (userEmail: string): Promise<Project[]> => {
     try {
-      const response = await ApiClient.getInstance().get<
-        ApiResponse<Project[]>
-      >("/user/projects", { userEmail });
+      const response = await ApiClient.getInstance().get<Project[]>(
+        "/user/projects",
+        { userEmail }
+      );
 
-      if (!response || !response.success || !Array.isArray(response.data)) {
+      if (!Array.isArray(response)) {
         console.error("Unexpected response format:", response);
         return [];
       }
 
-      return response.data;
+      return response;
     } catch (error) {
       console.error("Error fetching user projects:", error);
       return [];
