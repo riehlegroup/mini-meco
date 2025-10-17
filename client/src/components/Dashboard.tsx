@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import "./Dashboard.css";
 import { useNavigate } from "react-router-dom";
 import {
   Select,
@@ -9,6 +8,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import TopNavBar from "@/components/common/TopNavBar";
+import Button from "@/components/common/Button";
+import SectionCard from "@/components/common/SectionCard";
 import { useUserRole } from "@/hooks/useUserRole";
 import AuthStorage from "@/services/storage/auth";
 import projectsApi from "@/services/api/projects";
@@ -88,69 +89,80 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div>
+    <div className="min-h-screen">
       <TopNavBar title="Dashboard" showBackButton={false} showUserInfo={true} />
 
-      <div>
-        <div className="Title">
-          <h2>Projects</h2>
-        </div>
-        <div className="ComponentContainer">
-          <Select onValueChange={handleProjectChange}>
-            <SelectTrigger className="SelectTriggerProject">
-              <SelectValue placeholder="Select Project" />
-            </SelectTrigger>
-            <SelectContent className="SelectContentProject">
-              {projects.map((project) => (
-                <SelectItem key={project} value={project}>
-                  {project}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-            <div onClick={goToStandups} className={"components" + (selectedProject ? "" : " disabled")}>
-              Standups
-            </div>
-            <div onClick={goHappiness} className={"components" + (selectedProject ? "" : " disabled")}>
-              Happiness
-            </div>
-            <div onClick={goCodeActivity} className={"components" + (selectedProject ? "" : " disabled")}>
-              Code Activity
-            </div>
-        </div>
-        <div className="Title">
-          <h2>Configuration</h2>
-        </div>
-        
-        <div className="ComponentContainer">
-          <div onClick={goUserPanel} className="components">
-              User profile
-          </div>
-          <div onClick={goSettings} className="components">
-            Settings
-          </div>
-          <div onClick={goCourseParticipation} className="components">
-            Course Participation
-          </div>
-          <div onClick={goProjectConfig} className="components">
-            Project Config
-          </div>
-        </div>
+      <div className="mx-auto max-w-6xl space-y-8 p-6">
+        {/* Projects Section */}
+        <SectionCard title="Projects">
+          <div className="space-y-4">
+            <Select onValueChange={handleProjectChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project} value={project}>
+                    {project}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-       {userRole === "ADMIN" && (
-        <>
-        <div className="Title">
-          <h2>System Administration</h2>
-        </div>
-        <div className="ComponentContainer">
-          <div onClick={goUserAdmin} className="components">
-            User Admin
+            <div className="flex flex-wrap gap-4">
+              <Button
+                onClick={goToStandups}
+                disabled={!selectedProject}
+              >
+                Standups
+              </Button>
+              <Button
+                onClick={goHappiness}
+                disabled={!selectedProject}
+              >
+                Happiness
+              </Button>
+              <Button
+                onClick={goCodeActivity}
+                disabled={!selectedProject}
+              >
+                Code Activity
+              </Button>
+            </div>
           </div>
-          <div onClick={goCourseAdmin} className="components">
-            Course Admin
+        </SectionCard>
+
+        {/* Configuration Section */}
+        <SectionCard title="Configuration">
+          <div className="flex flex-wrap gap-4">
+            <Button onClick={goUserPanel}>
+              User profile
+            </Button>
+            <Button onClick={goSettings}>
+              Settings
+            </Button>
+            <Button onClick={goCourseParticipation}>
+              Course Participation
+            </Button>
+            <Button onClick={goProjectConfig}>
+              Project Config
+            </Button>
           </div>
-        </div>
-       </>)}
+        </SectionCard>
+
+        {/* System Administration Section */}
+        {userRole === "ADMIN" && (
+          <SectionCard title="System Administration">
+            <div className="flex flex-wrap gap-4">
+              <Button onClick={goUserAdmin}>
+                User Admin
+              </Button>
+              <Button onClick={goCourseAdmin}>
+                Course Admin
+              </Button>
+            </div>
+          </SectionCard>
+        )}
       </div>
     </div>
   );

@@ -23,7 +23,13 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
   };
 
   const handleBack = () => {
-    navigate(-1);
+    // Try to go back in browser history
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      // If no history, go to dashboard
+      navigate("/dashboard");
+    }
   };
 
   return (
