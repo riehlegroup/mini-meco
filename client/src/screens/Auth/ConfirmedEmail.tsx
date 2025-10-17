@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { API_BASE_URL } from "@/config/api";
+import authApi from "@/services/api/auth";
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search); // search: '?query=string'
@@ -19,28 +19,17 @@ const ConfirmedEmail = () => {
   const handleSubmit = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
-    navigate("/login");
-
     e.preventDefault();
-    const endpoint = "/user/confirmation/email";
-    const body = { token };
+
+    if (!token) {
+      setMessage("Invalid or missing confirmation token");
+      return;
+    }
 
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
-
-      setMessage(data.message || "Email has been confirmed!");
+      await authApi.confirmEmail(token);
+      setMessage("Email has been confirmed successfully!");
+      setTimeout(() => navigate("/login"), 2000);
     } catch (error: unknown) {
       if (error instanceof Error) {
         setMessage(error.message);

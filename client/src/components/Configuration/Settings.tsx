@@ -2,7 +2,7 @@ import "./Settings.css";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Edit from "./../../assets/Edit.png";
-import ReturnButton from "../Components/return";
+import ReturnButton from "../common/ReturnButton";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Button from "react-bootstrap/esm/Button";
-import { API_BASE_URL } from "@/config/api";
+import AuthStorage from "@/services/storage/auth";
+import usersApi from "@/services/api/users";
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -36,34 +37,26 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const userName = localStorage.getItem("username");
-      const userEmail = localStorage.getItem("email");
-      const userGithubUsername = localStorage.getItem("githubUsername");
+      const authStorage = AuthStorage.getInstance();
+      const userName = authStorage.getUserName();
+      const userEmail = authStorage.getEmail();
+
       if (userName && userEmail) {
         setUser({
           name: userName,
           email: userEmail,
-          UserGithubUsername: userGithubUsername || "",
+          UserGithubUsername: "",
         });
-      } else {
-        console.warn("User data not found in localStorage");
-      }
 
-      if (userEmail) {
         try {
-          const response = await fetch(
-            `${API_BASE_URL}/user/githubUsername?userEmail=${userEmail}`
-          );
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.message || "Something went wrong");
-          }
-          setGithubUsername(data.githubUsername || "");
+          const githubUser = await usersApi.getGithubUsername(userEmail);
+          setGithubUsername(githubUser);
+          setUser((prev) => prev ? { ...prev, UserGithubUsername: githubUser } : null);
         } catch (error) {
           console.error("Error fetching user data:", error);
         }
       } else {
-        console.warn("User email not found in localStorage");
+        console.warn("User data not found in storage");
       }
     };
 
@@ -76,32 +69,17 @@ const Settings: React.FC = () => {
       return;
     }
 
-    const body = {
-      newEmail: newEmail,
-      oldEmail: user.email,
-    };
-
     try {
-      const response = await fetch(
-        "${API_BASE_URL}/user/mail",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.changeEmail({
+        oldEmail: user.email,
+        newEmail: newEmail,
+      });
 
       setEmailMessage(data.message || "Email changed successfully!");
       if (data.message.includes("successfully")) {
         const updatedUser = { ...user, email: newEmail };
         setUser(updatedUser);
-        localStorage.setItem("email", newEmail);
+        AuthStorage.getInstance().setEmail(newEmail);
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -117,26 +95,11 @@ const Settings: React.FC = () => {
       return;
     }
 
-    const body = {
-      userEmail: user.email,
-      password: newPassword,
-    };
-
     try {
-      const response = await fetch(
-        "${API_BASE_URL}/user/password/change",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.changePassword({
+        userEmail: user.email,
+        password: newPassword,
+      });
 
       setPasswordMessage(data.message || "Password changed successfully!");
     } catch (error: unknown) {
@@ -153,32 +116,19 @@ const Settings: React.FC = () => {
       return;
     }
 
-    const body = {
-      userEmail: user?.email,
-      newGithubUsername: githubUsername,
-    };
+    if (!user?.email) {
+      setGithubMessage("User email not available");
+      return;
+    }
 
     try {
-      const response = await fetch(
-        "${API_BASE_URL}/user/githubUsername",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-
-      console.log(response);
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.updateGithubUsername({
+        userEmail: user.email,
+        newGithubUsername: githubUsername,
+      });
 
       setGithubMessage(data.message || "GitHub username added successfully!");
       if (data.message.includes("successfully")) {
-        localStorage.setItem("githubUsername", githubUsername);
         const updatedUser = { ...user, UserGithubUsername: githubUsername } as typeof user;
         setUser(updatedUser);
       }

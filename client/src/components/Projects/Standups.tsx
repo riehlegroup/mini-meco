@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import ReturnButton from "../Components/return";
+import ReturnButton from "../common/ReturnButton";
 import "./Standups.css";
 import Button from "react-bootstrap/esm/Button";
-import { API_BASE_URL } from "@/config/api";
+import AuthStorage from "@/services/storage/auth";
+import projectsApi from "@/services/api/projects";
 
 const Standups: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +17,8 @@ const Standups: React.FC = () => {
     if (projectNameFromState) {
       setProjectName(projectNameFromState);
     }
-    const storedUserName = localStorage.getItem("username");
+    const authStorage = AuthStorage.getInstance();
+    const storedUserName = authStorage.getUserName();
     if (storedUserName) {
       setUserName(storedUserName);
     }
@@ -36,31 +38,30 @@ const Standups: React.FC = () => {
   const handleSendStandups = async (e: React.FormEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    if (!projectName) {
-      console.error("No project selected");
+    if (!projectName || !userName) {
+      console.error("Missing project or user information");
+      setMessage("Missing project or user information");
       return;
     }
 
-    const endpoint = "/courseProject/standupsEmail";
-    const body = { projectName, userName, doneText, plansText, challengesText };
+    const authStorage = AuthStorage.getInstance();
+    const userEmail = authStorage.getEmail();
+
+    if (!userEmail) {
+      setMessage("User email not found");
+      return;
+    }
 
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
+      await projectsApi.sendStandupEmail({
+        userEmail,
+        projectName,
+        yesterday: doneText,
+        today: plansText,
+        blockers: challengesText,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
-
-      setMessage(data.message || "Standup email sent successfully");
-      // Clear form fields
+      setMessage("Standup email sent successfully");
       setDoneText("");
       setPlansText("");
       setChallengesText("");

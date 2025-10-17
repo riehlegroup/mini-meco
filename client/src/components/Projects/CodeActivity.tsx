@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import ReturnButton from "../Components/return";
+import ReturnButton from "../common/ReturnButton";
 import { Octokit } from "@octokit/rest";
 import { Endpoints } from "@octokit/types";
 import "./CodeActivity.css";
@@ -14,7 +14,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { API_BASE_URL } from "@/config/api";
+import AuthStorage from "@/services/storage/auth";
+import ApiClient from "@/services/api/client";
 
 type ArrayElement<T> = T extends (infer U)[] ? U : never;
 type Commit = ArrayElement<Endpoints["GET /repos/{owner}/{repo}/commits"]["response"]["data"]>;
@@ -77,18 +78,12 @@ const CodeActivity: React.FC = () => {
       if (!projectName) return;
 
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/courseProject/course?projectName=${encodeURIComponent(
-            projectName
-          )}`
+        const data = await ApiClient.getInstance().get<{ courseName: string }>(
+          "/courseProject/course",
+          { projectName: encodeURIComponent(projectName) }
         );
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.courseName) {
-            setSelectedCourse(data.courseName);
-          }
-        } else {
-          console.error(`Error: ${response.status} ${response.statusText}`);
+        if (data && data.courseName) {
+          setSelectedCourse(data.courseName);
         }
       } catch (error) {
         console.error("Error fetching project group:", error);
@@ -100,9 +95,11 @@ const CodeActivity: React.FC = () => {
 
   useEffect(() => {
     const fetchUserData = () => {
-      const userName = localStorage.getItem("username");
-      const userEmail = localStorage.getItem("email");
-      const githubUsername = localStorage.getItem("githubUsername");
+      const authStorage = AuthStorage.getInstance();
+      const userName = authStorage.getUserName();
+      const userEmail = authStorage.getEmail();
+      const user = authStorage.getUser();
+      const githubUsername = user?.githubUsername;
 
       console.log("CodeActivity - Loading user data:", { userName, userEmail, githubUsername });
 
@@ -113,7 +110,7 @@ const CodeActivity: React.FC = () => {
           githubUsername: githubUsername,
         });
       } else {
-        console.warn("User data not found in localStorage", { userName, userEmail, githubUsername });
+        console.warn("User data not found in storage", { userName, userEmail, githubUsername });
       }
     };
 
@@ -134,14 +131,15 @@ const CodeActivity: React.FC = () => {
     if (!projectName || !user?.email) return;
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/project/url?userEmail=${encodeURIComponent(
-          user.email.toString()
-        )}&projectName=${encodeURIComponent(projectName)}`
+      const data = await ApiClient.getInstance().get<{ url: string; message?: string }>(
+        "/user/project/url",
+        {
+          userEmail: encodeURIComponent(user.email),
+          projectName: encodeURIComponent(projectName)
+        }
       );
-      const data = await response.json();
 
-      if (response.ok && data.url) {
+      if (data.url) {
         console.log("Fetched repository URL:", data.url);
         const { owner, repo } = extractOwnerAndRepo(data.url);
         if (owner && repo) {
@@ -166,14 +164,12 @@ const CodeActivity: React.FC = () => {
   useEffect(() => {
     const fetchAllSprints = async () => {
       if (!selectedCourse) return;
-  
+
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/courseProject/sprints?courseName=${encodeURIComponent(
-            selectedCourse
-          )}`
+        const fetchedSprints: Sprint[] = await ApiClient.getInstance().get<Sprint[]>(
+          "/courseProject/sprints",
+          { courseName: encodeURIComponent(selectedCourse) }
         );
-        const fetchedSprints: Sprint[] = await response.json();
 
         // Only have end date, so calculate start date
         const updatedSprints = fetchedSprints.map(

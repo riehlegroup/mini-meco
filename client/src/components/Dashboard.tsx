@@ -9,7 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUserRole } from "@/hooks/useUserRole";
-import { API_BASE_URL } from "@/config/api";
+import AuthStorage from "@/services/storage/auth";
+import projectsApi from "@/services/api/projects";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -17,25 +18,22 @@ const Dashboard: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const userRole = useUserRole();
 
-  const username = localStorage.getItem("username");
-  console.log("[Dashboard] username: ", username)
+  const authStorage = AuthStorage.getInstance();
+  const username = authStorage.getUserName();
+  console.log("[Dashboard] username: ", username);
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = authStorage.getToken();
     if (!token) {
       navigate("/login");
     }
 
     const fetchProjects = async () => {
-      const userEmail = localStorage.getItem("email");
+      const userEmail = authStorage.getEmail();
       if (userEmail) {
         try {
-          const response = await fetch(
-            `${API_BASE_URL}/user/projects?userEmail=${userEmail}`
-          );
-          const data = await response.json();
-          setProjects(
-            data.map((project: { projectName: string }) => project.projectName)
-          );
+          const data = await projectsApi.getUserProjects(userEmail);
+          setProjects(data.map((project) => project.projectName));
         } catch (error) {
           console.error("Error fetching projects:", error);
         }
@@ -43,7 +41,7 @@ const Dashboard: React.FC = () => {
     };
 
     fetchProjects();
-  }, [navigate]);
+  }, [navigate, authStorage]);
 
   const handleProjectChange = (projectName: string) => {
     setSelectedProject(projectName);
@@ -68,8 +66,7 @@ const Dashboard: React.FC = () => {
   }
 
   function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
+    authStorage.clear();
     navigate("/login");
   }
 

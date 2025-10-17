@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ReturnButton from "../Components/return";
+import ReturnButton from "../common/ReturnButton";
 import "./ProjectConfig.css";
 import {
   Select,
@@ -19,7 +19,8 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { API_BASE_URL } from "@/config/api";
+import AuthStorage from "@/services/storage/auth";
+import ApiClient from "@/services/api/client";
 
 const ProjectConfig: React.FC = () => {
   const navigate = useNavigate();
@@ -51,33 +52,34 @@ const ProjectConfig: React.FC = () => {
 
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const authStorage = AuthStorage.getInstance();
+    const token = authStorage.getToken();
     if (!token) {
       navigate("/login");
     }
     const fetchUserData = async () => {
-      const userName = localStorage.getItem("username");
-      const userEmail = localStorage.getItem("email");
+      const userName = authStorage.getUserName();
+      const userEmail = authStorage.getEmail();
       if (userName && userEmail) {
         setUser({
           name: userName,
           email: userEmail,
         });
       } else {
-        console.warn("User data not found in localStorage");
+        console.warn("User data not found in storage");
       }
     };
 
     fetchUserData();
 
     const fetchCourses = async () => {
-      const userEmail = localStorage.getItem("email");
+      const userEmail = authStorage.getEmail();
       if (userEmail) {
         try {
-          const response = await fetch(
-            `${API_BASE_URL}/user/courses?userEmail=${userEmail}`
+          const data = await ApiClient.getInstance().get<Array<{ id: number; courseName: string }>>(
+            "/user/courses",
+            { userEmail }
           );
-          const data = await response.json();
           setCourses(data);
         } catch (error) {
           console.error("Error fetching courses:", error);
@@ -98,36 +100,32 @@ const ProjectConfig: React.FC = () => {
   };
 
   const fetchProjects = async (courseId: number) => {
-    const userEmail = localStorage.getItem("email");
+    const authStorage = AuthStorage.getInstance();
+    const userEmail = authStorage.getEmail();
     if (userEmail) {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/course/courseProjects?courseId=${courseId}&userEmail=${userEmail}`
-        );
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
-        const data = await response.json();
-        setEnrolledProjects(data.enrolledProjects.map((project: { projectName: string }) => project.projectName));
-        setAvailableProjects(data.availableProjects.map((project: { projectName: string }) => project.projectName));
+        const data = await ApiClient.getInstance().get<{
+          enrolledProjects: Array<{ projectName: string }>;
+          availableProjects: Array<{ projectName: string }>;
+        }>("/course/courseProjects", { courseId, userEmail });
+
+        setEnrolledProjects(data.enrolledProjects.map((project) => project.projectName));
+        setAvailableProjects(data.availableProjects.map((project) => project.projectName));
 
         for (const project of data.enrolledProjects) {
           try {
-            const roleResponse = await fetch(
-              `${API_BASE_URL}/courseProject/user/role?projectName=${encodeURIComponent(project.projectName)}&email=${encodeURIComponent(userEmail)}`
+            const roleData = await ApiClient.getInstance().get<{ role: string }>(
+              "/courseProject/user/role",
+              { projectName: encodeURIComponent(project.projectName), email: encodeURIComponent(userEmail) }
             );
-
-            const roleData = await roleResponse.json();
             setProjectRoles((prevRoles) => ({
               ...prevRoles,
               [project.projectName]: roleData.role,
             }));
-
           } catch (error) {
             console.error("Error fetching role:", error);
           }
         }
-
       } catch (error) {
         console.error("Error fetching projects:", error);
       }
@@ -141,34 +139,22 @@ const ProjectConfig: React.FC = () => {
   };
 
   const fetchProjectURL = async (projectName: string) => {
+    const authStorage = AuthStorage.getInstance();
+    const userEmail = authStorage.getEmail();
+
     if (!projectName) {
       console.error("Selected project is missing");
       return;
-    } else if (!localStorage.getItem("email")) {
+    } else if (!userEmail) {
       console.error("User email is missing");
       return;
     }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/project/url?userEmail=${encodeURIComponent(
-          localStorage.getItem("email") || ""
-        )}&projectName=${encodeURIComponent(projectName)}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+      const data = await ApiClient.getInstance().get<{ url: string }>(
+        "/user/project/url",
+        { userEmail: encodeURIComponent(userEmail), projectName: encodeURIComponent(projectName) }
       );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error fetching URL:", errorData);
-        return;
-      }
-
-      const data = await response.json();
 
       if (data && data.url) {
         setURL(data.url || "");
@@ -181,29 +167,17 @@ const ProjectConfig: React.FC = () => {
   };
 
   const handleChangeURL = async () => {
-    const userEmail = localStorage.getItem("email");
+    const authStorage = AuthStorage.getInstance();
+    const userEmail = authStorage.getEmail();
     if (userEmail && selectedProject) {
       try {
-        const response = await fetch(`${API_BASE_URL}/user/project/url`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userEmail: userEmail,
-            URL: newURL,
-            projectName: selectedProject,
-          }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          setMessage(data.message || "Failed to update URL");
-        } else {
-          setMessage(data.message || "URL changed successfully");
-          // Update the displayed URL and clear input
-          setURL(newURL);
-          setNewURL("");
-        }
+        const data = await ApiClient.getInstance().post<{ message: string }>(
+          "/user/project/url",
+          { userEmail, URL: newURL, projectName: selectedProject }
+        );
+        setMessage(data.message || "URL changed successfully");
+        setURL(newURL);
+        setNewURL("");
       } catch (error: unknown) {
         if (error instanceof Error) {
           setMessage(error.message);
@@ -221,29 +195,11 @@ const ProjectConfig: React.FC = () => {
       return;
     }
 
-    const body = {
-      projectName,
-      memberName: user.name,
-      memberRole: role,
-      memberEmail: user.email.toString(),
-    };
-
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/project`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
+      const data = await ApiClient.getInstance().post<{ message: string }>(
+        "/user/project",
+        { projectName, memberName: user.name, memberRole: role, memberEmail: user.email }
       );
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
 
       setMessage(data.message || "Successfully joined the project!");
       if (data.message.includes("successfully")) {
@@ -262,26 +218,11 @@ const ProjectConfig: React.FC = () => {
       setMessage("User data not available. Please log in again.");
       return;
     }
-    const body = {
-      projectName,
-      memberEmail: user.email.toString(),
-    };
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/project`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
+      const data = await ApiClient.getInstance().delete<{ message: string }>(
+        `/user/project?projectName=${projectName}&memberEmail=${user.email}`
       );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
 
       setMessage(data.message || "Successfully left the project!");
       if (data.message.includes("successfully")) {
@@ -296,30 +237,21 @@ const ProjectConfig: React.FC = () => {
   };
 
   const handleCreate = async (projectName: string) => {
-    const body = {
-      courseId: selectedCourse?.id,
-      projectName,
-    };
+    if (!selectedCourse?.id) {
+      setMessage("No course selected");
+      return;
+    }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/courseProject`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
+      const data = await ApiClient.getInstance().post<{ message: string }>(
+        "/courseProject",
+        { courseId: selectedCourse.id, projectName }
       );
-
-      const data = await response.json();
 
       setMessage(data.message || "Project created successfully");
       if (data.message.includes("successfully")) {
         window.location.reload();
       }
-
     } catch (error: unknown) {
       if (error instanceof Error) {
         setMessage(error.message);

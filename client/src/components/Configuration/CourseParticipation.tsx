@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import Add from "./../../assets/Add.png";
 import Delete from "./../../assets/Line 20.png";
-import ReturnButton from "../Components/return";
+import ReturnButton from "../common/ReturnButton";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Button from "react-bootstrap/esm/Button";
-import { API_BASE_URL } from "@/config/api";
+import AuthStorage from "@/services/storage/auth";
+import coursesApi from "@/services/api/courses";
+import projectsApi from "@/services/api/projects";
+import ApiClient from "@/services/api/client";
 
 const CourseParticipation: React.FC = () => {
   type Project = {
@@ -55,15 +58,17 @@ const CourseParticipation: React.FC = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const userName = localStorage.getItem("username");
-      const userEmail = localStorage.getItem("email");
+      const authStorage = AuthStorage.getInstance();
+      const userName = authStorage.getUserName();
+      const userEmail = authStorage.getEmail();
+
       if (userName && userEmail) {
         setUser({
           name: userName,
           email: userEmail,
         });
       } else {
-        console.warn("User data not found in localStorage");
+        console.warn("User data not found in storage");
       }
     };
 
@@ -71,10 +76,8 @@ const CourseParticipation: React.FC = () => {
 
     const fetchCourses = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/course`);
-        const result = await response.json();
-        const data = result.success ? result.data : [];
-        setCourses(data.map((item: Project) => item.courseName));
+        const data = await coursesApi.getCourses();
+        setCourses(data.map((item) => item.courseName));
         console.log("Fetched project groups:", data);
       } catch (error: unknown) {
         if (error instanceof Error) {
@@ -87,10 +90,12 @@ const CourseParticipation: React.FC = () => {
 
     const fetchUserProjects = async() => {
       try {
-        const userEmail = localStorage.getItem("email")
-        const response = await fetch(`${API_BASE_URL}/user/projects?userEmail=${userEmail}`);
-        const data = await response.json();
-        setUserProjects(data.map((item: Project) => item.projectName));
+        const authStorage = AuthStorage.getInstance();
+        const userEmail = authStorage.getEmail();
+        if (!userEmail) return;
+
+        const data = await projectsApi.getUserProjects(userEmail);
+        setUserProjects(data.map((item) => item.projectName));
         console.log("Fetched user projects:", data);
       } catch (error: unknown) {
         if (error instanceof Error) {
@@ -106,14 +111,11 @@ const CourseParticipation: React.FC = () => {
     const fetchEnrolledProjects = async () => {
       if (selectedEnrolledCourse) {
         try {
-          const response = await fetch(
-            `${API_BASE_URL}/courseProject?courseName=${selectedEnrolledCourse}`
-          );
-          const data = await response.json();
-          const mappedProjects = data.map((item: Project) => ({
+          const data = await projectsApi.getProjectsByCourseName(selectedEnrolledCourse);
+          const mappedProjects = data.map((item) => ({
             id: item.id,
             projectName: item.projectName,
-            courseName: item.courseName || selectedEnrolledCourse,
+            courseName: selectedEnrolledCourse,
           }));
 
           const enrolledProjects = mappedProjects.filter((item: Project) => userProjects.includes(item.projectName));
@@ -130,7 +132,7 @@ const CourseParticipation: React.FC = () => {
     };
 
     fetchEnrolledProjects();
-  }, [selectedEnrolledCourse]);
+  }, [selectedEnrolledCourse, userProjects]);
 
   const filteredEnrolledProjects = enrolledProjects.filter(
     (project) => project.courseName === selectedEnrolledCourse
@@ -140,14 +142,11 @@ const CourseParticipation: React.FC = () => {
     const fetchAvailableProjects = async () => {
       if (selectedAvailableCourse) {
         try {
-          const response = await fetch(
-            `${API_BASE_URL}/courseProject?courseName=${selectedAvailableCourse}`
-          );
-          const data = await response.json();
-          const mappedProjects = data.map((item: Project) => ({
+          const data = await projectsApi.getProjectsByCourseName(selectedAvailableCourse);
+          const mappedProjects = data.map((item) => ({
             id: item.id,
             projectName: item.projectName,
-            courseName: item.courseName || selectedAvailableCourse,
+            courseName: selectedAvailableCourse,
           }));
 
           const availableProjectsWithoutEnrolled = mappedProjects.filter((item: Project) => !userProjects.includes(item.projectName));
@@ -164,7 +163,7 @@ const CourseParticipation: React.FC = () => {
     };
 
     fetchAvailableProjects();
-  }, [selectedAvailableCourse]);
+  }, [selectedAvailableCourse, userProjects]);
 
   const filteredAvailableProjects = availableProjects.filter(
     (project: Project) => project.courseName === selectedAvailableCourse
@@ -176,29 +175,16 @@ const CourseParticipation: React.FC = () => {
       return;
     }
 
-    const body = {
-      projectName,
-      memberName: user.name,
-      memberRole: role,
-      memberEmail: user.email.toString(),
-    };
-
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/project`,
+      const data = await ApiClient.getInstance().post<{ success: boolean; message: string }>(
+        "/user/project",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
+          projectName,
+          memberName: user.name,
+          memberRole: role,
+          memberEmail: user.email,
         }
       );
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
 
       setMessage(data.message || "Successfully joined the project!");
       if (data.message.includes("successfully")) {
@@ -218,26 +204,10 @@ const CourseParticipation: React.FC = () => {
       return;
     }
 
-    const body = {
-      projectName,
-      memberEmail: user.email.toString(),
-    };
-
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/project`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
+      const data = await ApiClient.getInstance().delete<{ success: boolean; message: string }>(
+        `/user/project?projectName=${projectName}&memberEmail=${user.email}`
       );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
 
       setMessage(data.message || "Successfully left the project!");
       if (data.message.includes("successfully")) {

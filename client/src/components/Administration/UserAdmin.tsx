@@ -2,14 +2,14 @@ import "./UserAdmin.css"
 
 import { useState } from 'react';
 
-import ReturnButton from "../Components/return";
-import Table from "../Components/Table";
+import ReturnButton from "../common/ReturnButton";
+import Table from "../common/Table";
 
 import Edit from "./../../assets/Edit.png";
 import EmailIcon from "./../../assets/EmailIcon.png";
 
 import { isValidEmail } from "@/utils/emailValidation";
-import { API_BASE_URL } from "@/config/api";
+import usersApi from "@/services/api/users";
 
 const userStatus = ["unconfirmed", "confirmed", "suspended", "removed"];
 
@@ -23,14 +23,6 @@ interface User {
     userRole: string;
 }
 
-function checkError(response: Response) {
-    if (response.status >= 200 && response.status <= 299) {
-        return response;
-    } else {
-        throw Error(response.statusText);
-    }
-}
-
 function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) => void }) {
     const [email, setEmail] = useState<string>(user.email);
     const [githubUsername, setGithubUsername] = useState<string>(user.githubUsername || "");
@@ -41,56 +33,35 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
     function onSave() {
         const promises = []
         if (githubUsername && githubUsername !== user.githubUsername) {
-            promises.push(fetch(`${API_BASE_URL}/user/githubUsername`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "userEmail": user.email, "newGithubUsername": githubUsername })
-                })
-                .then(checkError)
-                .catch(console.error));
+            promises.push(
+                usersApi.updateGithubUsername({ userEmail: user.email, newGithubUsername: githubUsername })
+                    .catch(console.error)
+            );
         }
         if (status !== user.status) {
-            promises.push(fetch(`${API_BASE_URL}/updateUserStatus`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "userEmail": user.email, "status": status })
-                })
-                .then(checkError)
-                .catch(console.error));
+            promises.push(
+                usersApi.updateUserStatusPost({ userEmail: user.email, status: status })
+                    .catch(console.error)
+            );
         }
         if (password) {
-            promises.push(fetch(`${API_BASE_URL}/user/password/change`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "userEmail": user.email, "password": password })
-                })
-                .then(checkError)
-                .catch(console.error));
+            promises.push(
+                usersApi.changePassword({ userEmail: user.email, password: password })
+                    .catch(console.error)
+            );
         }
         if (userRole !== user.userRole) {
-            promises.push(fetch(`${API_BASE_URL}/user/role`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "email": user.email, "role": userRole })
-                })
-                .then(checkError)
-                .catch(console.error));
+            promises.push(
+                usersApi.updateUserRole({ email: user.email, role: userRole })
+                    .catch(console.error)
+            );
         }
 
         Promise.all(promises).then(() =>
             email !== user.email ?
-                fetch(`${API_BASE_URL}/user/mail`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ "newEmail": email, "oldEmail": user.email })
-                    })
-                    .then(checkError)
-                    .catch(console.error) : null).then(() => onClose(true));
+                usersApi.changeEmail({ newEmail: email, oldEmail: user.email })
+                    .catch(console.error) : null
+        ).then(() => onClose(true));
     }
 
     function onCancel() {
@@ -166,22 +137,15 @@ const UserAdmin = () => {
 
     function fetchUsers() {
         setLoading(true);
-        fetch(`${API_BASE_URL}/getUsers`, { method: "GET", headers: { "Content-Type": "application/json" }, })
-            .then(checkError)
-            .then((response: Response) => response.json())
+        usersApi.getAllUsers()
             .then((us: Array<User>) => setUsers(us))
             .then(() => setLoading(false))
             .catch(console.error);
     }
 
     function sendConfirmationEmail(user: User) {
-        fetch(`/user/confirmation/trigger`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userEmail: user.email }),
-        })
-          .then(checkError)
-          .catch(console.error);
+        usersApi.sendConfirmationEmail({ userEmail: user.email })
+            .catch(console.error);
     }
 
     const tableData = users.map(user => [

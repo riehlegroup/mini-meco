@@ -1,8 +1,9 @@
 import "./UserPanel.css";
 import React, { useState, useEffect } from "react";
 import {useNavigate } from "react-router-dom";
-import ReturnButton from "../Components/return";
-import { API_BASE_URL } from "@/config/api";
+import ReturnButton from "../common/ReturnButton";
+import AuthStorage from "@/services/storage/auth";
+import usersApi from "@/services/api/users";
 
 
 let pwErrormessage = ""
@@ -31,34 +32,26 @@ const UserPanel: React.FC = () => {
   } | null>(null);
 
   const fetchUserData = async () => {
-    const userName = localStorage.getItem("username");
-    const userEmail = localStorage.getItem("email");
-    const userGithubUsername = localStorage.getItem("githubUsername");
+    const authStorage = AuthStorage.getInstance();
+    const userName = authStorage.getUserName();
+    const userEmail = authStorage.getEmail();
+
     if (userName && userEmail) {
       setUser({
         name: userName,
         email: userEmail,
-        UserGithubUsername: userGithubUsername || "",
+        UserGithubUsername: "",
       });
-    } else {
-      console.warn("User data not found in localStorage");
-    }
 
-    if (userEmail) {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/user/githubUsername?userEmail=${userEmail}`
-        );
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.message || "Something went wrong");
-        }
-        setGithubUsername(data.githubUsername || "");
+        const githubUser = await usersApi.getGithubUsername(userEmail);
+        setGithubUsername(githubUser);
+        setUser((prev) => prev ? { ...prev, UserGithubUsername: githubUser } : null);
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
     } else {
-      console.warn("User email not found in localStorage");
+      console.warn("User data not found in storage");
     }
   };
 
@@ -75,36 +68,21 @@ const UserPanel: React.FC = () => {
       return;
     }
 
-    const body = {
-      newEmail: newEmail,
-      oldEmail: user.email,
-    };
-
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/settings/changeEmail`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.changeEmail({
+        oldEmail: user.email,
+        newEmail: newEmail,
+      });
 
       if (data.message && data.message.includes("successfully")) {
         const updatedUser = { ...user, email: newEmail };
         setUser(updatedUser);
-        localStorage.setItem("email", newEmail);
-        //window.location.reload();
+        AuthStorage.getInstance().setEmail(newEmail);
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
+        emailErrormessage = error.message;
       }
     }
   };
@@ -115,29 +93,14 @@ const UserPanel: React.FC = () => {
       return;
     }
 
-    const body = {
-      userEmail: user.email.toString(),
-      password: newPassword,
-    };
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/password/change`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.changePassword({
+        userEmail: user.email,
+        password: newPassword,
+      });
 
       if (data.message && data.message.includes("successfully")) {
         pwErrormessage = "";
-        //window.location.reload();
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -158,33 +121,16 @@ const UserPanel: React.FC = () => {
       return;
     }
 
-    const body = {
-      userEmail: user.email,
-      newGithubUsername: githubUsername.trim(),
-    };
+    console.log("Submitting GitHub username");
 
-    console.log("Submitting GitHub username:", body);
-
-    let msg = document.getElementById('ErrorMessageGithub');
+    const msg = document.getElementById('ErrorMessageGithub');
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/githubUsername`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.updateGithubUsername({
+        userEmail: user.email,
+        newGithubUsername: githubUsername.trim(),
+      });
 
       if (data.message && data.message.includes("successfully")) {
-        localStorage.setItem("githubUsername", githubUsername.trim());
         gitErrormessage = "";
       }
     } catch (error: unknown) {

@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as Form from "@radix-ui/react-form";
 import * as Tabs from "@radix-ui/react-tabs";
-import EmailWidget from "@/components/Components/EmailWidget.tsx";
-import PasswordWidget from "@/components/Components/PasswordWidget";
-import { API_BASE_URL } from "@/config/api";
+import EmailWidget from "@/components/common/EmailWidget.tsx";
+import PasswordWidget from "@/components/common/PasswordWidget";
+import authApi from "@/services/api/auth";
+import AuthStorage from "@/services/storage/auth";
 
 const LoginScreen = () => {
   const navigate = useNavigate();
@@ -33,42 +34,26 @@ const LoginScreen = () => {
       return;
     }
 
-    const endpoint = action === "Registration" ? "/user" : "/session";
-    const body: { [key: string]: string } = {
-      email,
-      password,
-    };
-    // Add name to the body if the action is Registration (not Login)
-    if (action === "Registration") {
-      body.name = name;
-    }
-
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+      const authStorage = AuthStorage.getInstance();
 
-      const data = await response.json();
+      if (action === "Registration") {
+        const data = await authApi.register(email, password, name);
+        setMessage(data.message || "Registration successful! Please check your email to confirm your account.");
+      } else {
+        const data = await authApi.login(email, password);
+        console.log("Response data:", data);
 
-      console.log("Response data:", data);
+        authStorage.setToken(data.token);
+        authStorage.setUser({
+          email: data.email,
+          name: data.name,
+          githubUsername: data.githubUsername,
+        });
 
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
+        setMessage("Login successful!");
+        navigate("/dashboard");
       }
-
-      if (endpoint === "/session") {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("username", data.name);
-        localStorage.setItem("email", data.email);
-        localStorage.setItem("githubUsername", data.githubUsername);
-      }
-
-      setMessage(data.message || "Success!");
-      navigate("/dashboard");
     } catch (error: unknown) {
       if (error instanceof Error) {
         setMessage(error.message);

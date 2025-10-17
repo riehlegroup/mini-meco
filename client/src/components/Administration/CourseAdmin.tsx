@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import ReturnButton from "../Components/return";
-import Table from "../Components/Table";
+import ReturnButton from "../common/ReturnButton";
+import Table from "../common/Table";
 import CourseWidget from "./Course/CourseWidget";
 import { useCourse } from "@/hooks/useCourse";
 import { Course, Project } from "./Course/types";

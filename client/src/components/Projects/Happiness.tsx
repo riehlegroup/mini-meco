@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import ReturnButton from "../Components/return";
+import ReturnButton from "../common/ReturnButton";
 import "./Happiness.css";
 import {
   Select,
@@ -24,7 +24,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useUserRole } from "@/hooks/useUserRole";
-import { API_BASE_URL } from "@/config/api";
+import AuthStorage from "@/services/storage/auth";
+import ApiClient from "@/services/api/client";
 
 const Happiness: React.FC = (): React.ReactNode => {
   const navigate = useNavigate();
@@ -64,7 +65,8 @@ const Happiness: React.FC = (): React.ReactNode => {
     if (projectNameFromState) {
       setProjectName(projectNameFromState);
     }
-    const storedUserName = localStorage.getItem("username");
+    const authStorage = AuthStorage.getInstance();
+    const storedUserName = authStorage.getUserName();
     if (storedUserName) {
       setUser((prev) => prev && ({ ...prev , name: storedUserName }));
     }
@@ -73,8 +75,10 @@ const Happiness: React.FC = (): React.ReactNode => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/course`);
-        const result = await response.json();
+        const result = await ApiClient.getInstance().get<{
+          success: boolean;
+          data: Array<{ courseName: string }>;
+        }>("/course");
         const data = result.data || [];
         setCourses(data.map((item: { courseName: string }) => item.courseName));
         console.log("Fetched project groups:", data);
@@ -89,12 +93,13 @@ const Happiness: React.FC = (): React.ReactNode => {
 
   useEffect(() => {
     const fetchUserData = () => {
-      const userName = localStorage.getItem("username");
-      const userEmail = localStorage.getItem("email");
+      const authStorage = AuthStorage.getInstance();
+      const userName = authStorage.getUserName();
+      const userEmail = authStorage.getEmail();
       if (userName && userEmail) {
         setUser({ name: userName, email: userEmail });
       } else {
-        console.warn("User data not found in localStorage");
+        console.warn("User data not found in storage");
       }
     };
 
@@ -106,12 +111,10 @@ const Happiness: React.FC = (): React.ReactNode => {
       if (!selectedCourse) return;
 
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/courseProject/sprints?courseName=${encodeURIComponent(
-            selectedCourse
-          )}`
+        const sprints = await ApiClient.getInstance().get<Array<{ endDate: string }>>(
+          "/courseProject/sprints",
+          { courseName: encodeURIComponent(selectedCourse) }
         );
-        const sprints = await response.json();
 
         setValues(
           sprints.map(
@@ -132,12 +135,10 @@ const Happiness: React.FC = (): React.ReactNode => {
       if (!projectName) return;
 
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/courseProject/currentSprint?projectName=${encodeURIComponent(
-            projectName
-          )}`
+        const sprints = await ApiClient.getInstance().get<Array<{ endDate: string; sprintName?: string }>>(
+          "/courseProject/currentSprint",
+          { projectName: encodeURIComponent(projectName) }
         );
-        const sprints = await response.json();
         const currentDate = new Date();
 
         const currentSprint = sprints.find(
@@ -164,45 +165,38 @@ const Happiness: React.FC = (): React.ReactNode => {
     console.log("Selected Dates:", formattedDates);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/courseProject/sprints`,
+      await ApiClient.getInstance().post<{ message: string }>(
+        "/courseProject/sprints",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            courseName: selectedCourse,
-            dates: formattedDates,
-          }),
+          courseName: selectedCourse,
+          dates: formattedDates,
         }
       );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        alert(`Error creating sprints: ${errorData.message}`);
-        return;
-      }
       alert("Sprints created successfully");
     } catch (error) {
+      if (error instanceof Error) {
+        alert(`Error creating sprints: ${error.message}`);
+      }
       console.error("Error creating sprints:", error);
     }
   };
 
   const handleHappinessSubmit = async () => {
+    if (!projectName || !user?.email) {
+      alert("Missing project or user information");
+      return;
+    }
+
     try {
-      await fetch(`${API_BASE_URL}/courseProject/happiness`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      await ApiClient.getInstance().post<{ message: string }>(
+        "/courseProject/happiness",
+        {
           projectName,
-          userEmail: user?.email,
+          userEmail: user.email,
           happiness,
-          sprintName: currentSprint?.sprintName,
-        }),
-      });
+          sprintName: currentSprint?.sprintName ?? "",
+        }
+      );
       alert("Happiness updated successfully");
     } catch (error) {
       console.error("Error updating happiness:", error);
@@ -211,15 +205,19 @@ const Happiness: React.FC = (): React.ReactNode => {
 
   const fetchHappinessData = async () => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/courseProject/happiness?projectName=${encodeURIComponent(
-          projectName ?? ""
-        )}`
+      const data = await ApiClient.getInstance().get<Array<{
+        id: number;
+        projectId: number;
+        userId: number;
+        happiness: number;
+        sprintId: number | null;
+        timestamp: string;
+        sprintName: string | null;
+        userEmail: string;
+      }>>(
+        "/courseProject/happiness",
+        { projectName: encodeURIComponent(projectName ?? "") }
       );
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-      const data = await response.json();
       setHappinessData(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch happiness data:", error);
