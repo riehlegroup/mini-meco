@@ -1,6 +1,4 @@
-import "./CourseParticipation.css";
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Select,
   SelectTrigger,
@@ -8,8 +6,6 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import Add from "./../../assets/Add.png";
-import Delete from "./../../assets/Line 20.png";
 import TopNavBar from "../common/TopNavBar";
 import {
   Dialog,
@@ -19,7 +15,10 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import Button from "react-bootstrap/esm/Button";
+import Button from "@/components/common/Button";
+import Input from "@/components/common/Input";
+import SectionCard from "@/components/common/SectionCard";
+import Card from "@/components/common/Card";
 import AuthStorage from "@/services/storage/auth";
 import coursesApi from "@/services/api/courses";
 import projectsApi from "@/services/api/projects";
@@ -27,15 +26,9 @@ import ApiClient from "@/services/api/client";
 
 const CourseParticipation: React.FC = () => {
   type Project = {
-    id: number; 
-    projectName: string; 
+    id: number;
+    projectName: string;
     courseName: string;
-  };
-  
-  const navigate = useNavigate();
-
-  const handleNavigation = () => {
-    navigate("/course-participation");
   };
 
   const [role, setRole] = useState("");
@@ -222,22 +215,22 @@ const CourseParticipation: React.FC = () => {
   };
 
   return (
-    <div onClick={handleNavigation}>
+    <div className="min-h-screen">
       <TopNavBar title="Course Participation" showBackButton={true} showUserInfo={true} />
-      <div className="ProjectContainer">
-          <div className="ProjectTitle">
-            <h3>Project Lists - Enrolled Courses</h3>
-          </div>
-          <div className="SelectWrapper">
+
+      <div className="mx-auto max-w-6xl space-y-8 p-6">
+        {/* Enrolled Courses Section */}
+        <SectionCard title="Enrolled Projects">
+          <div className="space-y-4">
             <Select
               onValueChange={(value) => {
                 setSelectedEnrolledCourse(value);
               }}
             >
-              <SelectTrigger className="SelectTrigger">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a project group" />
               </SelectTrigger>
-              <SelectContent className="SelectContent">
+              <SelectContent>
                 {courses.map((group, index) => (
                   <SelectItem key={index} value={group}>
                     {group}
@@ -245,60 +238,72 @@ const CourseParticipation: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            {filteredEnrolledProjects.map((project: Project) => (
-              <div key={project.id}>
-                <div className="ProjectItem3">
-                  <div className="ProjectName">{project.projectName}</div>
-                  <div className="Imgs">
-                    <Dialog>
-                      <DialogTrigger className="DialogTrigger">
-                        <img className="Delete" src={Delete} alt="Delete" />
-                      </DialogTrigger>
-                      <DialogContent className="DialogContent">
-                        <DialogHeader>
-                          <DialogTitle className="DialogTitle">
-                            Leave Project
-                          </DialogTitle>
-                        </DialogHeader>
-                        <div className="LeaveText">
-                          Are you sure you want to leave {project.projectName} ?{" "}
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            className="create"
-                            variant="primary"
-                            onClick={() => handleLeave(project.projectName)}
-                          >
-                            Confirm
-                          </Button>
-                        </DialogFooter>
-                        {message && <div className="Message">{message}</div>}
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-                <hr className="ProjectDivider" />
-              </div>
-            ))}
-          </div>
-        </div>
 
-        <div className="ProjectContainer">
-          <div className="ProjectTitle">
-            <h3>Project Lists - Available Courses</h3>
+            {filteredEnrolledProjects.length > 0 ? (
+              <div className="space-y-2">
+                {filteredEnrolledProjects.map((project: Project) => (
+                  <Card key={project.id}>
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium">{project.projectName}</p>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="destructive" className="w-fit text-sm">
+                            Leave
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Leave Project</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <p className="text-sm">
+                              Are you sure you want to leave {project.projectName}?
+                            </p>
+                            {message && (
+                              <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                                {message}
+                              </div>
+                            )}
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              variant="secondary"
+                              onClick={() => {
+                                setMessage("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={() => handleLeave(project.projectName)}
+                            >
+                              Confirm
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-500">No enrolled projects</p>
+            )}
           </div>
-          <div className="SelectWrapper">
+        </SectionCard>
+
+        {/* Available Courses Section */}
+        <SectionCard title="Available Projects">
+          <div className="space-y-4">
             <Select
               onValueChange={(value) => {
                 setSelectedAvailableCourse(value);
               }}
             >
-              <SelectTrigger className="SelectTrigger">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a project group" />
               </SelectTrigger>
-              <SelectContent className="SelectContent">
+              <SelectContent>
                 {courses.map((group, index) => (
                   <SelectItem key={index} value={group}>
                     {group}
@@ -306,51 +311,64 @@ const CourseParticipation: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            {filteredAvailableProjects.map((project: Project) => (
-              <div key={project.id}>
-                <div className="ProjectItem3">
-                  <div className="ProjectName">{project.projectName}</div>
-                  <div className="Imgs">
-                    <Dialog>
-                      <DialogTrigger className="DialogTrigger">
-                        <img className="Add" src={Add} alt="Add" />
-                      </DialogTrigger>
-                      <DialogContent className="DialogContent">
-                        <DialogHeader>
-                          <DialogTitle className="DialogTitle">
-                            Join Project
-                          </DialogTitle>
-                        </DialogHeader>
-                        <div className="RoleInput">
-                          <div className="Role">Role: </div>
-                          <input
-                            type="text"
-                            className="ProjAdmin-inputBox"
-                            placeholder="Enter your role"
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                          />
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            className="create"
-                            variant="primary"
-                            onClick={() => handleJoin(project.projectName)}
-                          >
+
+            {filteredAvailableProjects.length > 0 ? (
+              <div className="space-y-2">
+                {filteredAvailableProjects.map((project: Project) => (
+                  <Card key={project.id}>
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium">{project.projectName}</p>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="primary" className="px-3 py-1 text-sm">
                             Join
                           </Button>
-                        </DialogFooter>
-                        {message && <div className="Message">{message}</div>}
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-                <hr className="ProjectDivider" />
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Join Project</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <Input
+                              type="text"
+                              label="Role"
+                              placeholder="Enter your role"
+                              value={role}
+                              onChange={(e) => setRole(e.target.value)}
+                            />
+                            {message && (
+                              <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                                {message}
+                              </div>
+                            )}
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              variant="secondary"
+                              onClick={() => {
+                                setRole("");
+                                setMessage("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={() => handleJoin(project.projectName)}
+                            >
+                              Join
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </Card>
+                ))}
               </div>
-            ))}
+            ) : (
+              <p className="text-slate-500">No available projects</p>
+            )}
           </div>
+        </SectionCard>
       </div>
     </div>
   );

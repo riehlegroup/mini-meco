@@ -1,7 +1,4 @@
-import "./Settings.css";
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Edit from "./../../assets/Edit.png";
 import TopNavBar from "../common/TopNavBar";
 import {
   Dialog,
@@ -11,16 +8,14 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import Button from "react-bootstrap/esm/Button";
+import Button from "@/components/common/Button";
+import Input from "@/components/common/Input";
+import SectionCard from "@/components/common/SectionCard";
+import Card from "@/components/common/Card";
 import AuthStorage from "@/services/storage/auth";
 import usersApi from "@/services/api/users";
 
 const Settings: React.FC = () => {
-  const navigate = useNavigate();
-
-  const handleNavigation = () => {
-    navigate("/settings");
-  };
 
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -141,124 +136,130 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div onClick={handleNavigation}>
+    <div className="min-h-screen">
       <TopNavBar title="Settings" showBackButton={true} showUserInfo={true} />
-      <div className="ProjectContainer">
-        <div className="ProjectTitle">
-          <h3>Account Info</h3>
-        </div>
-        <div className="PersonalDataContainer">
-            <div className="PersonalData">
-              <div className="Email">
-                Email: {user?.email || "Email not available"}
-              </div>
 
-              <Dialog>
-                <DialogTrigger className="DialogTrigger">
-                  <img className="Edit" src={Edit} />
-                </DialogTrigger>
-                <DialogContent className="DialogContent">
-                  <DialogHeader>
-                    <DialogTitle className="DialogTitle">
-                      Change Email Address
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="EmailInput">
-                    <div className="newEmail">New Email: </div>
-                    <input
-                      type="text"
-                      className="NewEmail-inputBox"
-                      placeholder="Enter your new email"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      className="create"
-                      variant="primary"
-                      onClick={handleEmailChange}
-                    >
-                      Change
+      <div className="mx-auto max-w-6xl space-y-8 p-6">
+        <SectionCard title="Account Settings">
+          <div className="space-y-4">
+            {/* Email Setting */}
+            <Card>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-slate-600">Email Address</p>
+                  <p className="font-medium">{user?.email || "Not available"}</p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="primary" className="w-fit text-sm">
+                      Edit
                     </Button>
-                  </DialogFooter>
-                  {emailMessage && <div className="Message">{emailMessage}</div>}
-                </DialogContent>
-              </Dialog>
-            </div>
-            <div className="PersonalData">
-              <div className="Password">Password: ********</div>
-              <Dialog>
-                <DialogTrigger className="DialogTrigger">
-                  <img className="Edit" src={Edit} />
-                </DialogTrigger>
-                <DialogContent className="DialogContent">
-                  <DialogHeader>
-                    <DialogTitle className="DialogTitle">
-                      Change Password
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="EmailInput">
-                    <div className="newEmail">New Password: </div>
-                    <input
-                      type="password"
-                      className="NewEmail-inputBox"
-                      placeholder="Enter your new password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      className="create"
-                      variant="primary"
-                      onClick={handlePasswordChange}
-                    >
-                      Change
-                    </Button>
-                  </DialogFooter>
-                  {passwordMessage && <div className="Message">{passwordMessage}</div>}
-                </DialogContent>
-              </Dialog>
-            </div>
-            <div className="PersonalData">
-              <div className="GitHub">
-                GitHub Username: {user?.UserGithubUsername}
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Change Email Address</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <Input
+                        type="email"
+                        label="New Email"
+                        placeholder="Enter your new email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                      />
+                      {emailMessage && (
+                        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                          {emailMessage}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleEmailChange}>Change Email</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
-              <Dialog>
-                <DialogTrigger className="DialogTrigger">
-                  <img className="Edit" src={Edit} />
-                </DialogTrigger>
-                <DialogContent className="DialogContent">
-                  <DialogHeader>
-                    <DialogTitle className="DialogTitle">
-                      Edit GitHub Username
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="GitHubInput">
-                    <div className="GitHubusername">GitHub username: </div>
-                    <input
-                      type="text"
-                      className="GitHubUsername-inputBox"
-                      placeholder="Enter your GitHub username"
-                      value={githubUsername}
-                      onChange={(e) => setGithubUsername(e.target.value)}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      className="create"
-                      variant="primary"
-                      onClick={handleAddGithubUsername}
-                    >
-                      Confirm
+            </Card>
+
+            {/* Password Setting */}
+            <Card>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-slate-600">Password</p>
+                  <p className="font-medium">••••••••</p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="primary" className="w-fit text-sm">
+                      Edit
                     </Button>
-                  </DialogFooter>
-                  {githubMessage && <div className="Message">{githubMessage}</div>}
-                </DialogContent>
-              </Dialog>
-            </div>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Change Password</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <Input
+                        type="password"
+                        label="New Password"
+                        placeholder="Enter your new password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
+                      {passwordMessage && (
+                        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                          {passwordMessage}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handlePasswordChange}>Change Password</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </Card>
+
+            {/* GitHub Username Setting */}
+            <Card>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-slate-600">GitHub Username</p>
+                  <p className="font-medium">{user?.UserGithubUsername || "Not set"}</p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="primary" className="w-fit text-sm">
+                      Edit
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Edit GitHub Username</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <Input
+                        type="text"
+                        label="GitHub Username"
+                        placeholder="Enter your GitHub username"
+                        value={githubUsername}
+                        onChange={(e) => setGithubUsername(e.target.value)}
+                      />
+                      {githubMessage && (
+                        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                          {githubMessage}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleAddGithubUsername}>Confirm</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </Card>
           </div>
+        </SectionCard>
       </div>
     </div>
   );

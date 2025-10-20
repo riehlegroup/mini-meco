@@ -38,7 +38,7 @@ export const CourseDialog: React.FC<CourseDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger className="mx-2 bg-blue-600">{trigger}</DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="bg-white text-black">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

@@ -33,7 +33,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
   };
 
   return (
-    <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-between bg-primary px-6 py-3 shadow-sm">
+    <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-between bg-primary px-6 py-1 shadow-sm">
       {/* Left section: Back button and title */}
       <div className="flex items-center gap-4">
         {showBackButton && (

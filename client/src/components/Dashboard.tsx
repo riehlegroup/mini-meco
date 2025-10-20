@@ -12,6 +12,7 @@ import Button from "@/components/common/Button";
 import SectionCard from "@/components/common/SectionCard";
 import { useUserRole } from "@/hooks/useUserRole";
 import AuthStorage from "@/services/storage/auth";
+import ProjectStorage from "@/services/storage/project";
 import projectsApi from "@/services/api/projects";
 
 const Dashboard: React.FC = () => {
@@ -21,7 +22,7 @@ const Dashboard: React.FC = () => {
   const userRole = useUserRole();
 
   const authStorage = AuthStorage.getInstance();
-  console.log("[Dashboard] mounted");
+  const projectStorage = ProjectStorage.getInstance();
 
   useEffect(() => {
     const token = authStorage.getToken();
@@ -34,7 +35,14 @@ const Dashboard: React.FC = () => {
       if (userEmail) {
         try {
           const data = await projectsApi.getUserProjects(userEmail);
-          setProjects(data.map((project) => project.projectName));
+          const projectNames = data.map((project) => project.projectName);
+          setProjects(projectNames);
+
+          // Restore selected project from localStorage
+          const savedProject = projectStorage.getSelectedProject();
+          if (savedProject && projectNames.includes(savedProject)) {
+            setSelectedProject(savedProject);
+          }
         } catch (error) {
           console.error("Error fetching projects:", error);
         }
@@ -46,6 +54,7 @@ const Dashboard: React.FC = () => {
 
   const handleProjectChange = (projectName: string) => {
     setSelectedProject(projectName);
+    projectStorage.setSelectedProject(projectName);
   };
 
   const goToStandups = () => {
@@ -96,7 +105,7 @@ const Dashboard: React.FC = () => {
         {/* Projects Section */}
         <SectionCard title="Projects">
           <div className="space-y-4">
-            <Select onValueChange={handleProjectChange}>
+            <Select value={selectedProject || ""} onValueChange={handleProjectChange}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select Project" />
               </SelectTrigger>
@@ -113,18 +122,21 @@ const Dashboard: React.FC = () => {
               <Button
                 onClick={goToStandups}
                 disabled={!selectedProject}
+                className="w-48"
               >
                 Standups
               </Button>
               <Button
                 onClick={goHappiness}
                 disabled={!selectedProject}
+                className="w-48"
               >
                 Happiness
               </Button>
               <Button
                 onClick={goCodeActivity}
                 disabled={!selectedProject}
+                className="w-48"
               >
                 Code Activity
               </Button>
@@ -135,16 +147,16 @@ const Dashboard: React.FC = () => {
         {/* Configuration Section */}
         <SectionCard title="Configuration">
           <div className="flex flex-wrap gap-4">
-            <Button onClick={goUserPanel}>
+            <Button onClick={goUserPanel} className="w-48">
               User profile
             </Button>
-            <Button onClick={goSettings}>
+            <Button onClick={goSettings} className="w-48">
               Settings
             </Button>
-            <Button onClick={goCourseParticipation}>
+            <Button onClick={goCourseParticipation} className="w-48">
               Course Participation
             </Button>
-            <Button onClick={goProjectConfig}>
+            <Button onClick={goProjectConfig} className="w-48">
               Project Config
             </Button>
           </div>
@@ -154,10 +166,10 @@ const Dashboard: React.FC = () => {
         {userRole === "ADMIN" && (
           <SectionCard title="System Administration">
             <div className="flex flex-wrap gap-4">
-              <Button onClick={goUserAdmin}>
+              <Button onClick={goUserAdmin} className="w-48">
                 User Admin
               </Button>
-              <Button onClick={goCourseAdmin}>
+              <Button onClick={goCourseAdmin} className="w-48">
                 Course Admin
               </Button>
             </div>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import TopNavBar from "../common/TopNavBar";
 import { Octokit } from "@octokit/rest";
 import { Endpoints } from "@octokit/types";
-import "./CodeActivity.css";
+import SectionCard from "@/components/common/SectionCard";
 import {
   LineChart,
   Line,
@@ -34,7 +34,6 @@ type CommitCount = {
 };
 
 const CodeActivity: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
 
   const [commits, setCommits] = useState<Commit[]>([]);
@@ -57,10 +56,6 @@ const CodeActivity: React.FC = () => {
   } | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [commitsPerSprint, setCommitsPerSprint] = useState<CommitCount[]>([]);
-
-  const handleNavigation = () => {
-    navigate("/code-activity");
-  };
 
   const octokit = new Octokit({
     auth: import.meta.env.VITE_GITHUB_TOKEN,
@@ -298,29 +293,30 @@ const CodeActivity: React.FC = () => {
   }, [commits, sprints]);
 
   return (
-    <div onClick={handleNavigation}>
+    <div className="min-h-screen">
       <TopNavBar title="Code Activity" showBackButton={true} showUserInfo={true} />
-      <div className="BigContainerCodeActivity">
-        <div className="GitHubTitle">
-          <h2>Commits on GitHub</h2>
-        </div>
-        {commits.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={commitsPerSprint}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="sprint" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="count" stroke="#8884d8" />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : loading ? (
-          <p>Loading...</p>
-        ) : (
-          <p>No commits found.</p>
-        )}
-        {loading && <p>Loading more commits...</p>}
+      <div className="mx-auto max-w-6xl space-y-8 p-6">
+        <SectionCard title="Commits on GitHub">
+          <div className="space-y-4">
+            {commits.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={commitsPerSprint}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="sprint" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="count" stroke="#8884d8" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : loading ? (
+              <p className="text-slate-600">Loading...</p>
+            ) : (
+              <p className="text-slate-500">No commits found.</p>
+            )}
+            {loading && <p className="text-sm text-slate-500">Loading more commits...</p>}
+          </div>
+        </SectionCard>
       </div>
     </div>
   );

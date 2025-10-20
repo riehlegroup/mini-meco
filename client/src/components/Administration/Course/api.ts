@@ -119,7 +119,7 @@ const courseApi = {
           endDate: string;
           submissionDates: string[];
         };
-      }>(`course/${courseId}/schedule`);
+      }>(`/course/${courseId}/schedule`);
 
       if (!response || !response.success) {
         return null;
