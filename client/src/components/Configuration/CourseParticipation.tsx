@@ -218,7 +218,7 @@ const CourseParticipation: React.FC = () => {
     <div className="min-h-screen">
       <TopNavBar title="Course Participation" showBackButton={true} showUserInfo={true} />
 
-      <div className="mx-auto max-w-6xl space-y-8 p-6">
+      <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
         {/* Enrolled Courses Section */}
         <SectionCard title="Enrolled Projects">
           <div className="space-y-4">

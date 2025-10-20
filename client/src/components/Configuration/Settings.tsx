@@ -139,7 +139,7 @@ const Settings: React.FC = () => {
     <div className="min-h-screen">
       <TopNavBar title="Settings" showBackButton={true} showUserInfo={true} />
 
-      <div className="mx-auto max-w-6xl space-y-8 p-6">
+      <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
         <SectionCard title="Account Settings">
           <div className="space-y-4">
             {/* Email Setting */}
