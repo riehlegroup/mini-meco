@@ -3,8 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.server
-    ports:
-      - "3000:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -16,6 +14,31 @@ services:
     volumes:
       - mini-meco-db:/app/server/data
     restart: unless-stopped
+    networks:
+      - app-network
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      # Caddy configuration
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Frontend static files (from client build)
+      - client-dist:/srv:ro
+      # Caddy data for certificates and config persistence
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+      - client
+    restart: unless-stopped
+    networks:
+      - app-network
 
   client:
     build:
@@ -24,11 +47,17 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL}
         VITE_GITHUB_TOKEN: ${VITE_GITHUB_TOKEN}
-    ports:
-      - "80:80"
-    depends_on:
-      - server
-    restart: unless-stopped
+    volumes:
+      - client-dist:/dist
+    # Container exits immediately after copying files to volume (expected behavior)
+    restart: "no"
 
 volumes:
   mini-meco-db:
+  caddy-data:
+  caddy-config:
+  client-dist:
+
+networks:
+  app-network:
+    driver: bridge
