@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { Database } from 'sqlite';
 import { createTestDb, seedDatabase } from './helpers/testDb';
-import { validHappinessMetric, validStandup, validSprints } from './helpers/fixtures';
+import { validHappinessMetric, validStandup } from './helpers/fixtures';
 import { Application } from 'express';
 import { createApp } from '../../createApp';
 
-describe('Happiness & Sprint API', () => {
+describe('Happiness API', () => {
   let db: Database;
   let app: Application;
 
@@ -36,47 +36,7 @@ describe('Happiness & Sprint API', () => {
       expect(saved.happiness).toBe(4);
     });
 
-    it('should accept missing projectName (inserts null)', async () => {
-      // API doesn't validate missing fields, allows null inserts
-      const response = await request(app)
-        .post('/courseProject/happiness')
-        .send({
-          userEmail: 'test@test.com',
-          happiness: 4,
-          sprintName: 'sprint0'
-        })
-        .expect(200);
-
-      expect(response.body.message).toBe('Happiness updated successfully');
-    });
-
-    it('should accept missing userEmail (inserts null)', async () => {
-      const response = await request(app)
-        .post('/courseProject/happiness')
-        .send({
-          projectName: 'Test Project',
-          happiness: 4,
-          sprintName: 'sprint0'
-        })
-        .expect(200);
-
-      expect(response.body.message).toBe('Happiness updated successfully');
-    });
-
-    it('should accept missing happiness value (inserts null)', async () => {
-      const response = await request(app)
-        .post('/courseProject/happiness')
-        .send({
-          projectName: 'Test Project',
-          userEmail: 'test@test.com',
-          sprintName: 'sprint0'
-        })
-        .expect(200);
-
-      expect(response.body.message).toBe('Happiness updated successfully');
-    });
-
-    it('should accept missing sprintName (inserts null)', async () => {
+    it('should reject missing submissionDateId', async () => {
       const response = await request(app)
         .post('/courseProject/happiness')
         .send({
@@ -84,9 +44,23 @@ describe('Happiness & Sprint API', () => {
           userEmail: 'test@test.com',
           happiness: 4
         })
-        .expect(200);
+        .expect(400);
 
-      expect(response.body.message).toBe('Happiness updated successfully');
+      expect(response.body.message).toContain('Submission date ID is required');
+    });
+
+    it('should reject invalid submissionDateId', async () => {
+      const response = await request(app)
+        .post('/courseProject/happiness')
+        .send({
+          projectName: 'Test Project',
+          userEmail: 'test@test.com',
+          happiness: 4,
+          submissionDateId: 99999
+        })
+        .expect(404);
+
+      expect(response.body.message).toBe('Submission date not found');
     });
 
     it('should store timestamp automatically', async () => {
@@ -107,23 +81,27 @@ describe('Happiness & Sprint API', () => {
       );
     });
 
-    it('should allow multiple happiness entries for same user/project', async () => {
+    it('should replace existing happiness entry for same user/project/submission', async () => {
       const metric = validHappinessMetric();
 
+      // Submit first happiness rating
       await request(app)
         .post('/courseProject/happiness')
         .send(metric)
         .expect(200);
 
+      // Submit second happiness rating for same submission
       await request(app)
         .post('/courseProject/happiness')
         .send({ ...metric, happiness: 5 })
         .expect(200);
 
+      // Should only have 1 entry (the latest one)
       const entries = await db.all(
-        'SELECT * FROM happiness WHERE userId = 2 AND projectId = 1'
+        'SELECT * FROM happiness WHERE userId = 2 AND projectId = 1 AND submissionDateId = 1'
       );
-      expect(entries.length).toBe(2);
+      expect(entries.length).toBe(1);
+      expect(entries[0].happiness).toBe(5);
     });
   });
 
@@ -162,34 +140,36 @@ describe('Happiness & Sprint API', () => {
       expect(response.body.length).toBe(0);
     });
 
-    it('should include sprint and user info', async () => {
+    it('should include submission date and user info', async () => {
       const response = await request(app)
         .get('/courseProject/happiness')
         .query({ projectName: 'Test Project' })
         .expect(200);
 
       const entry = response.body[0];
-      expect(entry).toHaveProperty('sprintName');
+      expect(entry).toHaveProperty('submissionDate');
       expect(entry).toHaveProperty('userEmail');
       expect(entry).toHaveProperty('happiness');
       expect(entry).toHaveProperty('timestamp');
     });
 
-    it('should return data sorted by sprint and timestamp', async () => {
-      // Add another sprint
+    it('should return data sorted by submission date and timestamp', async () => {
+      // Add another submission date
       await db.run(
-        'INSERT INTO sprints (courseId, sprintName, endDate) VALUES (?, ?, ?)',
-        [1, 'sprint1', '2025-01-15']
+        'INSERT INTO submissions (scheduleId, submissionDate) VALUES (?, ?)',
+        [1, Math.floor((Date.now() + 14 * 24 * 60 * 60 * 1000) / 1000)]
       );
 
-      // Add happiness for new sprint
+      const submission2 = await db.get('SELECT id FROM submissions WHERE scheduleId = 1 ORDER BY submissionDate DESC LIMIT 1');
+
+      // Add happiness for new submission
       await request(app)
         .post('/courseProject/happiness')
         .send({
           projectName: 'Test Project',
           userEmail: 'test@test.com',
           happiness: 5,
-          sprintName: 'sprint1'
+          submissionDateId: submission2.id
         })
         .expect(200);
 
@@ -199,173 +179,107 @@ describe('Happiness & Sprint API', () => {
         .expect(200);
 
       expect(response.body.length).toBe(2);
-      // Should be sorted
-      expect(response.body[0].sprintName).toBe('sprint0');
-      expect(response.body[1].sprintName).toBe('sprint1');
+      // Should be sorted by submissionDate
+      const date1 = new Date(response.body[0].submissionDate).getTime();
+      const date2 = new Date(response.body[1].submissionDate).getTime();
+      expect(date1).toBeLessThan(date2);
     });
   });
 
-  describe('POST /courseProject/sprints', () => {
+  describe('GET /courseProject/availableSubmissions', () => {
     beforeEach(async () => {
       await seedDatabase(db);
     });
 
-    it('should create sprints with valid data', async () => {
-      const sprints = validSprints();
+    it('should return next available submission for project', async () => {
       const response = await request(app)
-        .post('/courseProject/sprints')
-        .send(sprints)
-        .expect(201);
+        .get('/courseProject/availableSubmissions')
+        .query({ projectName: 'Test Project' })
+        .expect(200);
 
-      expect(response.body.message).toBe('Sprints created successfully');
-
-      const allSprints = await db.all(
-        'SELECT * FROM sprints WHERE courseId = 1'
-      );
-      // Should have original sprint + 3 new ones
-      expect(allSprints.length).toBe(4);
+      expect(response.body).toHaveProperty('id');
+      expect(response.body).toHaveProperty('submissionDate');
+      expect(response.body).toHaveProperty('scheduleId');
     });
 
-    it('should reject missing courseName', async () => {
+    it('should reject missing projectName', async () => {
       const response = await request(app)
-        .post('/courseProject/sprints')
-        .send({ dates: ['2025-01-15'] })
+        .get('/courseProject/availableSubmissions')
         .expect(400);
 
-      expect(response.body.message).toBe('Course name is required');
+      expect(response.body.message).toBe('Project name is required');
     });
 
-    it('should reject missing dates', async () => {
+    it('should return 404 for non-existent project', async () => {
       const response = await request(app)
-        .post('/courseProject/sprints')
-        .send({ courseName: 'Test Course' })
-        .expect(400);
-
-      expect(response.body.message).toBe('Dates array is required');
-    });
-
-    it('should reject non-existent course', async () => {
-      const response = await request(app)
-        .post('/courseProject/sprints')
-        .send({ courseName: 'Non-Existent', dates: ['2025-01-15'] })
+        .get('/courseProject/availableSubmissions')
+        .query({ projectName: 'Non Existent Project' })
         .expect(404);
 
-      expect(response.body.message).toBe('Course not found');
+      expect(response.body.message).toBe('Project not found');
     });
 
-    it('should auto-increment sprint names', async () => {
-      await request(app)
-        .post('/courseProject/sprints')
-        .send({ courseName: 'Test Course', dates: ['2025-01-15', '2025-01-31'] })
-        .expect(201);
-
-      const sprints = await db.all(
-        'SELECT sprintName FROM sprints WHERE courseId = 1 ORDER BY sprintName'
-      );
-      expect(sprints[0].sprintName).toBe('sprint0');
-      expect(sprints[1].sprintName).toBe('sprint1');
-      expect(sprints[2].sprintName).toBe('sprint2');
-    });
-
-    it('should continue numbering from existing sprints', async () => {
-      // First batch
-      await request(app)
-        .post('/courseProject/sprints')
-        .send({ courseName: 'Test Course', dates: ['2025-01-15'] })
-        .expect(201);
-
-      // Second batch
-      await request(app)
-        .post('/courseProject/sprints')
-        .send({ courseName: 'Test Course', dates: ['2025-02-15'] })
-        .expect(201);
-
-      const lastSprint = await db.get(
-        'SELECT sprintName FROM sprints WHERE courseId = 1 ORDER BY id DESC LIMIT 1'
-      );
-      expect(lastSprint.sprintName).toBe('sprint2');
-    });
-
-    it('should create multiple sprints in one call', async () => {
-      const beforeCount = await db.get('SELECT COUNT(*) as count FROM sprints WHERE courseId = 1');
-
-      await request(app)
-        .post('/courseProject/sprints')
-        .send({
-          courseName: 'Test Course',
-          dates: ['2025-01-15', '2025-02-15', '2025-03-15']
-        })
-        .expect(201);
-
-      const afterCount = await db.get('SELECT COUNT(*) as count FROM sprints WHERE courseId = 1');
-      expect(afterCount.count).toBe(beforeCount.count + 3);
-    });
-  });
-
-  describe('GET /courseProject/sprints', () => {
-    beforeEach(async () => {
-      await seedDatabase(db);
-    });
-
-    it('should return sprints for valid course', async () => {
-      const response = await request(app)
-        .get('/courseProject/sprints')
-        .query({ courseName: 'Test Course' })
-        .expect(200);
-
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThan(0);
-    });
-
-    it('should return empty array for course with no sprints', async () => {
+    it('should return 404 when course has no schedule', async () => {
+      // Create course without schedule
       await request(app)
         .post('/course')
-        .send({ courseName: 'Empty Course', semester: 'SS2025' })
+        .send({ courseName: 'No Schedule Course', semester: 'SS2025' })
+        .expect(201);
+
+      const courseResult = await db.get('SELECT id FROM courses WHERE courseName = ?', ['No Schedule Course']);
+
+      await request(app)
+        .post('/courseProject')
+        .send({ courseId: courseResult.id, projectName: 'No Schedule Project' })
         .expect(201);
 
       const response = await request(app)
-        .get('/courseProject/sprints')
-        .query({ courseName: 'Empty Course' })
-        .expect(200);
+        .get('/courseProject/availableSubmissions')
+        .query({ projectName: 'No Schedule Project' })
+        .expect(404);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBe(0);
+      expect(response.body.message).toBe('No schedule found for this course');
     });
 
-    it('should return sprints sorted by endDate ascending', async () => {
+    it('should return 404 when no future submissions available', async () => {
+      // Delete existing submissions and create schedule with only past dates
+      await db.run('DELETE FROM submissions WHERE scheduleId = 1');
+      await db.run('DELETE FROM schedules WHERE id = 1');
+
+      // Create schedule with past dates
+      const pastStart = Date.now() - 14 * 24 * 60 * 60 * 1000;
+      const pastEnd = Date.now() - 1 * 24 * 60 * 60 * 1000;
       await db.run(
-        'INSERT INTO sprints (courseId, sprintName, endDate) VALUES (?, ?, ?)',
-        [1, 'sprint1', '2025-03-31']
+        'INSERT INTO schedules (id, startDate, endDate) VALUES (?, ?, ?)',
+        [1, Math.floor(pastStart / 1000), Math.floor(pastEnd / 1000)]
       );
+
+      // Add submission date within past range
       await db.run(
-        'INSERT INTO sprints (courseId, sprintName, endDate) VALUES (?, ?, ?)',
-        [1, 'sprint2', '2025-01-15']
+        'INSERT INTO submissions (scheduleId, submissionDate) VALUES (?, ?)',
+        [1, Math.floor((Date.now() - 7 * 24 * 60 * 60 * 1000) / 1000)]
       );
 
       const response = await request(app)
-        .get('/courseProject/sprints')
-        .query({ courseName: 'Test Course' })
-        .expect(200);
+        .get('/courseProject/availableSubmissions')
+        .query({ projectName: 'Test Project' })
+        .expect(404);
 
-      expect(response.body.length).toBe(3);
-      // Check sorted
-      for (let i = 0; i < response.body.length - 1; i++) {
-        expect(new Date(response.body[i].endDate).getTime())
-          .toBeLessThanOrEqual(new Date(response.body[i + 1].endDate).getTime());
-      }
+      expect(response.body.message).toBe('No future submission dates available');
     });
 
-    it('should include all sprint fields', async () => {
+    it('should return earliest future submission when multiple exist', async () => {
+      // The seedDatabase already creates a submission 7 days in the future
+      // Just verify we get the earliest one
       const response = await request(app)
-        .get('/courseProject/sprints')
-        .query({ courseName: 'Test Course' })
+        .get('/courseProject/availableSubmissions')
+        .query({ projectName: 'Test Project' })
         .expect(200);
 
-      const sprint = response.body[0];
-      expect(sprint).toHaveProperty('id');
-      expect(sprint).toHaveProperty('courseId');
-      expect(sprint).toHaveProperty('sprintName');
-      expect(sprint).toHaveProperty('endDate');
+      expect(response.body).toHaveProperty('id');
+      expect(response.body).toHaveProperty('submissionDate');
+      // The submission date should be in the future
+      expect(new Date(response.body.submissionDate).getTime()).toBeGreaterThan(Date.now());
     });
   });
 

@@ -77,25 +77,16 @@ export async function initializeDB(filename: string, createAdmin = true) {
     `);
 
   await db.exec(`
-    CREATE TABLE IF NOT EXISTS sprints (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      courseId INTEGER NOT NULL,
-      sprintName TEXT NOT NULL,
-      endDate DATETIME NOT NULL,
-      FOREIGN KEY (courseId) REFERENCES courses(id)
-    )
-  `);
-
-  await db.exec(`
     CREATE TABLE IF NOT EXISTS happiness (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       projectId INTEGER,
       userId INTEGER,
       happiness INTEGER,
-      sprintId INTEGER,
+      submissionDateId INTEGER,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (userId) REFERENCES users(id),
-      FOREIGN KEY (projectId) REFERENCES projects(id)
+      FOREIGN KEY (projectId) REFERENCES projects(id),
+      FOREIGN KEY (submissionDateId) REFERENCES submissions(id)
     )
   `);
 

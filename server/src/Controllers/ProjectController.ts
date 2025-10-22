@@ -30,14 +30,10 @@ export class ProjectController implements IAppController {
     app.get("/user/projects", this.getUserProjects.bind(this));
     app.get("/user/courses", this.getEnrolledCourses.bind(this));
 
-    // Project features: Sprints
-    app.post("/courseProject/sprints", this.createSprints.bind(this));
-    app.get("/courseProject/sprints", this.getSprints.bind(this));
-    app.get("/courseProject/currentSprint", this.getProjectCurrentSprint.bind(this));
-
     // Project features: Happiness
     app.post("/courseProject/happiness", this.saveHappinessMetric.bind(this));
     app.get("/courseProject/happiness", this.getProjectHappinessMetrics.bind(this));
+    app.get("/courseProject/availableSubmissions", this.getAvailableSubmissions.bind(this));
 
     // Project features: Standups
     app.post("/courseProject/standupsEmail", this.sendStandupEmails.bind(this));
@@ -313,124 +309,55 @@ export class ProjectController implements IAppController {
     }
   }
 
-  async createSprints(req: Request, res: Response): Promise<void> {
-    const { courseName, dates } = req.body;
-
-    if (!courseName) {
-      res.status(400).json({ message: "Course name is required" });
-      return;
-    }
-
-    if (!dates || !Array.isArray(dates)) {
-      res.status(400).json({ message: "Dates array is required" });
-      return;
-    }
-
-    try {
-      const courseIdObj = await this.db.get(
-        `SELECT id
-        FROM courses
-        WHERE courses.courseName = ?`,
-        [courseName]
-      );
-      if (courseIdObj === undefined) {
-        res.status(404).json({ message: "Course not found" });
-        return;
-      }
-      const courseId = courseIdObj.id;
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _existingSprints = await this.db.all(
-        `SELECT endDate
-        FROM sprints
-        WHERE courseId = ?`,
-        [courseId]
-      );
-
-      const latestSprint = await this.db.get(
-        `SELECT sprintName
-        FROM sprints
-        WHERE courseId = ?
-        ORDER BY sprintName DESC LIMIT 1`,
-        [courseId]
-      );
-      let newSprintNumber = 0;
-      if (latestSprint && latestSprint.sprintName) {
-        newSprintNumber = parseInt(latestSprint.sprintName.replace("sprint", "")) + 1;
-      }
-
-      for (let i = 0; i < dates.length; i++) {
-        const endDate = dates[i];
-        const sprintName = `sprint${newSprintNumber + i}`;
-        try {
-          await this.db.run(
-            `INSERT INTO sprints (courseId, sprintName, endDate) VALUES (?, ?, ?)`,
-            [courseId, sprintName, endDate]
-          );
-        } catch (error) {
-          console.error("Error inserting sprint:", error);
-          throw error;
-        }
-      }
-
-      res.status(201).json({ message: "Sprints created successfully" });
-    } catch (error) {
-      console.error("Error creating sprints:", error);
-      res.status(500).json({ message: "Failed to create sprints", error });
-    }
-  }
-
-  async getSprints(req: Request, res: Response): Promise<void> {
-    const { courseName } = req.query;
-
-    try {
-      const sprints = await this.db.all(
-        `SELECT * FROM sprints
-        WHERE courseId = (SELECT id FROM courses WHERE courseName = ?) ORDER BY endDate ASC`,
-        [courseName]
-      );
-      res.json(sprints);
-    } catch (error) {
-      console.error("Error fetching sprints:", error);
-      res.status(500).json({ message: "Failed to fetch sprints", error });
-    }
-  }
-
-  async getProjectCurrentSprint(req: Request, res: Response): Promise<void> {
-    const { projectName } = req.query;
-
-    try {
-      const sprints = await this.db.all(
-        `SELECT *
-        FROM sprints
-        WHERE courseId = (SELECT courseId FROM projects WHERE projectName = ?)
-        ORDER BY endDate ASC`,
-        [projectName]
-      );
-
-      res.json(sprints);
-    } catch (error) {
-      console.error("Error fetching sprints:", error);
-      res.status(500).json({ message: "Failed to fetch sprints", error });
-    }
-  }
-
   async saveHappinessMetric(req: Request, res: Response): Promise<void> {
-    const { projectName, userEmail, happiness, sprintName } = req.body;
+    const { projectName, userEmail, happiness, submissionDateId } = req.body;
     const timestamp = new Date().toISOString();
 
+    if (!submissionDateId || typeof submissionDateId !== 'number') {
+      res.status(400).json({ message: "Submission date ID is required and must be a number" });
+      return;
+    }
+
     try {
-      await this.db.run(
-        `INSERT INTO happiness (projectId, userId, happiness, sprintId, timestamp)
-        SELECT
-          (SELECT id AS projectId FROM projects WHERE projectName = ?),
-          (SELECT id AS userId FROM users WHERE email = ?),
-          ?,
-          (SELECT id AS sprintId FROM sprints WHERE sprintName = ?),
-          ?
-        `,
-        [projectName, userEmail, happiness, sprintName, timestamp]
+      // Verify submission date exists
+      const submission = await this.db.get(
+        'SELECT id FROM submissions WHERE id = ?',
+        [submissionDateId]
       );
+      if (!submission) {
+        res.status(404).json({ message: "Submission date not found" });
+        return;
+      }
+
+      // Get project and user IDs
+      const projectId = await this.db.get(
+        'SELECT id FROM projects WHERE projectName = ?',
+        [projectName]
+      );
+      const userId = await this.db.get(
+        'SELECT id FROM users WHERE email = ?',
+        [userEmail]
+      );
+
+      if (!projectId || !userId) {
+        res.status(404).json({ message: "Project or user not found" });
+        return;
+      }
+
+      // Delete existing happiness entry for this user/project/submission
+      await this.db.run(
+        `DELETE FROM happiness
+         WHERE projectId = ? AND userId = ? AND submissionDateId = ?`,
+        [projectId.id, userId.id, submissionDateId]
+      );
+
+      // Insert new happiness entry
+      await this.db.run(
+        `INSERT INTO happiness (projectId, userId, happiness, submissionDateId, timestamp)
+         VALUES (?, ?, ?, ?, ?)`,
+        [projectId.id, userId.id, happiness, submissionDateId, timestamp]
+      );
+
       res.status(200).json({ message: "Happiness updated successfully" });
     } catch (error) {
       console.error("Error updating happiness:", error);
@@ -442,18 +369,78 @@ export class ProjectController implements IAppController {
     const { projectName } = req.query;
     try {
       const happinessData = await this.db.all(
-        `SELECT happiness.*, sprints.sprintName, users.email as userEmail
+        `SELECT happiness.*, submissions.submissionDate, users.email as userEmail
         FROM happiness
-        LEFT JOIN sprints ON happiness.sprintId = sprints.id
+        LEFT JOIN submissions ON happiness.submissionDateId = submissions.id
         LEFT JOIN users ON happiness.userId = users.id
         WHERE happiness.projectId = (SELECT id FROM projects WHERE projectName = ?)
-        ORDER BY sprints.sprintName ASC, happiness.timestamp ASC`,
+        ORDER BY submissions.submissionDate ASC, happiness.timestamp ASC`,
         [projectName]
       );
       res.json(happinessData);
     } catch (error) {
       console.error("Error fetching happiness data:", error);
       res.status(500).json({ message: "Failed to fetch happiness data", error });
+    }
+  }
+
+  async getAvailableSubmissions(req: Request, res: Response): Promise<void> {
+    const { projectName } = req.query;
+
+    if (!projectName || typeof projectName !== 'string') {
+      res.status(400).json({ message: "Project name is required" });
+      return;
+    }
+
+    try {
+      // Get project and its courseId
+      const project = await this.db.get(
+        'SELECT courseId FROM projects WHERE projectName = ?',
+        [projectName]
+      );
+
+      if (!project) {
+        res.status(404).json({ message: "Project not found" });
+        return;
+      }
+
+      const courseId = project.courseId;
+
+      // Check if schedule exists for this course
+      const schedule = await this.db.get(
+        'SELECT id FROM schedules WHERE id = ?',
+        [courseId]
+      );
+
+      if (!schedule) {
+        res.status(404).json({ message: "No schedule found for this course" });
+        return;
+      }
+
+      // Get next available submission date (future dates only)
+      const currentTimestampSeconds = Math.floor(Date.now() / 1000);
+      const nextSubmission = await this.db.get(
+        `SELECT id, submissionDate, scheduleId
+         FROM submissions
+         WHERE scheduleId = ? AND submissionDate > ?
+         ORDER BY submissionDate ASC
+         LIMIT 1`,
+        [courseId, currentTimestampSeconds]
+      );
+
+      if (!nextSubmission) {
+        res.status(404).json({ message: "No future submission dates available" });
+        return;
+      }
+
+      res.json({
+        id: nextSubmission.id,
+        submissionDate: new Date(nextSubmission.submissionDate * 1000).toISOString(),
+        scheduleId: nextSubmission.scheduleId
+      });
+    } catch (error) {
+      console.error("Error fetching available submissions:", error);
+      res.status(500).json({ message: "Failed to fetch available submissions", error });
     }
   }
 

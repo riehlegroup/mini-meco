@@ -53,7 +53,7 @@ const CourseAdmin: React.FC = () => {
       course.semester,
       course.courseName,
       <div key={course.id} className="flex gap-2">
-        <CourseWidget type="project" label="add" action="add" course={course} />
+        <CourseWidget type="project" label="add" action="add" course={course} onFetch={fetchCourse} />
         <CourseWidget
           type="schedule"
           label="schedule"
@@ -62,7 +62,7 @@ const CourseAdmin: React.FC = () => {
         />
       </div>,
     ]);
-  }, [courses]);
+  }, [courses, fetchCourse]);
 
   const tableProjects = useMemo(() => {
     return projects.map((prj) => {
