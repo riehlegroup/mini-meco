@@ -1,0 +1,52 @@
+# Node modules
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Build outputs
+client/dist/
+server/dist/
+dist/
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# Version control
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Test files
+coverage/
+.nyc_output/
+client/cypress/
+
+# Documentation
+*.md
+!DEPLOYMENT.md
+
+# Database (will be mounted as volume)
+*.db
+*.db-journal
+server/data/
+
+# Temporary files
+tmp/
+temp/

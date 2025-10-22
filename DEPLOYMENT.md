@@ -1,26 +1,75 @@
 # Mini-Meco Deployment Guide
 
-This guide covers production deployment using Docker.
+This guide covers production deployment using Docker with automatic HTTPS certificate management via Caddy.
 
 ## Table of Contents
+- [Architecture Overview](#architecture-overview)
 - [Production Deployment](#production-deployment)
   - [Prerequisites](#prerequisites)
   - [Initial Setup](#initial-setup)
-  - [Port Mapping](#port-mapping)
-  - [Updating the Application](#updating-the-application)
+  - [HTTPS Configuration](#https-configuration)
+  - [Starting the Application](#starting-the-application)
+  - [Verifying Deployment](#verifying-deployment)
+- [Local Development Mode](#local-development-mode)
 - [Environment Variables](#environment-variables)
 - [Database Management](#database-management)
+- [Certificate Management](#certificate-management)
+- [Updating the Application](#updating-the-application)
 - [Common Commands](#common-commands)
 - [Troubleshooting](#troubleshooting)
 ---
 
+## Architecture Overview
+
+The application uses a **3-container Docker Compose setup**:
+
+1. **Backend (`server`)**: Node.js + Express API server
+2. **Frontend Builder (`client`)**: Builds React app, stores static files in volume
+3. **Reverse Proxy (`caddy`)**: Serves frontend, proxies API, manages HTTPS
+
+### Request Flow
+
+```
+Internet → Caddy (port 80/443)
+            ├─→ /api/* → Strip /api → Backend server:3000
+            └─→ /* → Serve frontend static files
+```
+
+**Key Points:**
+- ✅ Backend receives clean URLs (`/user`, `/session`, etc.) without `/api` prefix
+- ✅ Frontend makes requests to `/api/user`, `/api/session`
+- ✅ Caddy strips `/api` prefix when proxying to backend
+- ✅ Automatic HTTPS with Let's Encrypt via Caddy
+- ✅ One process per container (Docker best practice)
+
+### Container Details
+
+| Container | Purpose | Exposed Ports | Volumes |
+|-----------|---------|---------------|---------|
+| `server` | Backend API | None (internal only) | `mini-meco-db` (database) |
+| `client` | Builds frontend | None (exits after build) | `client-dist` (build output) |
+| `caddy` | Web server & reverse proxy | 80, 443 | `client-dist`, `caddy-data`, `caddy-config`, `Caddyfile` |
+
+---
+
 ## Production Deployment
 
-Production deployment uses Docker Compose to orchestrate the application containers.
-
 ### Prerequisites
+
+**Server Requirements:**
 - Docker 20.10 or higher
 - Docker Compose 2.0 or higher
+- A domain name pointed to your server's IP address
+- Ports 80 and 443 accessible from the internet (for Let's Encrypt verification and HTTPS)
+
+**DNS Configuration:**
+Before deployment, ensure your domain's DNS A record points to your server:
+```bash
+# Verify DNS resolution
+nslookup your-domain.com
+# or
+dig your-domain.com
+```
 
 ### Initial Setup
 
@@ -40,144 +89,235 @@ Production deployment uses Docker Compose to orchestrate the application contain
    nano .env
    ```
 
-   Update the following variables:
+   **Critical variables to update:**
    ```env
-   # Production URLs - update with your domain
+   # Your domain name (required for automatic HTTPS)
+   DOMAIN=your-domain.com
+
+   # Email for Let's Encrypt notifications (certificate expiry warnings)
+   ACME_EMAIL=admin@your-domain.com
+
+   # Application URLs (update with your domain)
    CLIENT_URL=https://your-domain.com
-   VITE_API_URL=https://your-domain.com:3000
+   VITE_API_URL=https://your-domain.com/api
 
-   # Database path (leave as-is for Docker)
-   DB_PATH=/app/server/data/myDatabase.db
-
-   # Generate a strong random secret
+   # Generate a strong random secret for JWT
+   # Run: openssl rand -base64 32
    JWT_SECRET=your_secure_random_jwt_secret_here
 
-   # Your FAU email credentials
+   # Your FAU email credentials for sending emails
    EMAIL_USER_FAU=your.email@fau.de
    EMAIL_PASS_FAU=your_secure_password
 
-   # Optional: GitHub token for code activity
+   # Optional: GitHub token for code activity features
    VITE_GITHUB_TOKEN=your_github_personal_access_token
    ```
 
-4. **Build and start the containers:**
-   ```bash
-   docker-compose up -d
-   ```
+   **Important**: The `DB_PATH` should remain as `/app/server/data/myDatabase.db` (container path).
 
-   This will:
-   - Build the server and client Docker images
-   - Create a named volume for the database
-   - Start both containers in detached mode
-   - Make the application available on port 80
+### HTTPS Configuration
 
-5. **Verify deployment:**
-   ```bash
-   docker-compose ps
-   docker-compose logs -f
-   ```
+Caddy handles HTTPS automatically using Let's Encrypt. The process:
 
-6. **Access the application:**
-   - Frontend: https://happy.uni1.de
-   - Backend API: https://happy.uni1.de:3000
+1. **First startup**: Caddy requests a certificate from Let's Encrypt
+2. **Verification**: Let's Encrypt verifies domain ownership via HTTP-01 challenge (requires port 80)
+3. **Certificate issuance**: Takes 10-30 seconds on first run
+4. **Auto-renewal**: Caddy automatically renews certificates before expiration
 
-### Port Mapping
+**Requirements for automatic HTTPS:**
+- Valid domain name in `DOMAIN` variable
+- Domain DNS A record points to server IP
+- Ports 80 and 443 are accessible from internet
+- Valid email in `ACME_EMAIL` for notifications
 
-By default, Docker Compose exposes:
-- Port **80** for the frontend (nginx)
-- Port **3000** for the backend API
+### Starting the Application
 
-**To map different host ports**, edit `docker-compose.yml`:
-
-```yaml
-services:
-  server:
-    ports:
-      - "8080:3000"  # Map host port 8080 to container port 3000
-
-  client:
-    ports:
-      - "8000:80"    # Map host port 8000 to container port 80
+**Build and start the containers:**
+```bash
+docker compose up -d
 ```
 
-### Updating the Application
+This will:
+- Build the backend Docker image
+- Build the frontend and store static files in a volume
+- Start Caddy to serve frontend and proxy API requests
+- Create four Docker volumes:
+  - `mini-meco-db`: SQLite database
+  - `client-dist`: Frontend static files
+  - `caddy-data`: Caddy certificates and data
+  - `caddy-config`: Caddy configuration
+- Obtain HTTPS certificate on first run (if DOMAIN is set)
 
-1. **Pull latest code:**
+**Monitor the startup process:**
+```bash
+# Follow logs to watch certificate acquisition
+docker compose logs -f caddy
+```
+
+You should see logs indicating:
+```
+obtaining certificate
+certificate obtained successfully
+serving HTTPS on :443
+```
+
+### Verifying Deployment
+
+1. **Check container status:**
    ```bash
-   git pull
+   docker compose ps
    ```
 
-2. **Rebuild and restart containers:**
+   Should show `server` and `caddy` as "Up". `client` will show as "Exited" (normal - it only builds).
+
+2. **Test HTTPS connection:**
    ```bash
-   docker-compose down
-   docker-compose build
-   docker-compose up -d
+   curl -I https://your-domain.com
    ```
 
-   The database persists in the Docker volume, so your data is safe across updates.
+   Should return `200 OK` with security headers.
+
+3. **Verify certificate:**
+   ```bash
+   openssl s_client -connect your-domain.com:443 -servername your-domain.com
+   ```
+
+   Check certificate issuer (should be Let's Encrypt).
+
+4. **Access the application:**
+   - Frontend: `https://your-domain.com`
+   - API (proxied): `https://your-domain.com/api/user` (example)
+
+5. **Test login with default admin:**
+   - Email: `sys@admin.org`
+   - Password: `helloworld`
+
+---
+
+## Local Development Mode
+
+For local testing without a domain or HTTPS:
+
+1. **Leave `DOMAIN` empty in `.env` (or don't set it):**
+   ```env
+   DOMAIN=
+   CLIENT_URL=http://localhost
+   VITE_API_URL=http://localhost/api
+   ACME_EMAIL=
+   ```
+
+2. **Start containers:**
+   ```bash
+   docker compose up
+   ```
+
+3. **Access via HTTP:**
+   - Frontend: `http://localhost`
+   - API: `http://localhost/api/user` (example)
+
+**Note**: Caddy will use a self-signed certificate for localhost (browser will show warning, this is expected).
 
 ---
 
 ## Environment Variables
 
-### Server Variables
+### HTTPS Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DOMAIN` | Production | _(empty)_ | Domain name for automatic HTTPS. Leave empty for local HTTP mode. |
+| `ACME_EMAIL` | Production | _(empty)_ | Email for Let's Encrypt certificate notifications |
+
+### Application URLs
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `CLIENT_URL` | No | `http://localhost:5173` | Frontend URL for CORS and email links |
+| `VITE_API_URL` | No | `http://localhost:3000` | Backend API base URL (should be `https://domain.com/api` in production) |
+
+**Important**: The backend receives requests WITHOUT the `/api` prefix. Caddy strips it during reverse proxying.
+
+### Backend Configuration
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `NODE_ENV` | No | `development` | Set to `production` for production deployment |
-| `PORT` | No | `3000` | Port for the backend server |
-| `CLIENT_URL` | No | `http://localhost:5173` | Frontend URL for CORS and email links |
+| `PORT` | No | `3000` | Internal port for backend server (not exposed outside container) |
 | `DB_PATH` | No | `./myDatabase.db` | Path to SQLite database file |
-| `JWT_SECRET` | **Yes** | `your_jwt_secret` | Secret key for JWT token signing (use strong random value in production!) |
-| `EMAIL_USER_FAU` | Production | - | FAU email username for sending emails |
-| `EMAIL_PASS_FAU` | Production | - | FAU email password |
+| `JWT_SECRET` | **Yes** | `your_jwt_secret` | Secret key for JWT token signing (use strong random value!) |
 
-### Client Variables
+### Email Configuration
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `VITE_API_URL` | No | `http://localhost:3000` | Backend API base URL |
+| `EMAIL_USER_FAU` | Production | - | FAU email username for sending emails |
+| `EMAIL_PASS_FAU` | Production | - | FAU email password |
+
+**Email Behavior:**
+- **Development** (`NODE_ENV !== 'production'`): Emails logged to console, not sent
+- **Production** (`NODE_ENV === 'production'`): Emails sent via FAU SMTP server
+
+### Optional Features
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
 | `VITE_GITHUB_TOKEN` | Optional | - | GitHub personal access token for code activity features |
-
-### Email Behavior
-
-- **Development** (`NODE_ENV !== 'production'`): Emails are logged to console, not sent
-- **Production** (`NODE_ENV === 'production'`): Emails are sent via FAU SMTP server
 
 ---
 
 ## Database Management
 
-The SQLite database is stored in a Docker named volume for easy backup and portability.
+The SQLite database is stored in a Docker named volume for persistence across container restarts.
 
 ### Backup Database
 
 **Method 1: Copy from running container**
 ```bash
-docker cp mini-meco-server-1:/app/server/data/myDatabase.db ./backup-$(date +%Y%m%d-%H%M%S).db
+docker cp $(docker compose ps -q server):/app/server/data/myDatabase.db ./backup-$(date +%Y%m%d-%H%M%S).db
 ```
 
-**Method 2: Export via docker-compose**
+**Method 2: Export via docker compose**
 ```bash
-docker-compose exec server cat /app/server/data/myDatabase.db > ./backup-$(date +%Y%m%d-%H%M%S).db
+docker compose exec server cat /app/server/data/myDatabase.db > ./backup-$(date +%Y%m%d-%H%M%S).db
+```
+
+**Method 3: Automated backup script**
+```bash
+#!/bin/bash
+# backup-db.sh
+BACKUP_DIR="./backups"
+mkdir -p $BACKUP_DIR
+docker compose exec -T server cat /app/server/data/myDatabase.db > \
+  $BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S).db
+echo "Backup completed: $BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S).db"
 ```
 
 ### Restore Database
 
 1. **Stop the containers:**
    ```bash
-   docker-compose down
+   docker compose down
    ```
 
 2. **Copy backup to volume:**
    ```bash
-   docker run --rm -v mini-meco-db:/app/server/data -v $(pwd):/backup alpine cp /backup/backup-YYYYMMDD-HHMMSS.db /app/server/data/myDatabase.db
+   docker run --rm -v mini-meco-db:/app/server/data -v $(pwd):/backup alpine \
+     cp /backup/backup-YYYYMMDD-HHMMSS.db /app/server/data/myDatabase.db
    ```
 
 3. **Restart containers:**
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
+
+### Manual Database Access
+
+```bash
+# Access SQLite database interactively
+docker compose exec server sh
+cd /app/server/data
+sqlite3 myDatabase.db
+```
 
 ### Inspect Volume
 
@@ -189,61 +329,203 @@ docker volume inspect mini-meco-db
 docker volume inspect mini-meco-db | grep Mountpoint
 ```
 
-### Manual Database Access
+---
 
+## Certificate Management
+
+Caddy automatically manages HTTPS certificates via Let's Encrypt.
+
+### Certificate Storage
+
+Certificates are stored in the `caddy-data` Docker volume and persist across container restarts.
+
+### Certificate Renewal
+
+- **Automatic**: Caddy checks and renews certificates automatically
+- **Timing**: Renewal starts 30 days before expiration
+- **No downtime**: Renewal happens in the background
+- **Notifications**: Expiry warnings sent to `ACME_EMAIL` if renewal fails
+
+### Manual Certificate Operations
+
+**View certificate details:**
 ```bash
-# Access SQLite database interactively
-docker-compose exec server sh
-cd /app/server/data
-sqlite3 myDatabase.db
+# Check current certificates
+docker compose exec caddy caddy list-certificates
 ```
+
+**Force certificate renewal:**
+```bash
+# Restart Caddy to trigger re-check
+docker compose restart caddy
+```
+
+**View certificate expiry:**
+```bash
+echo | openssl s_client -connect your-domain.com:443 -servername your-domain.com 2>/dev/null | openssl x509 -noout -dates
+```
+
+### Certificate Troubleshooting
+
+**If certificate acquisition fails:**
+
+1. **Check DNS:**
+   ```bash
+   nslookup your-domain.com
+   ```
+
+2. **Verify ports 80 and 443 are accessible:**
+   ```bash
+   # From another machine
+   nc -zv your-domain.com 80
+   nc -zv your-domain.com 443
+   ```
+
+3. **Check Caddy logs:**
+   ```bash
+   docker compose logs caddy | grep -i certificate
+   ```
+
+4. **Common issues:**
+   - Domain DNS not propagated (wait 1-24 hours after DNS changes)
+   - Firewall blocking ports 80/443
+   - Port already in use by another service
+   - Rate limit exceeded (Let's Encrypt has rate limits)
+
+---
+
+## Updating the Application
+
+### Standard Update Process
+
+1. **Pull latest code:**
+   ```bash
+   git pull
+   ```
+
+2. **Rebuild and restart containers:**
+   ```bash
+   docker compose down
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+   The database and certificates persist in volumes, so your data is safe.
+
+3. **Verify update:**
+   ```bash
+   docker compose logs -f
+   ```
+
+### Zero-Downtime Update (Advanced)
+
+For production environments where downtime must be minimized:
+
+1. **Build new images without stopping current containers:**
+   ```bash
+   docker compose build
+   ```
+
+2. **Quickly swap containers:**
+   ```bash
+   docker compose up -d --no-deps --force-recreate server caddy
+   ```
+
+This minimizes downtime to a few seconds during container swap.
 
 ---
 
 ## Common Commands
 
-### Production Deployment
+### Container Management
 
 ```bash
 # Start services in background
-docker-compose up -d
+docker compose up -d
 
 # Stop services
-docker-compose down
-
-# View logs (all services)
-docker-compose logs -f
-
-# View logs (specific service)
-docker-compose logs -f server
-docker-compose logs -f client
-
-# Check container status
-docker-compose ps
+docker compose down
 
 # Restart services
-docker-compose restart
+docker compose restart
 
-# Rebuild and restart after code changes
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
+# View logs (all services)
+docker compose logs -f
+
+# View logs (specific service)
+docker compose logs -f server
+docker compose logs -f caddy
+
+# View logs with timestamps
+docker compose logs -f --timestamps
+
+# Check container status
+docker compose ps
+
+# View resource usage
+docker stats
 ```
 
-### Maintenance
+### Rebuild and Deploy
 
 ```bash
-# Check resource usage
-docker stats
+# Rebuild after code changes (with cache)
+docker compose build
+docker compose up -d
 
+# Rebuild from scratch (no cache)
+docker compose build --no-cache
+docker compose up -d
+
+# Complete reset (removes containers, keeps volumes)
+docker compose down
+docker compose up -d --force-recreate
+```
+
+### Shell Access
+
+```bash
+# Access server container shell
+docker compose exec server sh
+
+# Access Caddy container shell
+docker compose exec caddy sh
+
+# Run commands in container
+docker compose exec server node --version
+docker compose exec caddy caddy version
+
+# Access backend directory
+docker compose exec server sh -c "cd /app/server && ls -la"
+```
+
+### Volume Management
+
+```bash
+# List volumes
+docker volume ls | grep mini-meco
+
+# Inspect volumes
+docker volume inspect mini-meco-db
+docker volume inspect caddy-data
+docker volume inspect client-dist
+
+# Remove unused volumes (CAUTION: data loss!)
+docker volume prune
+```
+
+### Cleanup
+
+```bash
 # Remove stopped containers
-docker-compose down --remove-orphans
+docker compose down --remove-orphans
 
 # Remove old images (be careful!)
 docker image prune -a
 
-# View volume list
-docker volume ls
+# Complete cleanup (REMOVES ALL DATA!)
+docker compose down -v
+docker system prune -a
 ```
 
 ---
@@ -254,14 +536,90 @@ docker volume ls
 
 **Check logs:**
 ```bash
-docker-compose logs server
-docker-compose logs client
+docker compose logs server
+docker compose logs caddy
 ```
 
 **Common issues:**
-- Port 80 or 3000 already in use: Stop other services using these ports
-- Environment variables missing: Check `.env` file exists and has correct values
-- Build errors: Try `docker-compose build --no-cache`
+- **Ports 80/443 in use**: Stop other services or change port mapping in `docker-compose.yml`
+- **Environment variables missing**: Check `.env` file exists and has correct values
+- **Build errors**: Try `docker compose build --no-cache`
+- **Out of disk space**: Check `df -h` and clean up Docker resources
+
+### HTTPS Not Working
+
+**Certificate acquisition failed:**
+
+1. **Verify domain DNS:**
+   ```bash
+   nslookup your-domain.com
+   dig your-domain.com
+   ```
+
+2. **Check port 80 accessibility (required for Let's Encrypt):**
+   ```bash
+   # From another machine
+   curl -I http://your-domain.com
+   ```
+
+3. **Check Caddy logs for certificate errors:**
+   ```bash
+   docker compose logs caddy | grep -i "certificate\|acme\|let's encrypt"
+   ```
+
+4. **Common solutions:**
+   - Wait for DNS propagation (24-48 hours after DNS changes)
+   - Check firewall allows ports 80 and 443
+   - Verify `DOMAIN` in `.env` matches actual domain
+   - Ensure no other service is using port 80 during certificate acquisition
+
+**Browser shows "Not Secure":**
+- Certificate may still be acquiring (wait 30 seconds)
+- Hard refresh browser (Ctrl+Shift+R)
+- Check certificate expiry date
+
+### Backend API Not Responding
+
+**Check if backend is running:**
+```bash
+docker compose exec server ps aux | grep node
+```
+
+**Test backend internally (from Caddy container):**
+```bash
+docker compose exec caddy wget -O- http://server:3000/user
+```
+
+**Check backend logs:**
+```bash
+docker compose logs server | grep -i "error\|listening"
+```
+
+**Common issues:**
+- Backend crashed on startup (check logs for errors)
+- Database connection issues
+- Missing environment variables (JWT_SECRET, etc.)
+- Network configuration issue (containers not on same network)
+
+### API 404 Errors
+
+**Problem**: Frontend requests to `/api/...` return 404.
+
+**Check Caddyfile syntax:**
+```bash
+docker compose exec caddy caddy validate --config /etc/caddy/Caddyfile
+```
+
+**Verify reverse proxy is working:**
+```bash
+# From host machine
+curl -I http://localhost/api/user
+```
+
+**Common causes:**
+- Caddyfile not mounted correctly
+- Backend container not reachable (check network)
+- Typo in Caddyfile route configuration
 
 ### Database Issues
 
@@ -272,6 +630,9 @@ docker volume ls | grep mini-meco-db
 
 # Inspect volume
 docker volume inspect mini-meco-db
+
+# Check database file
+docker compose exec server ls -la /app/server/data/
 ```
 
 **Database corruption:**
@@ -279,45 +640,85 @@ docker volume inspect mini-meco-db
 # Restore from backup (see Database Management section)
 ```
 
+**Database locked:**
+```bash
+# Check for multiple processes accessing database
+docker compose exec server sh -c "cd /app/server/data && fuser myDatabase.db"
+
+# Restart container
+docker compose restart server
+```
+
 ### Email Not Sending (Production)
 
 **Check configuration:**
-1. Verify `NODE_ENV=production` in `.env`
-2. Verify `EMAIL_USER_FAU` and `EMAIL_PASS_FAU` are correct
+1. Verify `NODE_ENV=production` in docker-compose.yml
+2. Verify `EMAIL_USER_FAU` and `EMAIL_PASS_FAU` are correct in `.env`
 3. Check server logs for SMTP errors:
    ```bash
-   docker-compose logs -f server
+   docker compose logs server | grep -i "email\|smtp"
    ```
 
 **Test email credentials:**
-- Ensure account has SMTP access enabled
-
-### Frontend Can't Connect to Backend
-
-**Check network connectivity:**
 ```bash
-# From inside client container
-docker-compose exec client ping server
-
-# From host
-curl http://localhost:3000
+# From inside server container
+docker compose exec server sh
+cd /app/server
+node -e "require('dotenv').config(); console.log(process.env.EMAIL_USER_FAU);"
 ```
 
-**Check CORS configuration:**
-- Verify `CLIENT_URL` in server environment matches frontend URL
-- Check browser console for CORS errors
+### Frontend Not Loading
+
+**Check if Caddy is serving files:**
+```bash
+docker compose exec caddy ls -la /srv/
+```
+
+**Check client-dist volume:**
+```bash
+docker volume inspect client-dist
+```
+
+**Rebuild client if needed:**
+```bash
+docker compose build client --no-cache
+docker compose up -d
+```
+
+**Test static file serving:**
+```bash
+curl -I http://localhost
+```
+
+### High Memory/CPU Usage
+
+**Check resource usage:**
+```bash
+docker stats
+```
+
+**Inspect container processes:**
+```bash
+docker compose exec server ps aux
+docker compose exec caddy ps aux
+```
+
+**Optimize if needed:**
+- Restart containers to clear memory leaks: `docker compose restart`
+- Check for database optimization opportunities
+- Review application logs for errors causing high CPU
 
 ### Build Failures
 
 **Clean rebuild:**
 ```bash
 # Remove all containers and images
-docker-compose down
+docker compose down
 docker system prune -a
 
 # Rebuild from scratch
-docker-compose build --no-cache
-docker-compose up -d
+docker compose build --no-cache
+docker compose up -d
 ```
 
 **Node modules issues:**
@@ -327,30 +728,86 @@ rm -rf node_modules client/node_modules server/node_modules
 npm install
 
 # Then rebuild Docker
-docker-compose build --no-cache
+docker compose build --no-cache
 ```
 
-### Permission Errors
+### Firewall Configuration
 
-**Database permissions:**
+**For Ubuntu/Debian with UFW:**
 ```bash
-docker-compose exec server ls -la /app/data/
-docker-compose exec server chmod 644 /app/data/myDatabase.db
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw status
 ```
 
-### View Container Internals
-
+**For CentOS/RHEL with firewalld:**
 ```bash
-# Access server container shell
-docker-compose exec server sh
-
-# Access client container shell
-docker-compose exec client sh
-
-# View server files
-docker-compose exec server ls -la /app
-
-# View nginx config
-docker-compose exec client cat /etc/nginx/conf.d/default.conf
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --reload
 ```
+
 ---
+
+## Security Best Practices
+
+1. **Keep secrets secure:**
+   - Never commit `.env` to version control
+   - Use strong, randomly generated `JWT_SECRET`
+   - Rotate secrets regularly
+
+2. **Regular updates:**
+   ```bash
+   # Pull latest code and rebuild monthly
+   git pull
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+3. **Backup regularly:**
+   - Automated daily database backups
+   - Test restore process quarterly
+
+4. **Monitor logs:**
+   ```bash
+   # Check for suspicious activity
+   docker compose logs | grep -i "error\|warning\|unauthorized"
+   ```
+
+5. **Firewall:**
+   - Only expose ports 80 and 443
+   - Use fail2ban for brute-force protection
+
+6. **Certificate monitoring:**
+   - Ensure `ACME_EMAIL` receives notifications
+   - Monitor expiry dates
+
+---
+
+## Production Checklist
+
+Before going live:
+
+- [ ] Domain DNS configured and propagated
+- [ ] Ports 80 and 443 accessible from internet
+- [ ] `.env` file configured with production values
+- [ ] `JWT_SECRET` is strong and random (use `openssl rand -base64 32`)
+- [ ] `ACME_EMAIL` is valid and monitored
+- [ ] Email credentials tested
+- [ ] Database backup strategy in place
+- [ ] Firewall configured properly
+- [ ] HTTPS certificate acquired successfully
+- [ ] Application accessible via HTTPS
+- [ ] Default admin password changed
+- [ ] API routes work correctly (test `/api/user` etc.)
+- [ ] Monitoring/alerting configured (optional)
+
+---
+
+## Support and Documentation
+
+- **Caddy Documentation**: https://caddyserver.com/docs/
+- **Docker Compose Documentation**: https://docs.docker.com/compose/
+- **Let's Encrypt Documentation**: https://letsencrypt.org/docs/
+
+For application-specific issues, refer to the project README and source code documentation.
