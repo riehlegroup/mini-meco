@@ -16,9 +16,8 @@ COPY server/package*.json ./server/
 # Install dependencies
 RUN npm install
 
-# Copy source code (client needs server for type imports)
+# Copy source code
 COPY client ./client
-COPY server ./server
 
 # Build client
 WORKDIR /app/client
@@ -27,9 +26,8 @@ RUN npm run build
 # Production stage - minimal container with just the built files
 FROM alpine:latest
 
-# Copy built files
-COPY --from=builder /app/client/dist /dist
+# Copy built files to source directory (will be synced to volume on startup)
+COPY --from=builder /app/client/dist /dist-source
 
-# This container just holds the files in a volume
-# It will exit immediately, which is expected
-ENTRYPOINT ["/bin/true"]
+# Sync files from source to volume mount on every container start
+ENTRYPOINT ["/bin/sh", "-c", "cp -r /dist-source/* /dist/ && echo 'Client files synced' && exit 0"]
