@@ -29,30 +29,21 @@ const Standups: React.FC = () => {
   const [challengesText, setChallengesText] = useState("");
   const [message, setMessage] = useState("");
 
-  const handleSendStandups = async (e: React.FormEvent<HTMLButtonElement>) => {
+  const handleSendStandups = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!projectName || !userName) {
-      console.error("Missing project or user information");
       setMessage("Missing project or user information");
-      return;
-    }
-
-    const authStorage = AuthStorage.getInstance();
-    const userEmail = authStorage.getEmail();
-
-    if (!userEmail) {
-      setMessage("User email not found");
       return;
     }
 
     try {
       await projectsApi.sendStandupEmail({
-        userEmail,
         projectName,
-        yesterday: doneText,
-        today: plansText,
-        blockers: challengesText,
+        userName,
+        doneText,
+        plansText,
+        challengesText,
       });
 
       setMessage("Standup email sent successfully");
@@ -81,13 +72,14 @@ const Standups: React.FC = () => {
 
       <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
         <SectionCard title="Submit Standup">
-          <div className="space-y-6">
+          <form onSubmit={handleSendStandups} className="space-y-6">
             <Textarea
               label="What did you complete yesterday?"
               placeholder="Enter completed work..."
               value={doneText}
               onChange={(e) => handleInputChange(e, setDoneText)}
               rows={5}
+              required
             />
 
             <Textarea
@@ -96,6 +88,7 @@ const Standups: React.FC = () => {
               value={plansText}
               onChange={(e) => handleInputChange(e, setPlansText)}
               rows={5}
+              required
             />
 
             <Textarea
@@ -104,10 +97,11 @@ const Standups: React.FC = () => {
               value={challengesText}
               onChange={(e) => handleInputChange(e, setChallengesText)}
               rows={5}
+              required
             />
 
             <div className="flex gap-4 pt-4">
-              <Button onClick={handleSendStandups} className="min-w-32">
+              <Button type="submit" className="min-w-32">
                 Send Email
               </Button>
             </div>
@@ -117,7 +111,7 @@ const Standups: React.FC = () => {
                 {message}
               </div>
             )}
-          </div>
+          </form>
         </SectionCard>
       </div>
     </div>

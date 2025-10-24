@@ -34,7 +34,7 @@ describe('Basic serializer read/write test', async () => {
     c.setName("ADAP");
     c.setSemester("WS2425");
     await (new DatabaseWriter(db)).writeRoot(c);
-    const result = await db.all(`SELECT * FROM courses`);
+    const result = db.all(`SELECT * FROM courses`);
     const courses = await (new DatabaseResultSetReader(result, db)).readRoot<Course>(Course) as Course[];
     expect(courses.length).toBe(1);
     expect(courses[0].getName()).toBe("ADAP");
