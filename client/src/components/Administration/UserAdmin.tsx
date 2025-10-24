@@ -1,15 +1,22 @@
-import "./UserAdmin.css"
-
 import { useState } from 'react';
 
-import ReturnButton from "../Components/return";
-import Table from "../Components/Table";
+import TopNavBar from "../common/TopNavBar";
+import Table from "../common/Table";
+import Button from "@/components/common/Button";
+import Input from "@/components/common/Input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 import Edit from "./../../assets/Edit.png";
 import EmailIcon from "./../../assets/EmailIcon.png";
 
 import { isValidEmail } from "@/utils/emailValidation";
-import { API_BASE_URL } from "@/config/api";
+import usersApi from "@/services/api/users";
 
 const userStatus = ["unconfirmed", "confirmed", "suspended", "removed"];
 
@@ -23,74 +30,51 @@ interface User {
     userRole: string;
 }
 
-function checkError(response: Response) {
-    if (response.status >= 200 && response.status <= 299) {
-        return response;
-    } else {
-        throw Error(response.statusText);
-    }
+interface UserEditProps {
+    user: User;
+    open: boolean;
+    onClose: (update: boolean) => void;
 }
 
-function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) => void }) {
+function UserEdit({ user, open, onClose }: UserEditProps) {
     const [email, setEmail] = useState<string>(user.email);
     const [githubUsername, setGithubUsername] = useState<string>(user.githubUsername || "");
     const [status, setStatus] = useState<string>(user.status);
-    const [password, setPassword] = useState<string>();
+    const [password, setPassword] = useState<string>("");
     const [userRole, setUserRole] = useState<string>(user.userRole);
 
     function onSave() {
         const promises = []
         if (githubUsername && githubUsername !== user.githubUsername) {
-            promises.push(fetch(`${API_BASE_URL}/user/githubUsername`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "userEmail": user.email, "newGithubUsername": githubUsername })
-                })
-                .then(checkError)
-                .catch(console.error));
+            promises.push(
+                usersApi.updateGithubUsername({ userEmail: user.email, newGithubUsername: githubUsername })
+                    .catch(console.error)
+            );
         }
         if (status !== user.status) {
-            promises.push(fetch(`${API_BASE_URL}/updateUserStatus`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "userEmail": user.email, "status": status })
-                })
-                .then(checkError)
-                .catch(console.error));
+            promises.push(
+                usersApi.updateUserStatusPost({ userEmail: user.email, status: status })
+                    .catch(console.error)
+            );
         }
         if (password) {
-            promises.push(fetch(`${API_BASE_URL}/user/password/change`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "userEmail": user.email, "password": password })
-                })
-                .then(checkError)
-                .catch(console.error));
+            promises.push(
+                usersApi.changePassword({ userEmail: user.email, password: password })
+                    .catch(console.error)
+            );
         }
         if (userRole !== user.userRole) {
-            promises.push(fetch(`${API_BASE_URL}/user/role`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "email": user.email, "role": userRole })
-                })
-                .then(checkError)
-                .catch(console.error));
+            promises.push(
+                usersApi.updateUserRole({ email: user.email, role: userRole })
+                    .catch(console.error)
+            );
         }
 
         Promise.all(promises).then(() =>
             email !== user.email ?
-                fetch(`${API_BASE_URL}/user/mail`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ "newEmail": email, "oldEmail": user.email })
-                    })
-                    .then(checkError)
-                    .catch(console.error) : null).then(() => onClose(true));
+                usersApi.changeEmail({ newEmail: email, oldEmail: user.email })
+                    .catch(console.error) : null
+        ).then(() => onClose(true));
     }
 
     function onCancel() {
@@ -98,64 +82,68 @@ function UserEdit({ user, onClose }: { user: User; onClose: (update: boolean) =>
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex size-full items-center justify-center overflow-y-auto overflow-x-hidden bg-gray-900/50 text-left">
-            <div className="relative max-h-full w-full max-w-2xl p-4">
-                <div className="relative rounded-lg bg-white shadow">
-                    <div className="flex items-center justify-between rounded-t border-b p-5">
-                        <h3 className="text-xl font-semibold text-gray-900">
-                            Edit user
-                        </h3>
+        <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit user</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <Input
+                        type="text"
+                        label="Username"
+                        value={user.name}
+                        disabled={true}
+                    />
+                    <Input
+                        type="email"
+                        label="Email"
+                        value={email}
+                        onChange={(e) => {
+                            const newEmail = e.target.value;
+                            if (isValidEmail(newEmail) || newEmail === '') {
+                                setEmail(newEmail);
+                            }
+                        }}
+                    />
+                    <Input
+                        type="text"
+                        label="GitHub Username"
+                        value={githubUsername}
+                        onChange={(e) => setGithubUsername(e.target.value)}
+                    />
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-900">Status</label>
+                        <select
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
+                            className="block w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-900"
+                        >
+                            {userStatus.map((status) => (
+                                <option key={status} value={status}>
+                                    {status}
+                                </option>
+                            ))}
+                        </select>
                     </div>
-                    <div className="space-y-4 p-5">
-                        <form onSubmit={onSave}>
-                            <div className="mb-5">
-                                <label className="mb-2 block text-sm font-medium text-gray-900">Username</label>
-                                <input value={user.name} disabled={true} className="block w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-500" />
-                            </div>
-                            <div className="mb-5">
-                                <label className="mb-2 block text-sm font-medium text-gray-900">Email</label>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={e => {
-                                        const newEmail = e.target.value;
-                                        if (isValidEmail(newEmail) || newEmail === '') {
-                                            setEmail(newEmail);
-                                        }
-                                    }}
-                                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900"
-                                />
-                            </div>
-                            <div className="mb-5">
-                                <label className="mb-2 block text-sm font-medium text-gray-900">GitHub Username</label>
-                                <input value={githubUsername} onChange={e => setGithubUsername(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900" />
-                            </div>
-                            <div className="mb-5">
-                                <label className="mb-2 block text-sm font-medium text-gray-900">Status</label>
-                                <select value={status} onChange={e => setStatus(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900">
-                                    <option>unconfirmed</option>
-                                    <option>confirmed</option>
-                                    <option>suspended</option>
-                                    <option>removed</option>
-                                </select>
-                            </div>
-                            <div className="mb-5">
-                                <label className="mb-2 block text-sm font-medium text-gray-900">UserRole</label>
-                                <input value={userRole} onChange={e => setUserRole(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900" />
-                            </div>
-                            <div className="mb-5">
-                                <label className="mb-2 block text-sm font-medium text-gray-900">New Password</label>
-                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900" />
-                            </div>
-                        </form>
-                    </div>
-                    <div className="flex items-center rounded-b border-t border-gray-200 p-5">
-                        <button onClick={onSave} className="rounded-lg bg-blue-700 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-blue-800">Save</button>
-                        <button onClick={onCancel} className="ms-3 rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-100 hover:text-blue-700">Cancel</button>
-                    </div>
+                    <Input
+                        type="text"
+                        label="UserRole"
+                        value={userRole}
+                        onChange={(e) => setUserRole(e.target.value)}
+                    />
+                    <Input
+                        type="password"
+                        label="New Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
                 </div>
-            </div>
-        </div>
+                <DialogFooter>
+                    <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+                    <Button onClick={onSave}>Save</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -166,22 +154,15 @@ const UserAdmin = () => {
 
     function fetchUsers() {
         setLoading(true);
-        fetch(`${API_BASE_URL}/getUsers`, { method: "GET", headers: { "Content-Type": "application/json" }, })
-            .then(checkError)
-            .then((response: Response) => response.json())
+        usersApi.getAllUsers()
             .then((us: Array<User>) => setUsers(us))
             .then(() => setLoading(false))
             .catch(console.error);
     }
 
     function sendConfirmationEmail(user: User) {
-        fetch(`/user/confirmation/trigger`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userEmail: user.email }),
-        })
-          .then(checkError)
-          .catch(console.error);
+        usersApi.sendConfirmationEmail({ userEmail: user.email })
+            .catch(console.error);
     }
 
     const tableData = users.map(user => [
@@ -190,19 +171,16 @@ const UserAdmin = () => {
         user.githubUsername ? user.githubUsername : "N/A",
         user.status,
         user.userRole,
-        <div key={user.id} className="flex flex-row gap-3">
-            <img className="h-5" src={Edit} title="edit" onClick={() => setEditing(user)}></img>
-            {user.status === "unconfirmed" && <img className="h-5" src={EmailIcon} title="send confirmation email" onClick={() => sendConfirmationEmail(user)}></img>}
+        <div key={user.id} className="flex gap-3">
+            <img className="h-5 cursor-pointer" src={Edit} title="edit" onClick={() => setEditing(user)} />
+            {user.status === "unconfirmed" && <img className="h-5 cursor-pointer" src={EmailIcon} title="send confirmation email" onClick={() => sendConfirmationEmail(user)} />}
         </div>
     ]);
 
     return (
-        <>
-            <ReturnButton />
-            <div className="DashboardContainer">
-                <h1>User Admin</h1>
-            </div>
-            <div className="BigContainerUserAdmin">
+        <div className="min-h-screen">
+            <TopNavBar title="User Admin" showBackButton={true} showUserInfo={true} />
+            <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
                 <Table
                     headings={["username", "email", "github username", "status", "userRole", "action"]}
                     loading={loading}
@@ -212,8 +190,8 @@ const UserAdmin = () => {
                     filterOptions={{ key: 3, options: userStatus }}
                 />
             </div>
-            {editing !== null && <UserEdit user={editing} onClose={(update) => { setEditing(null); if(update) fetchUsers(); }} />}
-        </>
+            {editing && <UserEdit user={editing} open={true} onClose={(update) => { setEditing(null); if(update) fetchUsers(); }} />}
+        </div>
     );
 }
 

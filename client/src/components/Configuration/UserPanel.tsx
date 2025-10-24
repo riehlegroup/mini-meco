@@ -1,29 +1,19 @@
-import "./UserPanel.css";
 import React, { useState, useEffect } from "react";
-import {useNavigate } from "react-router-dom";
-import ReturnButton from "../Components/return";
-import { API_BASE_URL } from "@/config/api";
-
-
-let pwErrormessage = ""
-let gitErrormessage = ""
-let emailErrormessage = ""
+import TopNavBar from "../common/TopNavBar";
+import Button from "@/components/common/Button";
+import Input from "@/components/common/Input";
+import SectionCard from "@/components/common/SectionCard";
+import AuthStorage from "@/services/storage/auth";
+import usersApi from "@/services/api/users";
 
 const UserPanel: React.FC = () => {
-  const navigate = useNavigate();
-
-  const handleNavigation = () => {
-    navigate("/user-panel");
-  };
-
-  const handleReload = () =>
-  {
-    window.location.reload();
-  };
 
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [githubUsername, setGithubUsername] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [githubMessage, setGithubMessage] = useState("");
   const [user, setUser] = useState<{
     name: string;
     email: string;
@@ -31,34 +21,26 @@ const UserPanel: React.FC = () => {
   } | null>(null);
 
   const fetchUserData = async () => {
-    const userName = localStorage.getItem("username");
-    const userEmail = localStorage.getItem("email");
-    const userGithubUsername = localStorage.getItem("githubUsername");
+    const authStorage = AuthStorage.getInstance();
+    const userName = authStorage.getUserName();
+    const userEmail = authStorage.getEmail();
+
     if (userName && userEmail) {
       setUser({
         name: userName,
         email: userEmail,
-        UserGithubUsername: userGithubUsername || "",
+        UserGithubUsername: "",
       });
-    } else {
-      console.warn("User data not found in localStorage");
-    }
 
-    if (userEmail) {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/user/githubUsername?userEmail=${userEmail}`
-        );
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.message || "Something went wrong");
-        }
-        setGithubUsername(data.githubUsername || "");
+        const githubUser = await usersApi.getGithubUsername(userEmail);
+        setGithubUsername(githubUser);
+        setUser((prev) => prev ? { ...prev, UserGithubUsername: githubUser } : null);
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
     } else {
-      console.warn("User email not found in localStorage");
+      console.warn("User data not found in storage");
     }
   };
 
@@ -71,180 +53,158 @@ const UserPanel: React.FC = () => {
  
   const handleEmailChange = async () => {
     if (!user) {
-      console.error("User data not available. Please log in again.");
+      setEmailMessage("User data not available. Please log in again.");
       return;
     }
 
-    const body = {
-      newEmail: newEmail,
-      oldEmail: user.email,
-    };
-
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/settings/changeEmail`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.changeEmail({
+        oldEmail: user.email,
+        newEmail: newEmail,
+      });
 
-      if (data.message && data.message.includes("successfully")) {
+      setEmailMessage(data.message || "Email changed successfully!");
+      if (data.message.includes("successfully")) {
         const updatedUser = { ...user, email: newEmail };
         setUser(updatedUser);
-        localStorage.setItem("email", newEmail);
-        //window.location.reload();
+        AuthStorage.getInstance().setEmail(newEmail);
+        setNewEmail("");
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error(error.message);
+        setEmailMessage(error.message);
       }
     }
   };
 
   const handlePasswordChange = async () => {
     if (!user) {
-      console.error("User data not available. Please log in again.");
+      setPasswordMessage("User data not available. Please log in again.");
       return;
     }
 
-    const body = {
-      userEmail: user.email.toString(),
-      password: newPassword,
-    };
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/password/change`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.changePassword({
+        userEmail: user.email,
+        password: newPassword,
+      });
 
-      if (data.message && data.message.includes("successfully")) {
-        pwErrormessage = "";
-        //window.location.reload();
+      setPasswordMessage(data.message || "Password changed successfully!");
+      if (data.message.includes("successfully")) {
+        setNewPassword("");
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error(error.message);
-        pwErrormessage = error.message;
+        setPasswordMessage(error.message);
       }
     }
   };
 
   const handleAddGithubUsername = async () => {
     if (!user?.email) {
-      console.error("User email not available. Please log in again.");
+      setGithubMessage("User email not available. Please log in again.");
       return;
     }
 
     if (!githubUsername || githubUsername.trim() === "") {
-      console.error("GitHub username cannot be empty");
+      setGithubMessage("GitHub username cannot be empty");
       return;
     }
 
-    const body = {
-      userEmail: user.email,
-      newGithubUsername: githubUsername.trim(),
-    };
-
-    console.log("Submitting GitHub username:", body);
-
-    let msg = document.getElementById('ErrorMessageGithub');
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/githubUsername`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
+      const data = await usersApi.updateGithubUsername({
+        userEmail: user.email,
+        newGithubUsername: githubUsername.trim(),
+      });
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
-
-      if (data.message && data.message.includes("successfully")) {
-        localStorage.setItem("githubUsername", githubUsername.trim());
-        gitErrormessage = "";
+      setGithubMessage(data.message || "GitHub username updated successfully!");
+      if (data.message.includes("successfully")) {
+        const updatedUser = { ...user, UserGithubUsername: githubUsername } as typeof user;
+        setUser(updatedUser);
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error(error.message);
-        gitErrormessage = error.message;
-        if(msg !=null)
-        {
-          msg.textContent = error.message;
-        }
+        setGithubMessage(error.message);
       }
     }
   };
 
-  const handleSubmitAll = async () =>
-  {
-    if(newEmail != "")
-    {
-      await handleEmailChange()
+  const handleSubmitAll = async () => {
+    if (newEmail) {
+      await handleEmailChange();
     }
-    if(newPassword != "")
-    {
-      await handlePasswordChange()
+    if (newPassword) {
+      await handlePasswordChange();
     }
+    if (githubUsername) {
+      await handleAddGithubUsername();
+    }
+  };
 
-    await handleAddGithubUsername()
-    //fetchUserData();
-    if(pwErrormessage == "" && emailErrormessage == "" && gitErrormessage == "")
-    {
-      window.location.reload();
-    }
-  }
   return (
-    
-    <div onClick={handleNavigation}>
-      <ReturnButton />
-      <div className="DashboardContainer">
-        <h1 className="text-4xl">User profile</h1>
-      </div>
-      <div className="BigContainer">
-      <form className="mx-auto max-w-md content-center space-y-10">
-        <div className="group relative z-0 mb-5 w-full">
-            <label htmlFor="floating_email" className="text-m mb-2 block text-gray-700 dark:text-gray-400">Email</label>
-            <input onChange={(e) => setNewEmail(e.target.value)} type="email" name="floating_email" id="floating_email" className="text-m block w-full appearance-none border-0 border-b-2 border-gray-700 bg-transparent px-0 py-2.5 text-gray-900 placeholder:text-gray-500 focus:border-blue-600 focus:outline-none focus:ring-0 dark:border-gray-700 dark:text-white dark:focus:border-blue-500" placeholder={user?.email || ""} />
-            <label id="ErrorMailPassword" className="text-red-600">{emailErrormessage}</label>
-        </div>
-        <div className="group relative z-0 mb-5 w-full">
-            <label htmlFor="floating_password" className="text-m mb-2 block text-gray-700 dark:text-gray-400">Password</label>
-            <input type="password" onChange={(e) => setNewPassword(e.target.value)}  name="floating_password" id="floating_password" className="text-m block w-full appearance-none border-0 border-b-2 border-gray-700 bg-transparent px-0 py-2.5 text-gray-900 placeholder:text-gray-500 focus:border-blue-600 focus:outline-none focus:ring-0 dark:border-gray-700 dark:text-white dark:focus:border-blue-500" placeholder="********" />
-            <label id="ErrorMessagePassword" className="text-red-600">{pwErrormessage}</label>
-        </div>
-        <div className="group relative z-0 mb-5 w-full">
-            <label htmlFor="floating_github" className="text-m mb-2 block text-gray-700 dark:text-gray-400">GitHub Username</label>
-            <input type="text" value={githubUsername} onChange={(e) => setGithubUsername(e.target.value)} name="floating_github" id="floating_github" className="text-m block w-full appearance-none border-0 border-b-2 border-gray-700 bg-transparent px-0 py-2.5 text-gray-900 placeholder:text-gray-500 focus:border-blue-600 focus:outline-none focus:ring-0 dark:border-gray-700 dark:text-white dark:focus:border-blue-500" placeholder={githubUsername || ""} />
-            <label id="ErrorMessageGithub" className="text-red-600">{gitErrormessage}</label>
-        </div>
-          <button type="button" onClick={handleSubmitAll} className="mb-2 me-2 rounded-full bg-green-700 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">Submit</button>
-          <button type="button" onClick={handleReload} className="mb-2 me-2 rounded-full bg-red-700 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Reset</button>
-      </form>
+    <div className="min-h-screen">
+      <TopNavBar title="User Profile" showBackButton={true} showUserInfo={true} />
 
+      <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
+        <SectionCard title="Update Profile">
+          <div className="space-y-6">
+            <Input
+              type="email"
+              label="Email Address"
+              placeholder={user?.email || ""}
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+            />
+            {emailMessage && (
+              <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                {emailMessage}
+              </div>
+            )}
+
+            <Input
+              type="password"
+              label="New Password"
+              placeholder="Enter new password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            {passwordMessage && (
+              <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                {passwordMessage}
+              </div>
+            )}
+
+            <Input
+              type="text"
+              label="GitHub Username"
+              placeholder="Enter your GitHub username"
+              value={githubUsername}
+              onChange={(e) => setGithubUsername(e.target.value)}
+            />
+            {githubMessage && (
+              <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                {githubMessage}
+              </div>
+            )}
+
+            <div className="flex gap-4 pt-4">
+              <Button onClick={handleSubmitAll}>Submit Changes</Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setNewEmail("");
+                  setNewPassword("");
+                  setGithubUsername("");
+                  setEmailMessage("");
+                  setPasswordMessage("");
+                  setGithubMessage("");
+                }}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+        </SectionCard>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { API_BASE_URL } from "@/config/api";
+import usersApi from "@/services/api/users";
+import AuthStorage from "@/services/storage/auth";
 
 /**
  * Custom hook to fetch and manage user role from the backend.
@@ -10,14 +11,13 @@ export const useUserRole = (): string => {
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      const userEmail = localStorage.getItem("email");
+      const authStorage = AuthStorage.getInstance();
+      const userEmail = authStorage.getEmail();
+
       if (userEmail) {
         try {
-          const response = await fetch(
-            `${API_BASE_URL}/user/role?userEmail=${userEmail}`
-          );
-          const data = await response.json();
-          setUserRole(data.userRole);
+          const role = await usersApi.getUserRole(userEmail);
+          setUserRole(role);
         } catch (error) {
           console.error("Error fetching user role:", error);
         }

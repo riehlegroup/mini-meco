@@ -1,4 +1,5 @@
 import React from "react";
+import Input from "./Input";
 
 const containsLowerAndUpperCase = (value: string): boolean =>
   /(?=.*[a-z])(?=.*[A-Z])/.test(value);
@@ -30,17 +31,17 @@ const calculatePasswordStrength = (value: string): number => {
 const getStrengthInfo = (strength: number) => {
   switch (strength) {
     case 1:
-      return { label: "Very Weak", color: "#ff4d4f" };
+      return { label: "Very Weak", colorClass: "text-red-700" };
     case 2:
-      return { label: "Weak", color: "#ff7a45" };
+      return { label: "Weak", colorClass: "text-orange-600" };
     case 3:
-      return { label: "Medium", color: "#faad14" };
+      return { label: "Medium", colorClass: "text-yellow-600" };
     case 4:
-      return { label: "Strong", color: "#73d13d" };
+      return { label: "Strong", colorClass: "text-green-600" };
     case 5:
-      return { label: "Very Strong", color: "#52c41a" };
+      return { label: "Very Strong", colorClass: "text-green-700" };
     default:
-      return { label: "", color: "transparent" };
+      return { label: "", colorClass: "" };
   }
 };
 
@@ -56,21 +57,20 @@ const PasswordWidget: React.FC<PasswordWidgetProps> = ({
   action,
 }) => {
   const strength = calculatePasswordStrength(password);
-  const { label, color } = getStrengthInfo(strength);
+  const { label, colorClass } = getStrengthInfo(strength);
 
   return (
     <div className="space-y-2">
-      <input
+      <Input
         type="password"
         placeholder="Please enter your password"
         value={password}
         onChange={(e) => onPasswordChange(e.target.value)}
-        className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
       />
       {action === "Registration" && password !== "" && (
         <div className="flex items-center gap-2 text-sm">
           <span className="text-slate-700">Password Strength:</span>
-          <strong style={{ color }}>{label}</strong>
+          <strong className={colorClass}>{label}</strong>
         </div>
       )}
     </div>

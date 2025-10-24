@@ -1,8 +1,5 @@
-import "./Settings.css";
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Edit from "./../../assets/Edit.png";
-import ReturnButton from "../Components/return";
+import TopNavBar from "../common/TopNavBar";
 import {
   Dialog,
   DialogContent,
@@ -11,15 +8,14 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import Button from "react-bootstrap/esm/Button";
-import { API_BASE_URL } from "@/config/api";
+import Button from "@/components/common/Button";
+import Input from "@/components/common/Input";
+import SectionCard from "@/components/common/SectionCard";
+import Card from "@/components/common/Card";
+import AuthStorage from "@/services/storage/auth";
+import usersApi from "@/services/api/users";
 
 const Settings: React.FC = () => {
-  const navigate = useNavigate();
-
-  const handleNavigation = () => {
-    navigate("/settings");
-  };
 
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,34 +32,26 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const userName = localStorage.getItem("username");
-      const userEmail = localStorage.getItem("email");
-      const userGithubUsername = localStorage.getItem("githubUsername");
+      const authStorage = AuthStorage.getInstance();
+      const userName = authStorage.getUserName();
+      const userEmail = authStorage.getEmail();
+
       if (userName && userEmail) {
         setUser({
           name: userName,
           email: userEmail,
-          UserGithubUsername: userGithubUsername || "",
+          UserGithubUsername: "",
         });
-      } else {
-        console.warn("User data not found in localStorage");
-      }
 
-      if (userEmail) {
         try {
-          const response = await fetch(
-            `${API_BASE_URL}/user/githubUsername?userEmail=${userEmail}`
-          );
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.message || "Something went wrong");
-          }
-          setGithubUsername(data.githubUsername || "");
+          const githubUser = await usersApi.getGithubUsername(userEmail);
+          setGithubUsername(githubUser);
+          setUser((prev) => prev ? { ...prev, UserGithubUsername: githubUser } : null);
         } catch (error) {
           console.error("Error fetching user data:", error);
         }
       } else {
-        console.warn("User email not found in localStorage");
+        console.warn("User data not found in storage");
       }
     };
 
@@ -76,32 +64,17 @@ const Settings: React.FC = () => {
       return;
     }
 
-    const body = {
-      newEmail: newEmail,
-      oldEmail: user.email,
-    };
-
     try {
-      const response = await fetch(
-        "${API_BASE_URL}/user/mail",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.changeEmail({
+        oldEmail: user.email,
+        newEmail: newEmail,
+      });
 
       setEmailMessage(data.message || "Email changed successfully!");
       if (data.message.includes("successfully")) {
         const updatedUser = { ...user, email: newEmail };
         setUser(updatedUser);
-        localStorage.setItem("email", newEmail);
+        AuthStorage.getInstance().setEmail(newEmail);
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -117,26 +90,11 @@ const Settings: React.FC = () => {
       return;
     }
 
-    const body = {
-      userEmail: user.email,
-      password: newPassword,
-    };
-
     try {
-      const response = await fetch(
-        "${API_BASE_URL}/user/password/change",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.changePassword({
+        userEmail: user.email,
+        password: newPassword,
+      });
 
       setPasswordMessage(data.message || "Password changed successfully!");
     } catch (error: unknown) {
@@ -153,32 +111,19 @@ const Settings: React.FC = () => {
       return;
     }
 
-    const body = {
-      userEmail: user?.email,
-      newGithubUsername: githubUsername,
-    };
+    if (!user?.email) {
+      setGithubMessage("User email not available");
+      return;
+    }
 
     try {
-      const response = await fetch(
-        "${API_BASE_URL}/user/githubUsername",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
-
-      console.log(response);
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
+      const data = await usersApi.updateGithubUsername({
+        userEmail: user.email,
+        newGithubUsername: githubUsername,
+      });
 
       setGithubMessage(data.message || "GitHub username added successfully!");
       if (data.message.includes("successfully")) {
-        localStorage.setItem("githubUsername", githubUsername);
         const updatedUser = { ...user, UserGithubUsername: githubUsername } as typeof user;
         setUser(updatedUser);
       }
@@ -191,127 +136,130 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div onClick={handleNavigation}>
-      <ReturnButton />
-      <div className="DashboardContainer">
-        <h1>Settings</h1>
-      </div>
-      <div className="ProjectContainer">
-        <div className="ProjectTitle">
-          <h3>Account Info</h3>
-        </div>
-        <div className="PersonalDataContainer">
-            <div className="PersonalData">
-              <div className="Email">
-                Email: {user?.email || "Email not available"}
-              </div>
+    <div className="min-h-screen">
+      <TopNavBar title="Settings" showBackButton={true} showUserInfo={true} />
 
-              <Dialog>
-                <DialogTrigger className="DialogTrigger">
-                  <img className="Edit" src={Edit} />
-                </DialogTrigger>
-                <DialogContent className="DialogContent">
-                  <DialogHeader>
-                    <DialogTitle className="DialogTitle">
-                      Change Email Address
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="EmailInput">
-                    <div className="newEmail">New Email: </div>
-                    <input
-                      type="text"
-                      className="NewEmail-inputBox"
-                      placeholder="Enter your new email"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      className="create"
-                      variant="primary"
-                      onClick={handleEmailChange}
-                    >
-                      Change
+      <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
+        <SectionCard title="Account Settings">
+          <div className="space-y-4">
+            {/* Email Setting */}
+            <Card>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-slate-600">Email Address</p>
+                  <p className="font-medium">{user?.email || "Not available"}</p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="primary" className="w-fit text-sm">
+                      Edit
                     </Button>
-                  </DialogFooter>
-                  {emailMessage && <div className="Message">{emailMessage}</div>}
-                </DialogContent>
-              </Dialog>
-            </div>
-            <div className="PersonalData">
-              <div className="Password">Password: ********</div>
-              <Dialog>
-                <DialogTrigger className="DialogTrigger">
-                  <img className="Edit" src={Edit} />
-                </DialogTrigger>
-                <DialogContent className="DialogContent">
-                  <DialogHeader>
-                    <DialogTitle className="DialogTitle">
-                      Change Password
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="EmailInput">
-                    <div className="newEmail">New Password: </div>
-                    <input
-                      type="password"
-                      className="NewEmail-inputBox"
-                      placeholder="Enter your new password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      className="create"
-                      variant="primary"
-                      onClick={handlePasswordChange}
-                    >
-                      Change
-                    </Button>
-                  </DialogFooter>
-                  {passwordMessage && <div className="Message">{passwordMessage}</div>}
-                </DialogContent>
-              </Dialog>
-            </div>
-            <div className="PersonalData">
-              <div className="GitHub">
-                GitHub Username: {user?.UserGithubUsername}
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Change Email Address</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <Input
+                        type="email"
+                        label="New Email"
+                        placeholder="Enter your new email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                      />
+                      {emailMessage && (
+                        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                          {emailMessage}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleEmailChange}>Change Email</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
-              <Dialog>
-                <DialogTrigger className="DialogTrigger">
-                  <img className="Edit" src={Edit} />
-                </DialogTrigger>
-                <DialogContent className="DialogContent">
-                  <DialogHeader>
-                    <DialogTitle className="DialogTitle">
-                      Edit GitHub Username
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="GitHubInput">
-                    <div className="GitHubusername">GitHub username: </div>
-                    <input
-                      type="text"
-                      className="GitHubUsername-inputBox"
-                      placeholder="Enter your GitHub username"
-                      value={githubUsername}
-                      onChange={(e) => setGithubUsername(e.target.value)}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      className="create"
-                      variant="primary"
-                      onClick={handleAddGithubUsername}
-                    >
-                      Confirm
+            </Card>
+
+            {/* Password Setting */}
+            <Card>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-slate-600">Password</p>
+                  <p className="font-medium">••••••••</p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="primary" className="w-fit text-sm">
+                      Edit
                     </Button>
-                  </DialogFooter>
-                  {githubMessage && <div className="Message">{githubMessage}</div>}
-                </DialogContent>
-              </Dialog>
-            </div>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Change Password</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <Input
+                        type="password"
+                        label="New Password"
+                        placeholder="Enter your new password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
+                      {passwordMessage && (
+                        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                          {passwordMessage}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handlePasswordChange}>Change Password</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </Card>
+
+            {/* GitHub Username Setting */}
+            <Card>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-slate-600">GitHub Username</p>
+                  <p className="font-medium">{user?.UserGithubUsername || "Not set"}</p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="primary" className="w-fit text-sm">
+                      Edit
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Edit GitHub Username</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <Input
+                        type="text"
+                        label="GitHub Username"
+                        placeholder="Enter your GitHub username"
+                        value={githubUsername}
+                        onChange={(e) => setGithubUsername(e.target.value)}
+                      />
+                      {githubMessage && (
+                        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                          {githubMessage}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleAddGithubUsername}>Confirm</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </Card>
           </div>
+        </SectionCard>
       </div>
     </div>
   );

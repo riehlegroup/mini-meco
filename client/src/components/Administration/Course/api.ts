@@ -1,80 +1,5 @@
 import { Course, Project } from "./types";
-import { API_BASE_URL } from "@/config/api";
-
-class ApiClient {
-  private static instnace: ApiClient;
-  private BASE_API_URL: string = `${API_BASE_URL}/`;
-
-  private constructor() {}
-
-  static getInstance(): ApiClient {
-    if (!ApiClient.instnace) {
-      ApiClient.instnace = new ApiClient();
-    }
-    return ApiClient.instnace;
-  }
-
-  private async request<T>(
-    method: string,
-    endpoint: string,
-    params?: Record<string, string | number> | undefined,
-    body?: Record<string, string | number | boolean | string[]>
-  ): Promise<T> {
-    try {
-      const url = new URL(this.BASE_API_URL + endpoint);
-
-      // Ensure params are converted to strings and appended correctly
-      if (params) {
-        Object.entries(params).forEach(([key, value]) =>
-          url.searchParams.append(key, String(value))
-        );
-      }
-
-      const response = await fetch(url.toString(), {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `HTTP Error: ${response.status} ${JSON.stringify(errorData)}`
-        );
-      }
-
-      return (await response.json()) as Promise<T>;
-    } catch (error) {
-      console.error(`API request failed: ${method} ${endpoint}`, error);
-      throw error; // Re-throw to allow caller to handle
-    }
-  }
-
-  async get<T>(
-    endpoint: string,
-    params?: Record<string, string | number>
-  ): Promise<T> {
-    return this.request<T>("GET", endpoint, params);
-  }
-
-  async post<T>(
-    endpoint: string,
-    body: Record<string, string | number | boolean | string[]>
-  ): Promise<T> {
-    return this.request<T>("POST", endpoint, undefined, body);
-  }
-
-  async put<T>(
-    endpoint: string,
-    body: Record<string, string | number | boolean | string[]>
-  ): Promise<T> {
-    return this.request<T>("PUT", endpoint, undefined, body);
-  }
-
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>("DELETE", endpoint);
-  }
-}
+import ApiClient from "@/services/api/client";
 
 const courseApi = {
   getCourses: async (): Promise<Course[]> => {
@@ -82,7 +7,7 @@ const courseApi = {
       const response = await ApiClient.getInstance().get<{
         success: boolean;
         data: Course[];
-      }>("course");
+      }>("/course");
 
       if (!response || !response.success || !Array.isArray(response.data)) {
         console.error("Unexpected response format: ", response);
@@ -102,8 +27,8 @@ const courseApi = {
         success: boolean;
         data: Project[];
       }>(
-        "course/courseProjects",
-        { courseId } // This will append as a query parameter
+        "/course/courseProjects",
+        { courseId }
       );
 
       if (!response || !response.success || !Array.isArray(response.data)) {
@@ -123,7 +48,7 @@ const courseApi = {
     studentsCanCreateProject: boolean;
   }): Promise<Response> => {
     console.log("[courseAPI] create: ", body);
-    return ApiClient.getInstance().post<Response>("course", body);
+    return ApiClient.getInstance().post<Response>("/course", body);
   },
 
   updateCourse: (body: {
@@ -131,11 +56,11 @@ const courseApi = {
     courseName: string;
     studentsCanCreateProject: boolean;
   }): Promise<Response> => {
-    return ApiClient.getInstance().post<Response>("course", body);
+    return ApiClient.getInstance().post<Response>("/course", body);
   },
 
   deleteCourse: (id: number): Promise<Response> => {
-    return ApiClient.getInstance().delete<Response>(`course/${id}`);
+    return ApiClient.getInstance().delete<Response>(`/course/${id}`);
   },
 
   addProject: (body: {
@@ -143,7 +68,7 @@ const courseApi = {
     courseId: number;
     studentsCanJoinProject: boolean;
   }): Promise<Response> => {
-    return ApiClient.getInstance().post<Response>("courseProject", body);
+    return ApiClient.getInstance().post<Response>("/courseProject", body);
   },
 
   updateProject: (
@@ -154,14 +79,14 @@ const courseApi = {
     }
   ): Promise<Response> => {
     return ApiClient.getInstance().put<Response>(
-      `courseProject/${projectId}`,
+      `/courseProject/${projectId}`,
       body
     );
   },
 
   deleteProject: (projectId: number): Promise<Response> => {
     return ApiClient.getInstance().delete<Response>(
-      `courseProject/${projectId}`
+      `/courseProject/${projectId}`
     );
   },
 
@@ -174,7 +99,7 @@ const courseApi = {
     }
   ): Promise<Response> => {
     return ApiClient.getInstance().post<Response>(
-      `course/${courseId}/schedule`,
+      `/course/${courseId}/schedule`,
       body
     );
   },
@@ -194,7 +119,7 @@ const courseApi = {
           endDate: string;
           submissionDates: string[];
         };
-      }>(`course/${courseId}/schedule`);
+      }>(`/course/${courseId}/schedule`);
 
       if (!response || !response.success) {
         return null;

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./AuthScreens.css";
 import EmailIcon from "./../../assets/EmailIcon.png";
-import { API_BASE_URL } from "@/config/api";
+import authApi from "@/services/api/auth";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -9,25 +9,10 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const endpoint = "/user/password/forgotMail";
-    const body = { email };
 
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
-
-      setMessage(data.message || "Success!");
+      await authApi.forgotPassword(email);
+      setMessage("Password reset link sent! Please check your email.");
     } catch (error: unknown) {
       if (error instanceof Error) {
         setMessage(error.message);

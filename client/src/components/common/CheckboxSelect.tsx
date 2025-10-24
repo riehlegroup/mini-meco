@@ -17,7 +17,7 @@ const CheckboxSelect = ({ options, active, setActive, children }: { options: Arr
                 <svg className="ms-3 size-2.5" fill="none" viewBox="0 0 10 6"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 4 4 4-4" /></svg>
             </button>
             {show &&
-                <div className="z-10 w-48 divide-y divide-gray-100 rounded-lg bg-white shadow" style={{ position: "absolute" }}>
+                <div className="absolute z-10 w-48 divide-y divide-gray-100 rounded-lg bg-white shadow">
                     <ul className="space-y-3 p-3 text-sm text-gray-700">
                         <li className="flex items-center">
                             <input type="checkbox" checked={active.length == options.length} onChange={e => e.target.checked ? setActive(options) : setActive([])} className="size-4 rounded border-gray-300 bg-gray-100 text-blue-600" />

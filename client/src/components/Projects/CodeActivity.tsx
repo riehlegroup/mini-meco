@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import ReturnButton from "../Components/return";
+import { useLocation } from "react-router-dom";
+import TopNavBar from "../common/TopNavBar";
 import { Octokit } from "@octokit/rest";
 import { Endpoints } from "@octokit/types";
-import "./CodeActivity.css";
+import SectionCard from "@/components/common/SectionCard";
 import {
   LineChart,
   Line,
@@ -14,7 +14,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { API_BASE_URL } from "@/config/api";
+import AuthStorage from "@/services/storage/auth";
+import ApiClient from "@/services/api/client";
 
 type ArrayElement<T> = T extends (infer U)[] ? U : never;
 type Commit = ArrayElement<Endpoints["GET /repos/{owner}/{repo}/commits"]["response"]["data"]>;
@@ -33,7 +34,6 @@ type CommitCount = {
 };
 
 const CodeActivity: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
 
   const [commits, setCommits] = useState<Commit[]>([]);
@@ -57,10 +57,6 @@ const CodeActivity: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [commitsPerSprint, setCommitsPerSprint] = useState<CommitCount[]>([]);
 
-  const handleNavigation = () => {
-    navigate("/code-activity");
-  };
-
   const octokit = new Octokit({
     auth: import.meta.env.VITE_GITHUB_TOKEN,
   });
@@ -77,18 +73,12 @@ const CodeActivity: React.FC = () => {
       if (!projectName) return;
 
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/courseProject/course?projectName=${encodeURIComponent(
-            projectName
-          )}`
+        const data = await ApiClient.getInstance().get<{ courseName: string }>(
+          "/courseProject/course",
+          { projectName: encodeURIComponent(projectName) }
         );
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.courseName) {
-            setSelectedCourse(data.courseName);
-          }
-        } else {
-          console.error(`Error: ${response.status} ${response.statusText}`);
+        if (data && data.courseName) {
+          setSelectedCourse(data.courseName);
         }
       } catch (error) {
         console.error("Error fetching project group:", error);
@@ -100,9 +90,11 @@ const CodeActivity: React.FC = () => {
 
   useEffect(() => {
     const fetchUserData = () => {
-      const userName = localStorage.getItem("username");
-      const userEmail = localStorage.getItem("email");
-      const githubUsername = localStorage.getItem("githubUsername");
+      const authStorage = AuthStorage.getInstance();
+      const userName = authStorage.getUserName();
+      const userEmail = authStorage.getEmail();
+      const user = authStorage.getUser();
+      const githubUsername = user?.githubUsername;
 
       console.log("CodeActivity - Loading user data:", { userName, userEmail, githubUsername });
 
@@ -113,7 +105,7 @@ const CodeActivity: React.FC = () => {
           githubUsername: githubUsername,
         });
       } else {
-        console.warn("User data not found in localStorage", { userName, userEmail, githubUsername });
+        console.warn("User data not found in storage", { userName, userEmail, githubUsername });
       }
     };
 
@@ -134,14 +126,15 @@ const CodeActivity: React.FC = () => {
     if (!projectName || !user?.email) return;
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/project/url?userEmail=${encodeURIComponent(
-          user.email.toString()
-        )}&projectName=${encodeURIComponent(projectName)}`
+      const data = await ApiClient.getInstance().get<{ url: string; message?: string }>(
+        "/user/project/url",
+        {
+          userEmail: encodeURIComponent(user.email),
+          projectName: encodeURIComponent(projectName)
+        }
       );
-      const data = await response.json();
 
-      if (response.ok && data.url) {
+      if (data.url) {
         console.log("Fetched repository URL:", data.url);
         const { owner, repo } = extractOwnerAndRepo(data.url);
         if (owner && repo) {
@@ -166,14 +159,12 @@ const CodeActivity: React.FC = () => {
   useEffect(() => {
     const fetchAllSprints = async () => {
       if (!selectedCourse) return;
-  
+
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/courseProject/sprints?courseName=${encodeURIComponent(
-            selectedCourse
-          )}`
+        const fetchedSprints: Sprint[] = await ApiClient.getInstance().get<Sprint[]>(
+          "/courseProject/sprints",
+          { courseName: encodeURIComponent(selectedCourse) }
         );
-        const fetchedSprints: Sprint[] = await response.json();
 
         // Only have end date, so calculate start date
         const updatedSprints = fetchedSprints.map(
@@ -302,32 +293,30 @@ const CodeActivity: React.FC = () => {
   }, [commits, sprints]);
 
   return (
-    <div onClick={handleNavigation}>
-      <ReturnButton />
-      <div className="DashboardContainerStandups">
-        <h1>Code Activity</h1>
-      </div>
-      <div className="BigContainerCodeActivity">
-        <div className="GitHubTitle">
-          <h2>Commits on GitHub</h2>
-        </div>
-        {commits.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={commitsPerSprint}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="sprint" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="count" stroke="#8884d8" />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : loading ? (
-          <p>Loading...</p>
-        ) : (
-          <p>No commits found.</p>
-        )}
-        {loading && <p>Loading more commits...</p>}
+    <div className="min-h-screen">
+      <TopNavBar title="Code Activity" showBackButton={true} showUserInfo={true} />
+      <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
+        <SectionCard title="Commits on GitHub">
+          <div className="space-y-4">
+            {commits.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={commitsPerSprint}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="sprint" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="count" stroke="#8884d8" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : loading ? (
+              <p className="text-slate-600">Loading...</p>
+            ) : (
+              <p className="text-slate-500">No commits found.</p>
+            )}
+            {loading && <p className="text-sm text-slate-500">Loading more commits...</p>}
+          </div>
+        </SectionCard>
       </div>
     </div>
   );

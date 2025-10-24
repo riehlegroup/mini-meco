@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Course } from "../types";
-import { Button } from "react-bootstrap";
+import Button from "@/components/common/Button";
 import { DateInput } from "./CourseForm";
 import courseApi from "../api";
 
@@ -229,10 +229,11 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ course, onClose }) => {
             <div className="px-2">
               <ul>
                 {leftColumn.map((slot, index) => (
-                  <li key={`left-${index}`} className="flex items-center p-2">
+                  <li key={`left-${index}`} className="flex items-center gap-2 p-2">
                     <span>{formatDateWithLeadingZeros(slot)}</span>
                     <Button
-                      className="ml-2 rounded bg-blue-500 text-white"
+                      className="text-sm"
+                      variant="destructive"
                       onClick={() => removeSubmission(slot)}
                     >
                       Remove
@@ -246,10 +247,11 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ course, onClose }) => {
             <div className="w-1/2 px-2">
               <ul>
                 {rightColumn.map((slot, index) => (
-                  <li key={`right-${index}`} className="flex items-center p-2">
+                  <li key={`right-${index}`} className="flex items-center gap-2 p-2">
                     <span>{formatDateWithLeadingZeros(slot)}</span>
                     <Button
-                      className="ml-2 rounded bg-blue-500 text-white"
+                      className="text-sm"
+                      variant="destructive"
                       onClick={() => removeSubmission(slot)}
                     >
                       Remove
@@ -275,14 +277,13 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ course, onClose }) => {
 
         <div className="flex justify-center gap-2">
           <Button
-            className="rounded bg-gray-300 px-4 py-2 text-black"
+            variant="secondary"
             onClick={onClose}
             disabled={saving}
           >
             Close
           </Button>
           <Button
-            className="rounded bg-blue-500 px-4 py-2 text-white disabled:bg-blue-300"
             onClick={handleSave}
             disabled={saving}
           >

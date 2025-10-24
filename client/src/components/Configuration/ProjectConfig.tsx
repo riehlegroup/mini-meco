@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ReturnButton from "../Components/return";
-import "./ProjectConfig.css";
+import TopNavBar from "../common/TopNavBar";
 import {
   Select,
   SelectTrigger,
@@ -9,8 +8,10 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import Button from "react-bootstrap/esm/Button";
-import Edit from "./../../assets/Edit.png";
+import Button from "@/components/common/Button";
+import Input from "@/components/common/Input";
+import SectionCard from "@/components/common/SectionCard";
+import Card from "@/components/common/Card";
 import {
   Dialog,
   DialogContent,
@@ -19,14 +20,11 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { API_BASE_URL } from "@/config/api";
+import AuthStorage from "@/services/storage/auth";
+import ApiClient from "@/services/api/client";
 
 const ProjectConfig: React.FC = () => {
   const navigate = useNavigate();
-
-  const handleNavigation = () => {
-    navigate("/project-config");
-  };
 
   const [url, setURL] = useState("");
   const [newURL, setNewURL] = useState("");
@@ -51,33 +49,34 @@ const ProjectConfig: React.FC = () => {
 
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const authStorage = AuthStorage.getInstance();
+    const token = authStorage.getToken();
     if (!token) {
       navigate("/login");
     }
     const fetchUserData = async () => {
-      const userName = localStorage.getItem("username");
-      const userEmail = localStorage.getItem("email");
+      const userName = authStorage.getUserName();
+      const userEmail = authStorage.getEmail();
       if (userName && userEmail) {
         setUser({
           name: userName,
           email: userEmail,
         });
       } else {
-        console.warn("User data not found in localStorage");
+        console.warn("User data not found in storage");
       }
     };
 
     fetchUserData();
 
     const fetchCourses = async () => {
-      const userEmail = localStorage.getItem("email");
+      const userEmail = authStorage.getEmail();
       if (userEmail) {
         try {
-          const response = await fetch(
-            `${API_BASE_URL}/user/courses?userEmail=${userEmail}`
+          const data = await ApiClient.getInstance().get<Array<{ id: number; courseName: string }>>(
+            "/user/courses",
+            { userEmail }
           );
-          const data = await response.json();
           setCourses(data);
         } catch (error) {
           console.error("Error fetching courses:", error);
@@ -98,36 +97,32 @@ const ProjectConfig: React.FC = () => {
   };
 
   const fetchProjects = async (courseId: number) => {
-    const userEmail = localStorage.getItem("email");
+    const authStorage = AuthStorage.getInstance();
+    const userEmail = authStorage.getEmail();
     if (userEmail) {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/course/courseProjects?courseId=${courseId}&userEmail=${userEmail}`
-        );
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
-        const data = await response.json();
-        setEnrolledProjects(data.enrolledProjects.map((project: { projectName: string }) => project.projectName));
-        setAvailableProjects(data.availableProjects.map((project: { projectName: string }) => project.projectName));
+        const data = await ApiClient.getInstance().get<{
+          enrolledProjects: Array<{ projectName: string }>;
+          availableProjects: Array<{ projectName: string }>;
+        }>("/course/courseProjects", { courseId, userEmail });
+
+        setEnrolledProjects(data.enrolledProjects.map((project) => project.projectName));
+        setAvailableProjects(data.availableProjects.map((project) => project.projectName));
 
         for (const project of data.enrolledProjects) {
           try {
-            const roleResponse = await fetch(
-              `${API_BASE_URL}/courseProject/user/role?projectName=${encodeURIComponent(project.projectName)}&email=${encodeURIComponent(userEmail)}`
+            const roleData = await ApiClient.getInstance().get<{ role: string }>(
+              "/courseProject/user/role",
+              { projectName: encodeURIComponent(project.projectName), email: encodeURIComponent(userEmail) }
             );
-
-            const roleData = await roleResponse.json();
             setProjectRoles((prevRoles) => ({
               ...prevRoles,
               [project.projectName]: roleData.role,
             }));
-
           } catch (error) {
             console.error("Error fetching role:", error);
           }
         }
-
       } catch (error) {
         console.error("Error fetching projects:", error);
       }
@@ -141,34 +136,22 @@ const ProjectConfig: React.FC = () => {
   };
 
   const fetchProjectURL = async (projectName: string) => {
+    const authStorage = AuthStorage.getInstance();
+    const userEmail = authStorage.getEmail();
+
     if (!projectName) {
       console.error("Selected project is missing");
       return;
-    } else if (!localStorage.getItem("email")) {
+    } else if (!userEmail) {
       console.error("User email is missing");
       return;
     }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/project/url?userEmail=${encodeURIComponent(
-          localStorage.getItem("email") || ""
-        )}&projectName=${encodeURIComponent(projectName)}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+      const data = await ApiClient.getInstance().get<{ url: string }>(
+        "/user/project/url",
+        { userEmail: encodeURIComponent(userEmail), projectName: encodeURIComponent(projectName) }
       );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error fetching URL:", errorData);
-        return;
-      }
-
-      const data = await response.json();
 
       if (data && data.url) {
         setURL(data.url || "");
@@ -181,29 +164,17 @@ const ProjectConfig: React.FC = () => {
   };
 
   const handleChangeURL = async () => {
-    const userEmail = localStorage.getItem("email");
+    const authStorage = AuthStorage.getInstance();
+    const userEmail = authStorage.getEmail();
     if (userEmail && selectedProject) {
       try {
-        const response = await fetch(`${API_BASE_URL}/user/project/url`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userEmail: userEmail,
-            URL: newURL,
-            projectName: selectedProject,
-          }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          setMessage(data.message || "Failed to update URL");
-        } else {
-          setMessage(data.message || "URL changed successfully");
-          // Update the displayed URL and clear input
-          setURL(newURL);
-          setNewURL("");
-        }
+        const data = await ApiClient.getInstance().post<{ message: string }>(
+          "/user/project/url",
+          { userEmail, URL: newURL, projectName: selectedProject }
+        );
+        setMessage(data.message || "URL changed successfully");
+        setURL(newURL);
+        setNewURL("");
       } catch (error: unknown) {
         if (error instanceof Error) {
           setMessage(error.message);
@@ -221,29 +192,11 @@ const ProjectConfig: React.FC = () => {
       return;
     }
 
-    const body = {
-      projectName,
-      memberName: user.name,
-      memberRole: role,
-      memberEmail: user.email.toString(),
-    };
-
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/project`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
+      const data = await ApiClient.getInstance().post<{ message: string }>(
+        "/user/project",
+        { projectName, memberName: user.name, memberRole: role, memberEmail: user.email }
       );
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
 
       setMessage(data.message || "Successfully joined the project!");
       if (data.message.includes("successfully")) {
@@ -262,26 +215,11 @@ const ProjectConfig: React.FC = () => {
       setMessage("User data not available. Please log in again.");
       return;
     }
-    const body = {
-      projectName,
-      memberEmail: user.email.toString(),
-    };
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user/project`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
+      const data = await ApiClient.getInstance().delete<{ message: string }>(
+        `/user/project?projectName=${projectName}&memberEmail=${user.email}`
       );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
 
       setMessage(data.message || "Successfully left the project!");
       if (data.message.includes("successfully")) {
@@ -296,30 +234,21 @@ const ProjectConfig: React.FC = () => {
   };
 
   const handleCreate = async (projectName: string) => {
-    const body = {
-      courseId: selectedCourse?.id,
-      projectName,
-    };
+    if (!selectedCourse?.id) {
+      setMessage("No course selected");
+      return;
+    }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/courseProject`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
+      const data = await ApiClient.getInstance().post<{ message: string }>(
+        "/courseProject",
+        { courseId: selectedCourse.id, projectName }
       );
-
-      const data = await response.json();
 
       setMessage(data.message || "Project created successfully");
       if (data.message.includes("successfully")) {
         window.location.reload();
       }
-
     } catch (error: unknown) {
       if (error instanceof Error) {
         setMessage(error.message);
@@ -344,205 +273,199 @@ const ProjectConfig: React.FC = () => {
   };
 
   return (
-    <div onClick={handleNavigation}>
-      <ReturnButton />
-      <div className="DashboardContainer">
-        <h1>Project Configuration</h1>
-      </div>
-      <div className="ProjectConfigContainer">
-        <div className="margintop">
-          <h2>Enrolled Courses</h2>
-          <Select onValueChange={handleCourseChange}>
-            <SelectTrigger className="SelectTriggerProject">
-              <SelectValue placeholder="Select Course" />
-            </SelectTrigger>
-            <SelectContent className="SelectCourse">
-              {courses.map((course) => (
-                <SelectItem key={course.id} value={course.id.toString()}>
-                  {course.courseName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="min-h-screen">
+      <TopNavBar title="Project Configuration" showBackButton={true} showUserInfo={true} />
+
+      <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
+        <SectionCard title="Select Course">
+          <div className="space-y-4">
+            <Select onValueChange={handleCourseChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Course" />
+              </SelectTrigger>
+              <SelectContent>
+                {courses.map((course) => (
+                  <SelectItem key={course.id} value={course.id.toString()}>
+                    {course.courseName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </SectionCard>
+
         {selectedCourse && (
           <>
-            <div className="margintop">
-              <h2>Enrolled Projects</h2>
-              <div className="project-container">
-                <ul className="project-list">
-                  {enrolledProjects.map((project) => (
-                    <li key={project} className="project-item">
-                      <span>{project}</span>
-                      <div className="project-buttons">
-
-                        {projectRoles[project] === "owner" && (
-                          <Dialog onOpenChange={(open) => {
-                            if (open) {
-                              handleProjectChange(project);
-                            } else {
-                              setMessage("");
-                              setNewURL("");
-                            }
-                          }}>
-                            <DialogTrigger asChild>
-                              <Button
-                                className="editButton"
-                                type="button"
-                              >
-                                <img src={Edit} alt="Edit" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="DialogContent">
-                              <DialogHeader>
-                                <DialogTitle className="DialogTitle">
-                                  Edit Project URL
-                                </DialogTitle>
-                              </DialogHeader>
-                              <div className="mb-4 space-y-3">
-                                <div className="break-words text-sm text-gray-700">
-                                  <span className="font-semibold">Current URL: </span>
-                                  {url ? <span className="break-all">{url}</span> : <span className="italic">No URL currently set</span>}
-                                </div>
-                                <input
-                                  type="text"
-                                  className="w-full rounded border border-gray-300 p-2"
-                                  placeholder="Enter new URL"
-                                  value={newURL}
-                                  onChange={(e) => setNewURL(e.target.value)}
-                                />
-                              </div>
-                              <DialogFooter>
-                                <Button
-                                  className="create"
-                                  variant="primary"
-                                  onClick={handleChangeURL}
-                                >
-                                  Save
+            {/* Enrolled Projects Section */}
+            <SectionCard title="Enrolled Projects">
+              <div className="space-y-2">
+                {enrolledProjects.length > 0 ? (
+                  enrolledProjects.map((project) => (
+                    <Card key={project}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{project}</p>
+                          {projectRoles[project] === "owner" && (
+                            <p className="text-xs text-slate-500">Owner</p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {projectRoles[project] === "owner" && (
+                            <Dialog onOpenChange={(open) => {
+                              if (open) {
+                                handleProjectChange(project);
+                              } else {
+                                setMessage("");
+                                setNewURL("");
+                              }
+                            }}>
+                              <DialogTrigger asChild>
+                                <Button variant="primary" className="px-3 py-1 text-sm">
+                                  Edit URL
                                 </Button>
-                              </DialogFooter>
-                              {message && <div className="Message">{message}</div>}
-                            </DialogContent>
-                          </Dialog>
-                        )}
-
-                        <Button
-                          className="leaveButton"
-                          type="button"
-                          onClick={() => handleLeave(project)}
-                        >
-                          Leave
-                        </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Edit Project URL</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="break-words text-sm">
+                                    <p className="font-semibold text-slate-700">Current URL:</p>
+                                    {url ? (
+                                      <p className="break-all text-slate-600">{url}</p>
+                                    ) : (
+                                      <p className="italic text-slate-400">No URL currently set</p>
+                                    )}
+                                  </div>
+                                  <Input
+                                    type="text"
+                                    label="New URL"
+                                    placeholder="Enter new URL"
+                                    value={newURL}
+                                    onChange={(e) => setNewURL(e.target.value)}
+                                  />
+                                  {message && (
+                                    <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                                      {message}
+                                    </div>
+                                  )}
+                                </div>
+                                <DialogFooter>
+                                  <Button onClick={handleChangeURL}>Save</Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                          <Button
+                            variant="destructive"
+                            className="px-3 py-1 text-sm"
+                            onClick={() => handleLeave(project)}
+                          >
+                            Leave
+                          </Button>
+                        </div>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    </Card>
+                  ))
+                ) : (
+                  <p className="text-slate-500">No enrolled projects</p>
+                )}
               </div>
-            </div>
+            </SectionCard>
 
-            <div className="margintop">
-              <h2>Available Projects</h2>
-              <Select onValueChange={setSelectedAvailableProject}>
-                <SelectTrigger className="SelectTriggerProject">
-                  <SelectValue placeholder="Select Project to Join" />
-                </SelectTrigger>
-                <SelectContent className="SelectContentProject">
-                  {availableProjects.map((project) => (
-                    <SelectItem key={project} value={project}>
-                      {project}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedAvailableProject && (
-                <Dialog>
-                  <DialogTrigger asChild>
+            {/* Available Projects Section */}
+            <SectionCard title="Available Projects">
+              <div className="space-y-4">
+                <Select onValueChange={setSelectedAvailableProject}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Project to Join" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableProjects.map((project) => (
+                      <SelectItem key={project} value={project}>
+                        {project}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {selectedAvailableProject && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="primary">Join</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Join Project</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <Input
+                          type="text"
+                          label="Role"
+                          placeholder="Enter your role"
+                          value={memberRole}
+                          onChange={(e) => setMemberRole(e.target.value)}
+                        />
+                        {message && (
+                          <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                            {message}
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          onClick={() => handleJoin(selectedAvailableProject, memberRole)}
+                        >
+                          Join
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
+            </SectionCard>
+
+            {/* Create Project Section */}
+            <SectionCard title="Create New Project">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>Create Project</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create Project</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <Input
+                      type="text"
+                      label="Project Name"
+                      placeholder="Enter project name"
+                      value={createdProject}
+                      error={error}
+                      onChange={(e) => {
+                        setCreatedProject(e.target.value);
+                        validateProjectName(e.target.value);
+                      }}
+                    />
+                    {message && (
+                      <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                        {message}
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
                     <Button
-                      className="joinButton"
-                      type="button"
+                      onClick={() => handleCreateAndJoin(createdProject)}
+                      disabled={!!error}
                     >
-                      Join
+                      Create
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="DialogContent">
-                    <DialogHeader>
-                      <DialogTitle className="DialogTitle">
-                        Join Project
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="RoleInput">
-                      <div className="Role">Role: </div>
-                      <input
-                        type="text"
-                        className="ProjAdmin-inputBox"
-                        placeholder="Enter your role"
-                        value={memberRole}
-                        onChange={(e) => setMemberRole(e.target.value)}
-                      />
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        className="create"
-                        variant="primary"
-                        onClick={() => handleJoin(selectedAvailableProject, memberRole)}
-                      >
-                        Join
-                      </Button>
-                    </DialogFooter>
-                    {message && <div className="Message">{message}</div>}
-                  </DialogContent>
-                </Dialog>
-              )}
-            </div>
-            {message && <div className="message">{message}</div>}
-
-            <Dialog>
-              <DialogTrigger asChild>
-                <div className="createButton">
-                  <Button
-                    className="createButton"
-                    type="button"
-                  >
-                    Create Project
-                  </Button>
-                </div>
-              </DialogTrigger>
-              <DialogContent className="DialogContent">
-                <DialogHeader>
-                  <DialogTitle className="DialogTitle">
-                    Create Project
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="ProjectInput">
-                  <div className="ProjectName">Project Name: </div>
-                  <input
-                    type="text"
-                    className="ProjAdmin-inputBox"
-                    placeholder="Enter project name"
-                    value={createdProject}
-                    onChange={(e) => {
-                      setCreatedProject(e.target.value);
-                      validateProjectName(e.target.value);
-                    }}
-                  />
-                  {error && <div className="ErrorMessage">{error}</div>}
-                </div>
-                <DialogFooter>
-                  <Button
-                    className="create"
-                    variant="primary"
-                    onClick={() => handleCreateAndJoin(createdProject)}
-                    disabled={!!error}
-                  >
-                    Create
-                  </Button>
-                </DialogFooter>
-                {message && <div className="Message">{message}</div>}
-              </DialogContent>
-            </Dialog>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </SectionCard>
           </>
         )}
-        {message && <div className="message">{message}</div>}
       </div>
     </div>
   );

@@ -123,7 +123,7 @@ const CourseWidget: React.FC<CourseProps> = ({
   // Early condidtional rendering
   if (action === "schedule" && course) {
     return (
-      <div>
+      <>
         <CourseAction
           label={label}
           type="schedule"
@@ -137,7 +137,7 @@ const CourseWidget: React.FC<CourseProps> = ({
             onClose={() => setShowSchedule(false)}
           />
         )}
-      </div>
+      </>
     );
   }
 
@@ -146,35 +146,33 @@ const CourseWidget: React.FC<CourseProps> = ({
    * Compound Component with CourseDialog, CourseAction and CourseForm
    */
   return (
-    <div>
-      <CourseDialog
-        isOpen={dialogState.isOpen}
-        title={`${action === "edit" ? "Edit" : "Create"} ${
-          type === "project" ? "Project" : "Course"
-        }`}
-        trigger={
-          <CourseAction
-            label={label}
-            type={type}
-            action={action}
-            onClick={handleStateDialog}
-            dataCy={`${action ? "edit" : "add"}-course-trigger`}
-          />
-        }
-        onClick={handleStateDialog}
-        onClose={closeDialog}
-        message={message || undefined}
-      >
-        <CourseForm
+    <CourseDialog
+      isOpen={dialogState.isOpen}
+      title={`${action === "edit" ? "Edit" : "Create"} ${
+        type === "project" ? "Project" : "Course"
+      }`}
+      trigger={
+        <CourseAction
+          label={label}
           type={type}
-          label={["Semester", "Course Name", "Students Can Create Project"]}
-          data={dialogState.data || undefined}
-          message={message || undefined}
-          onChange={updateDialogData}
-          onSubmit={handleSubmit}
+          action={action}
+          onClick={handleStateDialog}
+          dataCy={`${action ? "edit" : "add"}-course-trigger`}
         />
-      </CourseDialog>
-    </div>
+      }
+      onClick={handleStateDialog}
+      onClose={closeDialog}
+      message={message || undefined}
+    >
+      <CourseForm
+        type={type}
+        label={["Semester", "Course Name", "Students Can Create Project"]}
+        data={dialogState.data || undefined}
+        message={message || undefined}
+        onChange={updateDialogData}
+        onSubmit={handleSubmit}
+      />
+    </CourseDialog>
   );
 };
 export default CourseWidget;

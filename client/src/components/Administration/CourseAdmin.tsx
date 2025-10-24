@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import ReturnButton from "../Components/return";
-import Table from "../Components/Table";
+import TopNavBar from "../common/TopNavBar";
+import Table from "../common/Table";
+import SectionCard from "@/components/common/SectionCard";
 import CourseWidget from "./Course/CourseWidget";
 import { useCourse } from "@/hooks/useCourse";
 import { Course, Project } from "./Course/types";
@@ -51,7 +52,7 @@ const CourseAdmin: React.FC = () => {
       course.id,
       course.semester,
       course.courseName,
-      <div key={course.id} className="flex">
+      <div key={course.id} className="flex gap-2">
         <CourseWidget type="project" label="add" action="add" course={course} />
         <CourseWidget
           type="schedule"
@@ -70,7 +71,7 @@ const CourseAdmin: React.FC = () => {
         prj.id,
         prj.projectName,
         prj.courseId,
-        <div key={prj.id} className="flex">
+        <div key={prj.id} className="flex gap-2">
           <CourseWidget
             type="project"
             label="edit"
@@ -97,20 +98,12 @@ const CourseAdmin: React.FC = () => {
   }, []); // fetch courses only on mount
 
   return (
-    <div className="flex">
-      <div className="flex-1">
-        <ReturnButton />
-        <div className="DashboardContainer">
-          <h1>Manage Courses</h1>
-        </div>
+    <div className="min-h-screen">
+      <TopNavBar title="Manage Courses" showBackButton={true} showUserInfo={true} />
 
+      <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
         {/* Course Section */}
-        <div className="mt-4 flex bg-gray-500 p-3">
-          <h2 className="text-start text-2xl font-bold">
-            Course: {courses.length}
-          </h2>
-        </div>
-        <div className="w-full bg-white p-3">
+        <SectionCard title={`Courses (${courses.length})`}>
           <Table
             headings={["id", "semester", "name", "action"]}
             loading={isLoading}
@@ -122,13 +115,10 @@ const CourseAdmin: React.FC = () => {
           >
             <CourseWidget label="create" action="add" onFetch={fetchCourse} />
           </Table>
-        </div>
+        </SectionCard>
 
         {/* Project Section */}
-        <h2 className="mt-4 bg-gray-500 p-3 text-start text-2xl font-bold">
-          Projects: {projects.length}
-        </h2>
-        <div className="w-full bg-white p-3">
+        <SectionCard title={`Projects (${projects.length})`}>
           {projects && projects.length > 0 ? (
             <Table
               headings={["id", "projectName", "courseId", "actions"]}
@@ -140,9 +130,9 @@ const CourseAdmin: React.FC = () => {
               rowsPerPage={9}
             />
           ) : (
-            <p className="p-4 text-gray-500">No projects found</p>
+            <p className="text-slate-500">No projects found</p>
           )}
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

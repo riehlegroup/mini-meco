@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { API_BASE_URL } from "@/config/api";
+import authApi from "@/services/api/auth";
 import "./AuthScreens.css";
 
 const useQuery = () => {
@@ -19,25 +19,15 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const endpoint = "/user/password/reset";
-    const body = { token, newPassword };
+
+    if (!token) {
+      setMessage("Invalid or missing reset token");
+      return;
+    }
 
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
-
-      setMessage(data.message || "Password has been reset!");
+      await authApi.resetPassword(token, newPassword);
+      setMessage("Password has been reset successfully!");
     } catch (error: unknown) {
       if (error instanceof Error) {
         setMessage(error.message);

@@ -5,7 +5,7 @@ import {
   createCourseValidation,
   createProjectValidation,
 } from "@/hooks/useForm";
-import Button from "react-bootstrap/esm/Button";
+import Button from "@/components/common/Button";
 import { Message } from "./CourseMessage";
 import { cn } from "@/lib/utils";
 
@@ -84,7 +84,6 @@ export const DateInput: React.FC<DateInputProps> = ({
         value={value}
         onChange={(e) => onChange(new Date(e.target.value))}
         className="rounded border border-gray-300 bg-white px-3 py-2 text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        style={{ colorScheme: "auto" }}
       />
     </div>
   );

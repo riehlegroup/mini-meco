@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as Form from "@radix-ui/react-form";
 import * as Tabs from "@radix-ui/react-tabs";
-import EmailWidget from "@/components/Components/EmailWidget.tsx";
-import PasswordWidget from "@/components/Components/PasswordWidget";
-import { API_BASE_URL } from "@/config/api";
+import Input from "@/components/common/Input";
+import EmailWidget from "@/components/common/EmailWidget.tsx";
+import PasswordWidget from "@/components/common/PasswordWidget";
+import authApi from "@/services/api/auth";
+import AuthStorage from "@/services/storage/auth";
 
 const LoginScreen = () => {
   const navigate = useNavigate();
@@ -33,42 +35,26 @@ const LoginScreen = () => {
       return;
     }
 
-    const endpoint = action === "Registration" ? "/user" : "/session";
-    const body: { [key: string]: string } = {
-      email,
-      password,
-    };
-    // Add name to the body if the action is Registration (not Login)
-    if (action === "Registration") {
-      body.name = name;
-    }
-
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+      const authStorage = AuthStorage.getInstance();
 
-      const data = await response.json();
+      if (action === "Registration") {
+        const data = await authApi.register(email, password, name);
+        setMessage(data.message || "Registration successful! Please check your email to confirm your account.");
+      } else {
+        const data = await authApi.login(email, password);
+        console.log("Response data:", data);
 
-      console.log("Response data:", data);
+        authStorage.setToken(data.token);
+        authStorage.setUser({
+          email: data.email,
+          name: data.name,
+          githubUsername: data.githubUsername,
+        });
 
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
+        setMessage("Login successful!");
+        navigate("/dashboard");
       }
-
-      if (endpoint === "/session") {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("username", data.name);
-        localStorage.setItem("email", data.email);
-        localStorage.setItem("githubUsername", data.githubUsername);
-      }
-
-      setMessage(data.message || "Success!");
-      navigate("/dashboard");
     } catch (error: unknown) {
       if (error instanceof Error) {
         setMessage(error.message);
@@ -79,7 +65,7 @@ const LoginScreen = () => {
   };
 
   return (
-    <div className="flex h-full min-h-screen items-center justify-center p-8">
+    <div className="flex min-h-screen justify-center p-8 pt-20">
       <div className="w-full max-w-md">
         <h1 className="mb-8 text-center text-4xl font-bold text-slate-900">
           Welcome to Mini-Meco
@@ -112,23 +98,14 @@ const LoginScreen = () => {
             <Form.Root onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
               <Tabs.Content value="Registration" className="space-y-6">
                 <Form.Field name="name">
-                  <Form.Label className="mb-2 block text-sm font-medium text-slate-700">
-                    Name
-                  </Form.Label>
-                  <Form.Control asChild>
-                    <input
-                      type="text"
-                      placeholder="Please enter your name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-slate-900 transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </Form.Control>
-                  {validationOn && !name && (
-                    <Form.Message className="mt-2 text-sm text-red-600">
-                      Name is required
-                    </Form.Message>
-                  )}
+                  <Input
+                    type="text"
+                    label="Name"
+                    placeholder="Please enter your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    error={validationOn && !name ? "Name is required" : undefined}
+                  />
                 </Form.Field>
 
                 <Form.Field name="email">

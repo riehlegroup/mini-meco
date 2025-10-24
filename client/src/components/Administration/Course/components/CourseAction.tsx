@@ -39,19 +39,20 @@ export const CourseAction: React.FC<CourseActionProps> = ({
     }
   };
 
+  const isDelete = action === "delete";
+
   return (
-    <div
+    <button
       onClick={onClick}
       className={cn(
-        "flex size-full cursor-pointer items-center rounded bg-blue-600 px-3 py-1 text-white",
+        "flex items-center rounded px-3 py-1 text-white transition-colors",
+        isDelete ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700",
         className
       )}
       data-cy={dataCy || `${action}-${type}-trigger`}
-      role="button"
-      tabIndex={0}
       {...rest}
     >
       {label ? <span className="text-xs uppercase">{label}</span> : getIcon()}
-    </div>
+    </button>
   );
 };
