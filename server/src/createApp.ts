@@ -10,6 +10,7 @@ import { LegacyController } from './Controllers/LegacyController';
 import { IEmailService } from './Services/IEmailService';
 import { ConsoleEmailService } from './Services/ConsoleEmailService';
 import { SmtpEmailService } from './Services/SmtpEmailService';
+import { LocalMtaEmailService } from './Services/LocalMtaEmailService';
 import { EMAIL_CONFIG } from './Config/email';
 
 /**
@@ -28,18 +29,31 @@ export function createApp(db: Database): Application {
   });
 
   // Initialize email service based on environment
-  const emailService: IEmailService = process.env.NODE_ENV === 'production'
-    ? new SmtpEmailService(
+  let emailService: IEmailService;
+
+  if (process.env.NODE_ENV === 'production') {
+    // Production: use SMTP if credentials available, otherwise fallback to local MTA
+    if (process.env.EMAIL_USER_FAU && process.env.EMAIL_PASS_FAU) {
+      emailService = new SmtpEmailService(
         EMAIL_CONFIG.sender.name,
         EMAIL_CONFIG.sender.address,
         EMAIL_CONFIG.smtp.host,
         EMAIL_CONFIG.smtp.port,
         EMAIL_CONFIG.smtp.secure
-      )
-    : new ConsoleEmailService(
+      );
+    } else {
+      emailService = new LocalMtaEmailService(
         EMAIL_CONFIG.sender.name,
         EMAIL_CONFIG.sender.address
       );
+    }
+  } else {
+    // Development: log to console
+    emailService = new ConsoleEmailService(
+      EMAIL_CONFIG.sender.name,
+      EMAIL_CONFIG.sender.address
+    );
+  }
 
   // Initialize all controllers
   const courseController = new CourseController(db);
