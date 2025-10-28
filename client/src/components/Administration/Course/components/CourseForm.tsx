@@ -53,13 +53,16 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
 }: CheckboxFieldProps) => (
   <div className="flex items-center space-x-3 text-black">
     <input
-      className="mr-4 size-6 cursor-pointer appearance-none rounded-md border-2 border-gray-400 bg-white 
-            transition-all checked:bg-blue-600 checked:ring-2 checked:ring-white"
+      className="mr-4 size-6 cursor-pointer appearance-none rounded-md border-2 border-black bg-white
+            transition-all after:relative after:left-[3px]
+            after:top-[-2px] after:block after:size-3 after:rotate-45 after:border-b-2 after:border-r-2
+            after:border-white after:opacity-0 after:content-[''] checked:border-blue-600
+            checked:bg-blue-600 checked:after:opacity-100"
       type="checkbox"
       checked={checked}
       onChange={(e) => onChange(e.target.checked)}
     />
-    <label className="text-md">{label}</label>
+    <label className="text-md cursor-pointer" onClick={() => onChange(!checked)}>{label}</label>
   </div>
 );
 

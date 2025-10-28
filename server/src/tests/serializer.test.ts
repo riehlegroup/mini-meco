@@ -33,10 +33,10 @@ describe('Basic serializer read/write test', async () => {
     const c: Course = await dbsf.create("Course") as Course;
     c.setName("ADAP");
     c.setSemester("WS2425");
-    (new DatabaseWriter(db)).writeRoot(c);
+    await (new DatabaseWriter(db)).writeRoot(c);
     const result = db.all(`SELECT * FROM courses`);
     const courses = await (new DatabaseResultSetReader(result, db)).readRoot<Course>(Course) as Course[];
-    // expect(courses.length).toBe(1);
+    expect(courses.length).toBe(1);
     expect(courses[0].getName()).toBe("ADAP");
     const c2 = await oh.getCourse(c.getId(), db) as Course;
     expect(c2 !== null).toBe(true);

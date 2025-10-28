@@ -61,10 +61,17 @@ export async function seedDatabase(db: Database) {
     [2, 1, 'Developer']
   );
 
-  // Create sprints
+  // Create schedule for course
+  const now = Date.now();
   await db.run(
-    `INSERT INTO sprints (courseId, sprintName, endDate) VALUES (?, ?, ?)`,
-    [1, 'sprint0', '2024-12-31']
+    `INSERT INTO schedules (id, startDate, endDate) VALUES (?, ?, ?)`,
+    [1, Math.floor(now / 1000), Math.floor((now + 30 * 24 * 60 * 60 * 1000) / 1000)]
+  );
+
+  // Create submission date
+  await db.run(
+    `INSERT INTO submissions (id, scheduleId, submissionDate) VALUES (?, ?, ?)`,
+    [1, 1, Math.floor((now + 7 * 24 * 60 * 60 * 1000) / 1000)]
   );
 
   return db;

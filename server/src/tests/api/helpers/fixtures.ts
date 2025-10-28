@@ -39,7 +39,7 @@ export const validHappinessMetric = () => ({
   projectName: 'Test Project',
   userEmail: 'test@test.com',
   happiness: 4,
-  sprintName: 'sprint0',
+  submissionDateId: 1,
 });
 
 export const validStandup = () => ({
@@ -48,9 +48,4 @@ export const validStandup = () => ({
   doneText: 'Completed authentication',
   plansText: 'Will work on API tests',
   challengesText: 'Need more test coverage',
-});
-
-export const validSprints = () => ({
-  courseName: 'Test Course',
-  dates: ['2024-12-31', '2025-01-15', '2025-01-31'],
 });

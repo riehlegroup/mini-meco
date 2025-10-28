@@ -160,26 +160,6 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ course, onClose }) => {
     );
   };
 
-  const splitTimeboxesIntoColumns = () => {
-    const leftColumn: Date[] = [];
-    const rightColumn: Date[] = [];
-
-    submission.forEach((slot) => {
-      // Insert where fewer elements
-      if (
-        leftColumn.length < rightColumn.length ||
-        (leftColumn.length === rightColumn.length && leftColumn.length < 4)
-      ) {
-        leftColumn.push(slot);
-      } else {
-        rightColumn.push(slot);
-      }
-    });
-
-    return { leftColumn, rightColumn };
-  };
-  const { leftColumn, rightColumn } = splitTimeboxesIntoColumns();
-
   const formatDateWithLeadingZeros = (date: Date): string => {
     return date.toLocaleDateString("de-DE", {
       day: "2-digit",
@@ -188,16 +168,19 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ course, onClose }) => {
     });
   };
 
+  // Sort submission dates ascending
+  const sortedSubmissions = [...submission].sort((a, b) => a.getTime() - b.getTime());
+
   return (
     <div className="fixed inset-0 z-50 flex size-full items-center justify-center bg-gray-900/50">
-      <div className="mt-4 flex w-1/3 flex-col items-center justify-center rounded bg-white p-4 text-gray-500 shadow">
+      <div className="mt-4 flex max-h-[90vh] w-auto max-w-2xl flex-col items-center overflow-y-auto rounded bg-white p-6 text-gray-500 shadow">
         <h2 className="text-2xl font-bold text-black">Course Scheduler</h2>
         <h3>
           ID: {course.id}, Name: {course.courseName} and Semester:{" "}
           {course.semester}
         </h3>
 
-        <div className="flex w-fit flex-col items-center">
+        <div className="flex w-full flex-col items-center">
           <DateInput
             label="Course start:"
             value={startDate.toISOString().substring(0, 10)}
@@ -213,59 +196,42 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ course, onClose }) => {
           />
         </div>
 
-        <div className="mb-4 w-fit items-center">
+        <div className="mb-4 w-full">
           <h3 className="px-2 font-bold text-black">Submission:</h3>
-          <DateInput
-            label="Add Date:"
-            className="my-2 justify-center"
-            value={selectedDate.toISOString().substring(0, 10)}
-            onChange={(date) => {
-              setSelectedDate(date);
-              addSubmission(date);
-            }}
-          />
-          <div className="flex flex-row">
-            {/* Left Col */}
-            <div className="px-2">
-              <ul>
-                {leftColumn.map((slot, index) => (
-                  <li key={`left-${index}`} className="flex items-center gap-2 p-2">
-                    <span>{formatDateWithLeadingZeros(slot)}</span>
-                    <Button
-                      className="text-sm"
-                      variant="destructive"
-                      onClick={() => removeSubmission(slot)}
-                    >
-                      Remove
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Right Col */}
-            <div className="w-1/2 px-2">
-              <ul>
-                {rightColumn.map((slot, index) => (
-                  <li key={`right-${index}`} className="flex items-center gap-2 p-2">
-                    <span>{formatDateWithLeadingZeros(slot)}</span>
-                    <Button
-                      className="text-sm"
-                      variant="destructive"
-                      onClick={() => removeSubmission(slot)}
-                    >
-                      Remove
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="flex items-end justify-center gap-2">
+            <DateInput
+              label="Add Date:"
+              className="justify-center"
+              value={selectedDate.toISOString().substring(0, 10)}
+              onChange={setSelectedDate}
+            />
+            <Button
+              onClick={() => addSubmission(selectedDate)}
+            >
+              Add
+            </Button>
+          </div>
+          <div className="w-full px-2">
+            <ul>
+              {sortedSubmissions.map((slot, index) => (
+                <li key={`submission-${index}`} className="flex items-center justify-between gap-2 border-b p-2 last:border-b-0">
+                  <span>{formatDateWithLeadingZeros(slot)}</span>
+                  <Button
+                    className="text-sm"
+                    variant="destructive"
+                    onClick={() => removeSubmission(slot)}
+                  >
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
         {message && (
           <div
-            className={`mb-4 rounded p-3 ${
+            className={`mb-4 w-full rounded p-3 ${
               message.type === "success"
                 ? "bg-green-100 text-green-700"
                 : "bg-red-100 text-red-700"

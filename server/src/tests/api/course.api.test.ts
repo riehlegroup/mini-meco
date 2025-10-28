@@ -458,8 +458,16 @@ describe('Course API', () => {
     });
 
     it('should return 404 for non-existent schedule', async () => {
+      // Create a new course without a schedule
+      await request(app)
+        .post('/course')
+        .send({ courseName: 'Course Without Schedule', semester: 'SS2025' })
+        .expect(201);
+
+      const courseResult = await db.get('SELECT id FROM courses WHERE courseName = ?', ['Course Without Schedule']);
+
       const response = await request(app)
-        .get('/course/1/schedule')
+        .get(`/course/${courseResult.id}/schedule`)
         .expect(404);
 
       expect(response.body.success).toBe(false);

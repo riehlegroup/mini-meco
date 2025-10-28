@@ -49,11 +49,11 @@ export interface HappinessRating {
 }
 
 export interface StandupEmail {
-  userEmail: string;
   projectName: string;
-  yesterday: string;
-  today: string;
-  blockers: string;
+  userName: string;
+  doneText: string;
+  plansText: string;
+  challengesText: string;
   [key: string]: string;
 }
 

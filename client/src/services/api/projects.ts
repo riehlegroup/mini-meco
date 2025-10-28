@@ -157,11 +157,10 @@ const projectsApi = {
     );
   },
 
-  // Standup emails
   sendStandupEmail: (body: StandupEmail): Promise<Response> => {
     return ApiClient.getInstance().post<Response>(
       "/courseProject/standupsEmail",
-      body as Record<string, string>
+      body
     );
   },
 
