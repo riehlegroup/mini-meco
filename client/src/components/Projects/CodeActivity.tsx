@@ -75,7 +75,7 @@ const CodeActivity: React.FC = () => {
       try {
         const data = await ApiClient.getInstance().get<{ courseName: string }>(
           "/courseProject/course",
-          { projectName: encodeURIComponent(projectName) }
+          { projectName: projectName }
         );
         if (data && data.courseName) {
           setSelectedCourse(data.courseName);
@@ -129,8 +129,8 @@ const CodeActivity: React.FC = () => {
       const data = await ApiClient.getInstance().get<{ url: string; message?: string }>(
         "/user/project/url",
         {
-          userEmail: encodeURIComponent(user.email),
-          projectName: encodeURIComponent(projectName)
+          userEmail: user.email,
+          projectName: projectName
         }
       );
 
@@ -163,7 +163,7 @@ const CodeActivity: React.FC = () => {
       try {
         const fetchedSprints: Sprint[] = await ApiClient.getInstance().get<Sprint[]>(
           "/courseProject/sprints",
-          { courseName: encodeURIComponent(selectedCourse) }
+          { courseName: selectedCourse }
         );
 
         // Only have end date, so calculate start date

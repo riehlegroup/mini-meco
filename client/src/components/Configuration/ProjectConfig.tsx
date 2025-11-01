@@ -41,7 +41,7 @@ const ProjectConfig: React.FC = () => {
   } | null>(null);
   const [createdProject, setCreatedProject] = useState<string>("");
   const [memberRole, setMemberRole] = useState("");
-  const [projectRoles, setProjectRoles] = useState<{ [key: string]: string }>({});
+  const [projectRoles, setProjectRoles] = useState<{ [key: string]: string | null }>({});
   const [error, setError] = useState('');
 
 
@@ -109,20 +109,24 @@ const ProjectConfig: React.FC = () => {
         setEnrolledProjects(data.enrolledProjects.map((project) => project.projectName));
         setAvailableProjects(data.availableProjects.map((project) => project.projectName));
 
-        for (const project of data.enrolledProjects) {
-          try {
-            const roleData = await ApiClient.getInstance().get<{ role: string }>(
-              "/courseProject/user/role",
-              { projectName: encodeURIComponent(project.projectName), email: encodeURIComponent(userEmail) }
-            );
-            setProjectRoles((prevRoles) => ({
-              ...prevRoles,
-              [project.projectName]: roleData.role,
-            }));
-          } catch (error) {
-            console.error("Error fetching role:", error);
-          }
-        }
+        // Fetch all roles in parallel
+        const rolePromises = data.enrolledProjects.map(project =>
+          ApiClient.getInstance().get<{ role: string }>(
+            "/courseProject/user/role",
+            { projectName: project.projectName, email: userEmail }
+          ).then(roleData => ({ projectName: project.projectName, role: roleData.role }))
+            .catch(error => {
+              console.error(`Failed to fetch role for ${project.projectName}:`, error);
+              return { projectName: project.projectName, role: null };
+            })
+        );
+
+        const roleResults = await Promise.all(rolePromises);
+        const roles = Object.fromEntries(
+          roleResults.map(r => [r.projectName, r.role])
+        );
+        setProjectRoles(roles);
+        console.log("Fetched project roles:", roles);
       } catch (error) {
         console.error("Error fetching projects:", error);
       }
@@ -150,7 +154,7 @@ const ProjectConfig: React.FC = () => {
     try {
       const data = await ApiClient.getInstance().get<{ url: string }>(
         "/user/project/url",
-        { userEmail: encodeURIComponent(userEmail), projectName: encodeURIComponent(projectName) }
+        { userEmail: userEmail, projectName: projectName }
       );
 
       if (data && data.url) {
@@ -310,7 +314,7 @@ const ProjectConfig: React.FC = () => {
                           )}
                         </div>
                         <div className="flex gap-2">
-                          {projectRoles[project] === "owner" && (
+                          {projectRoles[project] === "owner" ? (
                             <Dialog onOpenChange={(open) => {
                               if (open) {
                                 handleProjectChange(project);
@@ -321,7 +325,7 @@ const ProjectConfig: React.FC = () => {
                             }}>
                               <DialogTrigger asChild>
                                 <Button variant="primary" className="px-3 py-1 text-sm">
-                                  Edit URL
+                                  Edit
                                 </Button>
                               </DialogTrigger>
                               <DialogContent>
@@ -355,6 +359,15 @@ const ProjectConfig: React.FC = () => {
                                 </DialogFooter>
                               </DialogContent>
                             </Dialog>
+                          ) : (
+                            <Button
+                              variant="primary"
+                              className="px-3 py-1 text-sm"
+                              disabled={true}
+                              title="You must be an owner to edit this course"
+                            >
+                              Edit
+                            </Button>
                           )}
                           <Button
                             variant="destructive"
