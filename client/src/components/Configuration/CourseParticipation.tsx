@@ -220,7 +220,7 @@ const CourseParticipation: React.FC = () => {
 
       <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
         {/* Enrolled Courses Section */}
-        <SectionCard title="Enrolled Projects">
+        <SectionCard title="Projects you are enrolled in">
           <div className="space-y-4">
             <Select
               onValueChange={(value) => {
@@ -228,7 +228,7 @@ const CourseParticipation: React.FC = () => {
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a project group" />
+                <SelectValue placeholder="Select Course" />
               </SelectTrigger>
               <SelectContent>
                 {courses.map((group, index) => (
@@ -301,7 +301,7 @@ const CourseParticipation: React.FC = () => {
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a project group" />
+                <SelectValue placeholder="Select Course" />
               </SelectTrigger>
               <SelectContent>
                 {courses.map((group, index) => (

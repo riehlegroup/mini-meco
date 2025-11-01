@@ -235,7 +235,7 @@ const ProjectConfig: React.FC = () => {
 
   const handleCreate = async (projectName: string) => {
     if (!selectedCourse?.id) {
-      setMessage("No project selected");
+      setMessage("No course selected");
       return;
     }
 
@@ -277,11 +277,11 @@ const ProjectConfig: React.FC = () => {
       <TopNavBar title="Project Configuration" showBackButton={true} showUserInfo={true} />
 
       <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
-        <SectionCard title="Select Project">
+        <SectionCard title="Select Course">
           <div className="space-y-4">
             <Select onValueChange={handleCourseChange}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select Project" />
+                <SelectValue placeholder="Select Course" />
               </SelectTrigger>
               <SelectContent>
                 {courses.map((course) => (
