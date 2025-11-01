@@ -10,6 +10,7 @@ class AuthStorage {
   private readonly EMAIL_KEY = "email";
   private readonly USER_NAME_KEY = "username";
   private readonly USER_ROLE_KEY = "userRole";
+  private readonly GITHUB_USERNAME_KEY = "githubUsername";
 
   private constructor() {}
 
@@ -38,6 +39,7 @@ class AuthStorage {
     const email = localStorage.getItem(this.EMAIL_KEY);
     const userName = localStorage.getItem(this.USER_NAME_KEY);
     const userRole = localStorage.getItem(this.USER_ROLE_KEY);
+    const githubUsername = localStorage.getItem(this.GITHUB_USERNAME_KEY);
 
     if (!email) {
       return null;
@@ -47,6 +49,7 @@ class AuthStorage {
       email,
       name: userName || undefined,
       userRole: userRole || undefined,
+      githubUsername: githubUsername || undefined,
     };
   }
 
@@ -59,6 +62,9 @@ class AuthStorage {
     }
     if (user.userRole) {
       localStorage.setItem(this.USER_ROLE_KEY, user.userRole);
+    }
+    if (user.githubUsername) {
+      localStorage.setItem(this.GITHUB_USERNAME_KEY, user.githubUsername);
     }
   }
 
@@ -86,6 +92,14 @@ class AuthStorage {
     localStorage.setItem(this.USER_ROLE_KEY, role);
   }
 
+  getGithubUsername(): string | null {
+    return localStorage.getItem(this.GITHUB_USERNAME_KEY);
+  }
+
+  setGithubUsername(username: string): void {
+    localStorage.setItem(this.GITHUB_USERNAME_KEY, username);
+  }
+
   // Authentication state
   isAuthenticated(): boolean {
     return this.getToken() !== null;
@@ -97,6 +111,7 @@ class AuthStorage {
     localStorage.removeItem(this.EMAIL_KEY);
     localStorage.removeItem(this.USER_NAME_KEY);
     localStorage.removeItem(this.USER_ROLE_KEY);
+    localStorage.removeItem(this.GITHUB_USERNAME_KEY);
   }
 }
 
