@@ -5,6 +5,7 @@ import { createTestDb, seedDatabase, getCourseByName } from './helpers/testDb';
 import { validCourse } from './helpers/fixtures';
 import { Application } from 'express';
 import { createApp } from '../../createApp';
+import { generateAdminToken, generateUserToken, createAuthHeader } from './helpers/authHelpers';
 
 describe('Course API', () => {
   let db: Database;
@@ -472,6 +473,182 @@ describe('Course API', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('Schedule not found for this course');
+    });
+  });
+
+  describe('DELETE /course/:id', () => {
+    beforeEach(async () => {
+      await seedDatabase(db);
+    });
+
+    it('should delete course without projects as admin', async () => {
+      const adminToken = generateAdminToken();
+
+      // Create a course without projects
+      await request(app)
+        .post('/course')
+        .send({ courseName: 'Course To Delete', semester: 'SS2025' })
+        .expect(201);
+
+      const courseResult = await db.get('SELECT id FROM courses WHERE courseName = ?', ['Course To Delete']);
+
+      const response = await request(app)
+        .delete(`/course/${courseResult.id}`)
+        .set('Authorization', createAuthHeader(adminToken))
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Course deleted successfully');
+
+      // Verify course is actually deleted
+      const deletedCourse = await db.get('SELECT * FROM courses WHERE id = ?', [courseResult.id]);
+      expect(deletedCourse).toBeUndefined();
+    });
+
+    it('should delete course and its schedule as admin', async () => {
+      const adminToken = generateAdminToken();
+
+      // Create a course with schedule but no projects
+      await request(app)
+        .post('/course')
+        .send({ courseName: 'Course With Schedule', semester: 'SS2025' })
+        .expect(201);
+
+      const courseResult = await db.get('SELECT id FROM courses WHERE courseName = ?', ['Course With Schedule']);
+
+      // Create schedule for this course
+      await request(app)
+        .post(`/course/${courseResult.id}/schedule`)
+        .send({
+          startDate: '2024-01-01',
+          endDate: '2024-12-31',
+          submissionDates: ['2024-06-15']
+        })
+        .expect(200);
+
+      // Delete the course
+      const response = await request(app)
+        .delete(`/course/${courseResult.id}`)
+        .set('Authorization', createAuthHeader(adminToken))
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+
+      // Verify schedule is also deleted
+      const schedule = await db.get('SELECT * FROM schedules WHERE id = ?', [courseResult.id]);
+      expect(schedule).toBeUndefined();
+
+      // Verify submissions are also deleted (cascade)
+      const submissions = await db.all('SELECT * FROM submissions WHERE scheduleId = ?', [courseResult.id]);
+      expect(submissions).toHaveLength(0);
+    });
+
+    it('should reject deletion of course with projects as admin', async () => {
+      const adminToken = generateAdminToken();
+
+      // Course ID 1 from seedDatabase has a project
+      const response = await request(app)
+        .delete('/course/1')
+        .set('Authorization', createAuthHeader(adminToken))
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Cannot delete course with existing projects');
+
+      // Verify course still exists
+      const course = await db.get('SELECT * FROM courses WHERE id = ?', [1]);
+      expect(course).toBeDefined();
+    });
+
+    it('should reject invalid course ID as admin', async () => {
+      const adminToken = generateAdminToken();
+
+      const response = await request(app)
+        .delete('/course/not-a-number')
+        .set('Authorization', createAuthHeader(adminToken))
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Course ID must be a valid number');
+    });
+
+    it('should return 404 for non-existent course as admin', async () => {
+      const adminToken = generateAdminToken();
+
+      const response = await request(app)
+        .delete('/course/999')
+        .set('Authorization', createAuthHeader(adminToken))
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Course not found');
+    });
+
+    it('should reject deletion by non-admin user', async () => {
+      const userToken = generateUserToken();
+
+      // Create a course without projects
+      await request(app)
+        .post('/course')
+        .send({ courseName: 'Course For Non-Admin Test', semester: 'SS2025' })
+        .expect(201);
+
+      const courseResult = await db.get('SELECT id FROM courses WHERE courseName = ?', ['Course For Non-Admin Test']);
+
+      const response = await request(app)
+        .delete(`/course/${courseResult.id}`)
+        .set('Authorization', createAuthHeader(userToken))
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Forbidden: Admin access required');
+
+      // Verify course still exists
+      const course = await db.get('SELECT * FROM courses WHERE id = ?', [courseResult.id]);
+      expect(course).toBeDefined();
+    });
+
+    it('should reject deletion without authentication', async () => {
+      // Create a course without projects
+      await request(app)
+        .post('/course')
+        .send({ courseName: 'Course For No Auth Test', semester: 'SS2025' })
+        .expect(201);
+
+      const courseResult = await db.get('SELECT id FROM courses WHERE courseName = ?', ['Course For No Auth Test']);
+
+      const response = await request(app)
+        .delete(`/course/${courseResult.id}`)
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Authentication required');
+
+      // Verify course still exists
+      const course = await db.get('SELECT * FROM courses WHERE id = ?', [courseResult.id]);
+      expect(course).toBeDefined();
+    });
+
+    it('should reject deletion with invalid token', async () => {
+      // Create a course without projects
+      await request(app)
+        .post('/course')
+        .send({ courseName: 'Course For Invalid Token Test', semester: 'SS2025' })
+        .expect(201);
+
+      const courseResult = await db.get('SELECT id FROM courses WHERE courseName = ?', ['Course For Invalid Token Test']);
+
+      const response = await request(app)
+        .delete(`/course/${courseResult.id}`)
+        .set('Authorization', 'Bearer invalid-token-123')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Invalid token');
+
+      // Verify course still exists
+      const course = await db.get('SELECT * FROM courses WHERE id = ?', [courseResult.id]);
+      expect(course).toBeDefined();
     });
   });
 });

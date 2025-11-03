@@ -251,6 +251,51 @@ export class CourseManager implements IManager {
   }
 
   /**
+   * Deletes a course from the database.
+   * @param courseId ID of the course to delete
+   * @returns True if deletion was successful, false if course not found
+   * @throws IllegalArgumentException if course has projects
+   */
+  async deleteCourse(courseId: number): Promise<boolean> {
+    try {
+      // Check if course exists
+      const course = await this.db.get(
+        "SELECT id FROM courses WHERE id = ?",
+        [courseId]
+      );
+
+      if (!course) {
+        return false;
+      }
+
+      // Check if course has projects
+      const projects = await this.db.all(
+        "SELECT id FROM projects WHERE courseId = ?",
+        [courseId]
+      );
+
+      if (projects && projects.length > 0) {
+        throw new IllegalArgumentException(
+          "Cannot delete course with existing projects. Please delete all projects first."
+        );
+      }
+
+      // Delete submissions first
+      await this.db.run("DELETE FROM submissions WHERE scheduleId = ?", [courseId]);
+
+      // Delete schedule
+      await this.db.run("DELETE FROM schedules WHERE id = ?", [courseId]);
+
+      // Delete the course
+      await this.db.run("DELETE FROM courses WHERE id = ?", [courseId]);
+
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * Saves or updates a course schedule with submission dates.
    * @param courseId ID of the course
    * @param startDate Schedule start date

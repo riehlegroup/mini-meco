@@ -5,13 +5,14 @@ import SectionCard from "@/components/common/SectionCard";
 import CourseWidget from "./Course/CourseWidget";
 import { useCourse } from "@/hooks/useCourse";
 import { Course, Project } from "./Course/types";
+import CourseMessage from "./Course/components/CourseMessage";
 
 /**
  * Course Admin panel for managing courses and their projects.
  * Handles course or project fetching, and table rendering.
  */
 const CourseAdmin: React.FC = () => {
-  const { courses, getCourses, getCourseProjects } = useCourse();
+  const { courses, getCourses, getCourseProjects, message, clearMessage, deleteCourse } = useCourse();
   const [isLoading, setLoading] = useState<boolean>(false);
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -52,7 +53,7 @@ const CourseAdmin: React.FC = () => {
       course.id,
       course.semester,
       course.courseName,
-      <div key={course.id} className="flex gap-2">
+      <div key={course.id} className="flex flex-wrap gap-2">
         <CourseWidget type="project" label="add" action="add" course={course} onFetch={fetchCourse} />
         <CourseWidget
           type="schedule"
@@ -60,9 +61,17 @@ const CourseAdmin: React.FC = () => {
           action="schedule"
           course={course}
         />
+        <CourseWidget
+          type="course"
+          label="delete"
+          action="delete"
+          course={course}
+          onFetch={fetchCourse}
+          onDeleteCourse={deleteCourse}
+        />
       </div>,
     ]);
-  }, [courses, fetchCourse]);
+  }, [courses, fetchCourse, deleteCourse]);
 
   const tableProjects = useMemo(() => {
     return projects.map((prj) => {
@@ -71,7 +80,7 @@ const CourseAdmin: React.FC = () => {
         prj.id,
         prj.projectName,
         prj.courseId,
-        <div key={prj.id} className="flex gap-2">
+        <div key={prj.id} className="flex flex-wrap gap-2">
           <CourseWidget
             type="project"
             label="edit"
@@ -102,6 +111,30 @@ const CourseAdmin: React.FC = () => {
       <TopNavBar title="Manage Courses" showBackButton={true} showUserInfo={true} />
 
       <div className="mx-auto max-w-6xl space-y-4 p-4 pt-16">
+        {/* Display message if present */}
+        {message && (
+          <div className={`relative rounded-md border p-4 shadow-sm ${
+            message.type === "error"
+              ? "border-red-300 bg-red-50"
+              : message.type === "success"
+              ? "border-green-300 bg-green-50"
+              : "border-blue-300 bg-blue-50"
+          }`}>
+            <div className="flex items-start justify-between gap-3">
+              <CourseMessage message={message} />
+              <button
+                onClick={clearMessage}
+                className="shrink-0 rounded-md p-1 hover:bg-gray-200"
+                aria-label="Dismiss message"
+              >
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Course Section */}
         <SectionCard title={`Courses (${courses.length})`}>
           <Table

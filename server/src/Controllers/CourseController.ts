@@ -6,6 +6,7 @@ import { Exception } from "../Exceptions/Exception";
 import { IllegalArgumentException } from "../Exceptions/IllegalArgumentException";
 import { IAppController } from "./IAppController";
 import { ObjectHandler } from "../ObjectHandler";
+import { checkAdmin } from "../Middleware/checkAdmin";
 
 /**
  * Controller for handling course-related HTTP requests.
@@ -27,6 +28,7 @@ export class CourseController implements IAppController {
   init(app: Application): void {
     app.post("/course", this.createCourse.bind(this));
     app.get("/course", this.getAllCourse.bind(this));
+    app.delete("/course/:id", checkAdmin(this.db), this.deleteCourse.bind(this));
     app.post("/courseProject", this.addProject.bind(this));
     app.get("/course/courseProjects", this.getCourseProjects.bind(this));
     app.put("/courseProject/:id", this.updateProject.bind(this));
@@ -128,12 +130,31 @@ export class CourseController implements IAppController {
     }
   }
 
-  // This method is not implemented yet
   async deleteCourse(req: Request, res: Response): Promise<void> {
     try {
-      res.status(501).json({
-        success: false,
-        message: "Course update not implemented yet",
+      const courseId = parseInt(req.params.id);
+
+      if (isNaN(courseId)) {
+        res.status(400).json({
+          success: false,
+          message: "Course ID must be a valid number"
+        });
+        return;
+      }
+
+      const deleted = await this.cm.deleteCourse(courseId);
+
+      if (!deleted) {
+        res.status(404).json({
+          success: false,
+          message: "Course not found"
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Course deleted successfully",
       });
     } catch (error) {
       this.handleError(res, error as Exception);

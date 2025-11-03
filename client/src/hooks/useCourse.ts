@@ -108,11 +108,27 @@ export const useCourse = () => {
     try {
       await courseApi.deleteCourse(course.id);
       showMessage(
-        `Course: ${course.courseName} delete successfully`,
+        `Course "${course.courseName}" deleted successfully`,
         "success"
       );
     } catch (error) {
-      showMessage(`Course: ${course.courseName} Error: ${error}`, "error");
+      // Extract the error message from the API response
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      console.error("Delete course error:", errorMessage);
+
+      // Try to extract just the message from the JSON error string
+      try {
+        const match = errorMessage.match(/"message":"([^"]+)"/);
+        if (match && match[1]) {
+          showMessage(match[1], "error", false); // Don't auto-hide errors
+          return;
+        }
+      } catch {
+        // If parsing fails, fall through to default message
+      }
+
+      showMessage(`Failed to delete course "${course.courseName}"`, "error", false); // Don't auto-hide errors
     }
   };
 
@@ -207,8 +223,13 @@ export const useCourse = () => {
     }
   };
 
+  const clearMessage = () => {
+    setMessage(null);
+  };
+
   return {
     message,
+    clearMessage,
     DEFAULT,
     courses,
     setCourses,

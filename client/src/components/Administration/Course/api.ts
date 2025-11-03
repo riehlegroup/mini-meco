@@ -60,7 +60,7 @@ const courseApi = {
   },
 
   deleteCourse: (id: number): Promise<Response> => {
-    return ApiClient.getInstance().delete<Response>(`/course/${id}`);
+    return ApiClient.getInstance().delete<Response>(`/course/${id}`, true);
   },
 
   addProject: (body: {

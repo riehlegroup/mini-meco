@@ -6,6 +6,7 @@ import { CourseAction } from "./components/CourseAction";
 import { useCourse } from "@/hooks/useCourse";
 import { useDialog } from "@/hooks/useDialog";
 import CourseSchedule from "./components/CourseSchedule";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface CourseProps {
   label?: string;
@@ -14,6 +15,7 @@ interface CourseProps {
   course?: Course | null;
   project?: Project | null;
   onFetch?: () => void;
+  onDeleteCourse?: (course: Course) => void;
 }
 
 /**
@@ -29,9 +31,11 @@ const CourseWidget: React.FC<CourseProps> = ({
   course = null,
   project = null,
   onFetch,
+  onDeleteCourse,
 }: CourseProps) => {
-  const { message, DEFAULT, createCourse, updateCourse, addProject, updateProject, deleteProject } = useCourse();
+  const { message, DEFAULT, createCourse, updateCourse, addProject, updateProject, deleteProject, deleteCourse: deleteCourseFromHook } = useCourse();
   const [showSchedule, setShowSchedule] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const {
     dialogState,
     openCreateDialog,
@@ -81,8 +85,16 @@ const CourseWidget: React.FC<CourseProps> = ({
         onFetch?.();
       }
     } else if (type === "course" && course) {
-      // Course delete functionality (not implemented yet)
-      console.warn("Course delete not implemented");
+      setShowDeleteConfirmation(true);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (type === "course" && course) {
+      // Use the passed deleteCourse function if available, otherwise use the hook's version
+      const deleteFunc = onDeleteCourse || deleteCourseFromHook;
+      await deleteFunc(course);
+      onFetch?.();
     }
   };
 
@@ -146,33 +158,47 @@ const CourseWidget: React.FC<CourseProps> = ({
    * Compound Component with CourseDialog, CourseAction and CourseForm
    */
   return (
-    <CourseDialog
-      isOpen={dialogState.isOpen}
-      title={`${action === "edit" ? "Edit" : "Create"} ${
-        type === "project" ? "Project" : "Course"
-      }`}
-      trigger={
-        <CourseAction
-          label={label}
-          type={type}
-          action={action}
-          onClick={handleStateDialog}
-          dataCy={`${action ? "edit" : "add"}-course-trigger`}
-        />
-      }
-      onClick={handleStateDialog}
-      onClose={closeDialog}
-      message={message || undefined}
-    >
-      <CourseForm
-        type={type}
-        label={["Term", "Course Name", "Students Can Create Project"]}
-        data={dialogState.data || undefined}
+    <>
+      <CourseDialog
+        isOpen={dialogState.isOpen}
+        title={`${action === "edit" ? "Edit" : "Create"} ${
+          type === "project" ? "Project" : "Course"
+        }`}
+        trigger={
+          <CourseAction
+            label={label}
+            type={type}
+            action={action}
+            onClick={handleStateDialog}
+            dataCy={`${action ? "edit" : "add"}-course-trigger`}
+          />
+        }
+        onClick={handleStateDialog}
+        onClose={closeDialog}
         message={message || undefined}
-        onChange={updateDialogData}
-        onSubmit={handleSubmit}
-      />
-    </CourseDialog>
+      >
+        <CourseForm
+          type={type}
+          label={["Term", "Course Name", "Students Can Create Project"]}
+          data={dialogState.data || undefined}
+          message={message || undefined}
+          onChange={updateDialogData}
+          onSubmit={handleSubmit}
+        />
+      </CourseDialog>
+
+      {type === "course" && course && (
+        <ConfirmationDialog
+          open={showDeleteConfirmation}
+          onOpenChange={setShowDeleteConfirmation}
+          title="Delete Course"
+          description={`Are you sure you want to delete course "${course.courseName}"? This will also delete the course schedule and submissions. This action cannot be undone.`}
+          onConfirm={handleConfirmDelete}
+          confirmText="Delete"
+          cancelText="Cancel"
+        />
+      )}
+    </>
   );
 };
 export default CourseWidget;
