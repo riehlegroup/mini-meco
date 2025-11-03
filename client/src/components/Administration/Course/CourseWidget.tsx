@@ -166,7 +166,7 @@ const CourseWidget: React.FC<CourseProps> = ({
     >
       <CourseForm
         type={type}
-        label={["Semester", "Course Name", "Students Can Create Project"]}
+        label={["Term", "Course Name", "Students Can Create Project"]}
         data={dialogState.data || undefined}
         message={message || undefined}
         onChange={updateDialogData}

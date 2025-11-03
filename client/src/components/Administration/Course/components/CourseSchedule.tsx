@@ -176,7 +176,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ course, onClose }) => {
       <div className="mt-4 flex max-h-[90vh] w-auto max-w-2xl flex-col items-center overflow-y-auto rounded bg-white p-6 text-gray-500 shadow">
         <h2 className="text-2xl font-bold text-black">Course Scheduler</h2>
         <h3>
-          ID: {course.id}, Name: {course.courseName} and Semester:{" "}
+          ID: {course.id}, Name: {course.courseName} and Term:{" "}
           {course.semester}
         </h3>
 

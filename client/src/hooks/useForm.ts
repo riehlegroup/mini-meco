@@ -36,7 +36,7 @@ const rules = {
 
 export const createCourseValidation = () => ({
   semester: [
-    rules.required("Semester"),
+    rules.required("Term"),
     rules.pattern(
       /^(ws|winter|ss|summer)\s*(?:(\d{2}|\d{4})(?:\/(\d{2}))?)$/,
       "Use format: WS24, SS25, WS24/25, Winter 2024 or Summer 2025"

@@ -71,7 +71,7 @@ export const useCourse = () => {
       );
     } catch (error) {
       showMessage(
-        `Fail to create Course: "${course.courseName}" for Semester: "${course.semester}, Error: ${error}"`,
+        `Fail to create Course: "${course.courseName}" for Term: "${course.semester}, Error: ${error}"`,
         "error"
       );
     }

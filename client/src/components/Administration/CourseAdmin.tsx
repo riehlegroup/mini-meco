@@ -105,7 +105,7 @@ const CourseAdmin: React.FC = () => {
         {/* Course Section */}
         <SectionCard title={`Courses (${courses.length})`}>
           <Table
-            headings={["id", "semester", "name", "action"]}
+            headings={["id", "term", "name", "action"]}
             loading={isLoading}
             loadData={() => {
               fetchCourse();
