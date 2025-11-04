@@ -1,0 +1,81 @@
+import { Reader } from "../Serializer/Reader";
+import { Serializable } from "../Serializer/Serializable";
+import { Writer } from "../Serializer/Writer";
+import { Course } from "./Course";
+
+export class Term implements Serializable {
+  protected id: number;
+  protected termName: string | null = null;
+  protected displayName: string | null = null;
+  protected courses: Course[] = []; // 1:N relationship
+
+  constructor(id: number) {
+    this.id = id;
+  }
+
+  async readFrom(reader: Reader): Promise<void> {
+    this.id = reader.readNumber("id") as number;
+    this.termName = reader.readString("termName");
+    this.displayName = reader.readString("displayName");
+    this.courses = (await reader.readObjects("termId", "courses")) as Course[];
+  }
+
+  writeTo(writer: Writer): void {
+    writer.writeNumber("id", this.id);
+    writer.writeString("termName", this.termName);
+    writer.writeString("displayName", this.displayName);
+  }
+
+  // Getters
+  public getId(): number {
+    return this.id;
+  }
+
+  public getTermName(): string | null {
+    return this.termName;
+  }
+
+  public getDisplayName(): string | null {
+    return this.displayName;
+  }
+
+  public getCourses(): Course[] {
+    return [...this.courses];
+  }
+
+  // Setters
+  public setTermName(termName: string | null) {
+    this.termName = termName;
+  }
+
+  public setDisplayName(displayName: string | null) {
+    this.displayName = displayName;
+  }
+
+  // Composition methods for Course (1:N)
+  public addCourse(course: Course): void {
+    this.courses.push(course);
+  }
+
+  public removeCourse(course: Course | number): boolean {
+    if (typeof course === "number") {
+      const index = this.courses.findIndex(c => c.getId() === course);
+      if (index !== -1) {
+        this.courses.splice(index, 1);
+        return true;
+      }
+      return false;
+    } else {
+      const index = this.courses.indexOf(course);
+      if (index !== -1) {
+        this.courses.splice(index, 1);
+        return true;
+      }
+      return false;
+    }
+  }
+
+  public findCourseById(courseId: number): Course | undefined {
+    return this.courses.find(course => course.getId() === courseId);
+  }
+}

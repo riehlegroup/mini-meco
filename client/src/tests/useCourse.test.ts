@@ -71,7 +71,7 @@ describe("useCourse", () => {
     const mockCourses = [
       {
         id: 1,
-        semester: "test driven development",
+        termId: 1,
         courseName: "adapV2",
         projects: [],
         studentsCanCreateProject: false,
@@ -100,7 +100,7 @@ describe("useCourse", () => {
     // Call method that should set a success message
     await hook.createCourse({
       id: 1,
-      semester: "ws2024",
+      termId: 1,
       courseName: "adap",
       projects: [],
       studentsCanCreateProject: true,
@@ -122,7 +122,7 @@ describe("useCourse", () => {
 
     await hook.createCourse({
       id: 1,
-      semester: "TDD 2025",
+      termId: 1,
       courseName: "adapV2",
       projects: [],
       studentsCanCreateProject: false,
@@ -145,7 +145,7 @@ describe("useCourse", () => {
     const setMessage = vi.mocked(React.useState).mock.results[1].value[1];
     await hook.createCourse({
       id: 1,
-      semester: "Summer 2025",
+      termId: 1,
       courseName: "Test Course",
       projects: [],
       studentsCanCreateProject: false,

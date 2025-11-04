@@ -90,6 +90,11 @@ export const DateInput: React.FC<DateInputProps> = ({
   );
 };
 
+interface SelectOption {
+  id: number;
+  label: string;
+}
+
 interface CourseFormProps {
   type: "course" | "project" | "schedule";
   label: string[];
@@ -99,6 +104,7 @@ interface CourseFormProps {
   onChange: (data: Course | Project) => void;
   onSubmit: () => Promise<void>;
   children?: React.ReactNode;
+  termOptions?: SelectOption[];
 }
 
 /**
@@ -115,6 +121,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
   onSubmit,
   submitText = "submit",
   children,
+  termOptions = [],
 }: CourseFormProps) => {
   const isCourse = type === "course";
 
@@ -136,7 +143,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
   // Narrow the handleChanges using type assertions
   const courseHandleChanges = handleChanges as (
     key: keyof Course,
-    value: string | boolean
+    value: string | boolean | number
   ) => void;
   const projectHandleChanges = handleChanges as (
     key: keyof Project,
@@ -147,7 +154,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
     await onSubmit();
   };
 
-  const getButtonStyles = (isValid: boolean, message?: Message) => {
+  const getButtonStyles = (isValid: boolean, message?: Message): string => {
     return cn(
       "w-fit rounded px-3 py-1 transition-all duration-300 bg-blue-500 text-white hover:bg-blue-600",
       {
@@ -165,12 +172,27 @@ export const CourseForm: React.FC<CourseFormProps> = ({
     <div className="space-y-4">
       {isCourse ? (
         <>
-          <FormField
-            label={label[0]}
-            value={(formData as Course).semester || ""}
-            error={(errors as Record<keyof Course, string>).semester}
-            onChange={(value) => courseHandleChanges("semester", value)}
-          />
+          <div className="flex-col items-center justify-between">
+            <h4>{label[0]}: </h4>
+            <select
+              className={cn(
+                "h-10 w-full bg-gray-50 text-black border border-gray-300 rounded px-2",
+                (errors as Record<keyof Course, string>).termId && "border-red-500 ring-1 ring-red-500"
+              )}
+              value={(formData as Course).termId || 0}
+              onChange={(e) => courseHandleChanges("termId", parseInt(e.target.value))}
+            >
+              <option value={0}>Select a term...</option>
+              {termOptions.map((term) => (
+                <option key={term.id} value={term.id}>
+                  {term.label}
+                </option>
+              ))}
+            </select>
+            {(errors as Record<keyof Course, string>).termId && (
+              <div className="text-sm text-red-500">{(errors as Record<keyof Course, string>).termId}</div>
+            )}
+          </div>
           <FormField
             label={label[1]}
             value={(formData as Course).courseName || ""}

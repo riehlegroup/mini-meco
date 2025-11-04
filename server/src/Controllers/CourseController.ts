@@ -47,7 +47,7 @@ export class CourseController implements IAppController {
         data: courses.map((course) => ({
           id: course.getId(),
           courseName: course.getName(),
-          semester: course.getSemester(),
+          termId: course.getTerm()?.getId(),
         })),
       });
     } catch (error) {
@@ -57,28 +57,34 @@ export class CourseController implements IAppController {
 
   async createCourse(req: Request, res: Response): Promise<void> {
     try {
-      const { courseName, semester } = req.body;
-      if (
-        !courseName ||
-        !semester ||
-        typeof (courseName || semester) !== "string"
-      ) {
+      const { courseName, termId } = req.body;
+
+      if (!courseName || typeof courseName !== "string") {
         res.status(400).json({
           success: false,
-          message: "Course name and semester is required and must be a string",
+          message: "Course name is required and must be a string",
         });
         return;
       }
 
-      if (typeof semester !== 'string') {
+      if (termId === undefined || termId === null) {
         res.status(400).json({
           success: false,
-          message: "Semester must be a string",
+          message: "Term ID is required",
         });
         return;
       }
 
-      const course = await this.cm.createCourse(courseName, semester);
+      const id = parseInt(termId);
+      if (isNaN(id)) {
+        res.status(400).json({
+          success: false,
+          message: "Term ID must be a valid number",
+        });
+        return;
+      }
+
+      const course = await this.cm.createCourse(courseName, id);
 
       res.status(201).json({
         success: true,

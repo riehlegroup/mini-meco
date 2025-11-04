@@ -3,6 +3,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import { Database } from 'sqlite';
 import { CourseController } from './Controllers/CourseController';
+import { TermController } from './Controllers/TermController';
 import { AuthController } from './Controllers/AuthController';
 import { UserController } from './Controllers/UserController';
 import { ProjectController } from './Controllers/ProjectController';
@@ -57,6 +58,7 @@ export function createApp(db: Database): Application {
 
   // Initialize all controllers
   const courseController = new CourseController(db);
+  const termController = new TermController(db);
   const authController = new AuthController(db, emailService);
   const userController = new UserController(db, emailService);
   const projectController = new ProjectController(db, emailService);
@@ -64,6 +66,7 @@ export function createApp(db: Database): Application {
 
   // Register all routes
   courseController.init(app);
+  termController.init(app);
   authController.init(app);
   userController.init(app);
   projectController.init(app);

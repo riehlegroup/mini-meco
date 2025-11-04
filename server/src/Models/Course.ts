@@ -3,12 +3,12 @@ import { Serializable } from "../Serializer/Serializable";
 import { Writer } from "../Serializer/Writer";
 import { CourseProject } from "./CourseProject";
 import { CourseSchedule } from "./CourseSchedule";
-import { Semester } from "./Semester";
+import { Term } from "./Term";
 
 export class Course implements Serializable {
   protected id: number;
   protected name: string | null = null;
-  protected semester: string | null = null;
+  protected term: Term | null = null;
   protected projects: CourseProject[] = []; // 1:N
   protected schedular: CourseSchedule | null = null; // 1:1
   constructor(id: number) {
@@ -18,18 +18,14 @@ export class Course implements Serializable {
   async readFrom(reader: Reader): Promise<void> {
     this.id = reader.readNumber("id") as number;
     this.name = reader.readString("courseName");
-    this.semester = reader.readString("semester");
+    this.term = (await reader.readObject("termId", "Term")) as Term;
     this.projects = (await reader.readObjects("courseId", "projects")) as CourseProject[];
   }
 
   writeTo(writer: Writer): void {
     writer.writeNumber("id", this.id);
     writer.writeString("courseName", this.name);
-    if (this.semester) {
-      writer.writeString("semester", this.semester.toString());
-    } else {
-      writer.writeString("semester", null);
-    }
+    writer.writeObject<Term>("termId", this.term);
   }
 
   // Getters
@@ -41,8 +37,8 @@ export class Course implements Serializable {
     return this.name;
   }
 
-  public getSemester(): string | null {
-    return this.semester ? this.semester.toString() : null;
+  public getTerm(): Term | null {
+    return this.term;
   }
 
   public getProjects(): CourseProject[] {
@@ -55,13 +51,8 @@ export class Course implements Serializable {
     this.name = name;
   }
 
-  public setSemester(semester: string | null) {
-    if (semester) {
-      let s = Semester.create(semester);
-      this.semester = new String(s).toString(); // === s.toString()
-    } else {
-      this.semester = null;
-    }
+  public setTerm(term: Term | null): void {
+    this.term = term;
   }
 
   // Composition methods for CourseProject (1:N)

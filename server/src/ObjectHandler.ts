@@ -3,6 +3,7 @@ import { User } from "./Models/User";
 import { CourseProject } from "./Models/CourseProject";
 import { CourseSchedule, SubmissionDate } from "./Models/CourseSchedule";
 import { Course } from "./Models/Course";
+import { Term } from "./Models/Term";
 import { DatabaseResultSetReader } from "./Serializer/DatabaseResultSetReader";
 import { Serializable } from "./Serializer/Serializable";
 
@@ -63,7 +64,15 @@ export class ObjectHandler {
             return null;
         }
         // Creates a Course instance and fills it with attribute values.
-        return (new DatabaseResultSetReader(courseRow, db)).readRoot<Course>(Course) as Promise<Course>; 
+        return (new DatabaseResultSetReader(courseRow, db)).readRoot<Course>(Course) as Promise<Course>;
+    }
+
+    public async getTerm(id: number, db: Database): Promise<Term | null> {
+        const termRow = await db.get('SELECT * FROM terms WHERE id = ?', [id]);
+        if (!termRow) {
+            return null;
+        }
+        return (new DatabaseResultSetReader(termRow, db)).readRoot<Term>(Term) as Promise<Term>;
     }
 
     async getSerializableFromId(id: number, className: string, db: Database): Promise<Serializable | null> {
@@ -74,6 +83,8 @@ export class ObjectHandler {
                 return this.getCourse(id, db);
             case "CourseProject":
                 return this.getCourseProject(id, db);
+            case "Term":
+                return this.getTerm(id, db);
             default:
                 return null;
         }

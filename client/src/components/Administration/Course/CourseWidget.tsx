@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Course, Project } from "./types";
 import { CourseDialog } from "./components/CourseDialog";
 import { CourseForm } from "./components/CourseForm";
 import { CourseAction } from "./components/CourseAction";
 import { useCourse } from "@/hooks/useCourse";
+import { useTerm } from "@/hooks/useTerm";
 import { useDialog } from "@/hooks/useDialog";
 import CourseSchedule from "./components/CourseSchedule";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -34,6 +35,7 @@ const CourseWidget: React.FC<CourseProps> = ({
   onDeleteCourse,
 }: CourseProps) => {
   const { message, DEFAULT, createCourse, updateCourse, addProject, updateProject, deleteProject, deleteCourse: deleteCourseFromHook } = useCourse();
+  const { terms, getTerms } = useTerm();
   const [showSchedule, setShowSchedule] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const {
@@ -43,6 +45,17 @@ const CourseWidget: React.FC<CourseProps> = ({
     closeDialog,
     updateDialogData,
   } = useDialog<Course | Project>(DEFAULT);
+
+  useEffect(() => {
+    getTerms();
+  }, []);
+
+  // Refresh terms when dialog opens for course creation/editing
+  useEffect(() => {
+    if (dialogState.isOpen && type === "course") {
+      getTerms();
+    }
+  }, [dialogState.isOpen, type]);
 
   // Handles dialog state changes based on the action type
   const handleStateDialog = () => {
@@ -184,6 +197,7 @@ const CourseWidget: React.FC<CourseProps> = ({
           message={message || undefined}
           onChange={updateDialogData}
           onSubmit={handleSubmit}
+          termOptions={terms.map(t => ({ id: t.id, label: t.displayName || t.termName }))}
         />
       </CourseDialog>
 

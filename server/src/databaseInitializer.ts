@@ -48,19 +48,28 @@ export async function initializeDB(filename: string, createAdmin = true) {
   }
 
   await db.exec(`
-    CREATE TABLE IF NOT EXISTS projects (
+    CREATE TABLE IF NOT EXISTS terms (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      projectName TEXT UNIQUE,
-      courseId INTEGER,
-      FOREIGN KEY (courseId) REFERENCES courses(id)
+      termName TEXT UNIQUE,
+      displayName TEXT
     )
   `);
 
   await db.exec(`
     CREATE TABLE IF NOT EXISTS courses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      semester TEXT,
-      courseName TEXT UNIQUE
+      courseName TEXT UNIQUE,
+      termId INTEGER NOT NULL,
+      FOREIGN KEY (termId) REFERENCES terms(id)
+    )
+  `);
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS projects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      projectName TEXT UNIQUE,
+      courseId INTEGER,
+      FOREIGN KEY (courseId) REFERENCES courses(id)
     )
   `);
 

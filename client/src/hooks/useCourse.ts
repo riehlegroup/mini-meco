@@ -5,7 +5,7 @@ import { Message } from "@/components/Administration/Course/components/CourseMes
 
 const DEFAULT: Course = {
   id: 0,
-  semester: "",
+  termId: 0,
   courseName: "",
   projects: [],
   studentsCanCreateProject: false,
@@ -40,7 +40,7 @@ export const useCourse = () => {
 
       const validCourses = response.map((course) => ({
         id: course.id ?? 0,
-        semester: course.semester ?? "",
+        termId: course.termId ?? 0,
         courseName: course.courseName ?? "",
         projects: course.projects ?? [],
         studentsCanCreateProject: course.studentsCanCreateProject ?? false,
@@ -58,7 +58,7 @@ export const useCourse = () => {
     setMessage(null);
 
     const body = {
-      semester: course.semester,
+      termId: course.termId,
       courseName: course.courseName,
       studentsCanCreateProject: course.studentsCanCreateProject,
     };
@@ -71,7 +71,7 @@ export const useCourse = () => {
       );
     } catch (error) {
       showMessage(
-        `Fail to create Course: "${course.courseName}" for Term: "${course.semester}, Error: ${error}"`,
+        `Fail to create Course: "${course.courseName}", Error: ${error}"`,
         "error"
       );
     }
@@ -84,7 +84,7 @@ export const useCourse = () => {
 
     const body = {
       id: course.id,
-      semester: course.semester,
+      termId: course.termId,
       courseName: course.courseName,
       studentsCanCreateProject: course.studentsCanCreateProject,
     };
@@ -112,23 +112,19 @@ export const useCourse = () => {
         "success"
       );
     } catch (error) {
-      // Extract the error message from the API response
       const errorMessage = error instanceof Error ? error.message : String(error);
-
       console.error("Delete course error:", errorMessage);
 
-      // Try to extract just the message from the JSON error string
+      // Try to parse JSON error message, fall back to simple message
+      let displayMessage = `Failed to delete course "${course.courseName}"`;
       try {
-        const match = errorMessage.match(/"message":"([^"]+)"/);
-        if (match && match[1]) {
-          showMessage(match[1], "error", false); // Don't auto-hide errors
-          return;
-        }
+        const parsed = JSON.parse(errorMessage);
+        if (parsed.message) displayMessage = parsed.message;
       } catch {
-        // If parsing fails, fall through to default message
+        // Use default message
       }
 
-      showMessage(`Failed to delete course "${course.courseName}"`, "error", false); // Don't auto-hide errors
+      showMessage(displayMessage, "error", false); // Don't auto-hide errors
     }
   };
 

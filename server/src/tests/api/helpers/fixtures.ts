@@ -8,9 +8,14 @@ export const validUser = () => ({
   password: 'ValidPass123!',
 });
 
+export const validTerm = () => ({
+  termName: 'WS2024',
+  displayName: 'Winter 2024/25',
+});
+
 export const validCourse = () => ({
   courseName: 'Software Engineering',
-  semester: 'WS2024',
+  termId: 1,
 });
 
 export const validProject = () => ({

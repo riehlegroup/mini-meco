@@ -43,10 +43,16 @@ export async function seedDatabase(db: Database) {
     ['removed', 'removed@test.com', await hashPassword('Test123!'), 'removed', 'USER']
   );
 
+  // Create test term
+  await db.run(
+    `INSERT INTO terms (termName, displayName) VALUES (?, ?)`,
+    ['WS2024', 'Winter 2024/25']
+  );
+
   // Create test course
   await db.run(
-    `INSERT INTO courses (courseName, semester) VALUES (?, ?)`,
-    ['Test Course', 'WS2024']
+    `INSERT INTO courses (courseName, termId) VALUES (?, ?)`,
+    ['Test Course', 1]
   );
 
   // Create test project
@@ -108,4 +114,11 @@ export async function getCourseByName(db: Database, courseName: string) {
  */
 export async function getProjectByName(db: Database, projectName: string) {
   return await db.get('SELECT * FROM projects WHERE projectName = ?', [projectName]);
+}
+
+/**
+ * Gets a term by name
+ */
+export async function getTermByName(db: Database, termName: string) {
+  return await db.get('SELECT * FROM terms WHERE termName = ?', [termName]);
 }
