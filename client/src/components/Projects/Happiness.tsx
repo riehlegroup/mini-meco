@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import AuthStorage from "@/services/storage/auth";
 import ApiClient from "@/services/api/client";
+import coursesApi from "@/services/api/courses";
 
 const Happiness: React.FC = (): React.ReactNode => {
   const location = useLocation();
@@ -38,6 +39,8 @@ const Happiness: React.FC = (): React.ReactNode => {
   } | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [userCurrentHappiness, setUserCurrentHappiness] = useState<number | null>(null);
+  const [courseId, setCourseId] = useState<number | null>(null);
+  const [allSubmissionDates, setAllSubmissionDates] = useState<string[]>([]);
 
   useEffect(() => {
     const projectNameFromState = location.state?.projectName;
@@ -65,6 +68,45 @@ const Happiness: React.FC = (): React.ReactNode => {
 
     fetchUserData();
   }, []);
+
+  // Fetch courseId from projectName
+  useEffect(() => {
+    const fetchCourseId = async () => {
+      if (!projectName) return;
+
+      try {
+        const course = await ApiClient.getInstance().get<{ courseId: number; courseName: string }>(
+          "/courseProject/course",
+          { projectName: projectName }
+        );
+        setCourseId(course.courseId);
+      } catch (error) {
+        console.error("Error fetching project course ID:", error);
+      }
+    };
+
+    fetchCourseId();
+  }, [projectName]);
+
+  // Fetch all submission dates from course schedule
+  useEffect(() => {
+    const fetchSchedule = async () => {
+      if (!courseId) return;
+
+      try {
+        const schedule = await coursesApi.getSchedule(courseId);
+        if (schedule && schedule.submissionDates) {
+          // Sort submission dates chronologically
+          const sortedDates = [...schedule.submissionDates].sort();
+          setAllSubmissionDates(sortedDates);
+        }
+      } catch (error) {
+        console.error("Error fetching course schedule:", error);
+      }
+    };
+
+    fetchSchedule();
+  }, [courseId]);
 
   useEffect(() => {
     const fetchNextSubmission = async () => {
@@ -170,27 +212,65 @@ const Happiness: React.FC = (): React.ReactNode => {
   });
 
   // Create mapping: submissionDate → sprint number
-  const uniqueDates = [...new Set(happinessData.map(d => d.submissionDate))].sort();
   const dateToSprintNumber: { [date: string]: number } = {};
-  uniqueDates.forEach((date, index) => {
-    dateToSprintNumber[date] = index + 1; // Sprint 1, Sprint 2, etc.
-  });
+  if (allSubmissionDates.length > 0) {
+    allSubmissionDates.forEach((date, index) => {
+      dateToSprintNumber[date] = index + 1; // Sprint 1, Sprint 2, etc.
+    });
+  } else {
+    const uniqueTimestamps = [...new Set(happinessData.map(d => d.submissionDate))];
+    const uniqueDates = uniqueTimestamps
+      .map(ts => new Date(Number(ts) * 1000).toISOString())
+      .sort();
+    uniqueDates.forEach((date, index) => {
+      dateToSprintNumber[date] = index + 1;
+    });
+  }
 
   // Transform data for chart
-  const formattedData: { [sprintLabel: string]: { sprintLabel: string; [userEmail: string]: number | string } } = {};
+  const formattedData: { [sprintLabel: string]: { sprintLabel: string; [userEmail: string]: number | string | undefined } } = {};
+  const now = new Date();
+
+  // Find the next submission date after now (current sprint)
+  const futureDates = Object.keys(dateToSprintNumber)
+    .map(dateKey => ({ dateKey, date: new Date(dateKey) }))
+    .filter(item => item.date > now)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  const nextSubmissionDate = futureDates.length > 0 ? futureDates[0].dateKey : null;
+
+  // Pre-populate past sprints + current sprint (next upcoming submission date)
+  Object.entries(dateToSprintNumber).forEach(([dateKey, sprintNumber]) => {
+    const submissionDate = new Date(dateKey);
+    if (submissionDate <= now || dateKey === nextSubmissionDate) {
+      const sprintLabel = `Sprint ${sprintNumber}`;
+      formattedData[sprintLabel] = { sprintLabel };
+    }
+  });
+
   happinessData.forEach((data) => {
     if (!data.submissionDate) return;
 
-    const sprintLabel = `Sprint ${dateToSprintNumber[data.submissionDate]}`;
+    const dateKey = new Date(Number(data.submissionDate) * 1000).toISOString();
+    const sprintNumber = dateToSprintNumber[dateKey];
 
-    if (!formattedData[sprintLabel]) {
-      formattedData[sprintLabel] = { sprintLabel };
+    if (!sprintNumber) {
+      console.warn(`No sprint number found for date ${dateKey} (timestamp: ${data.submissionDate})`);
+      return;
     }
-    formattedData[sprintLabel][data.userEmail] = data.happiness;
+
+    const sprintLabel = `Sprint ${sprintNumber}`;
+    if (formattedData[sprintLabel]) {
+      formattedData[sprintLabel][data.userEmail] = data.happiness;
+    }
   });
 
-  // Convert to array for recharts
-  const chartData = Object.values(formattedData);
+  // Convert to array for recharts, sorted by sprint number
+  const chartData = Object.values(formattedData).sort((a, b) => {
+    const sprintA = parseInt(a.sprintLabel.replace('Sprint ', ''));
+    const sprintB = parseInt(b.sprintLabel.replace('Sprint ', ''));
+    return sprintA - sprintB;
+  });
 
   return (
     <div className="min-h-screen">

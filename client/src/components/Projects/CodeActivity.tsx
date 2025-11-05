@@ -188,10 +188,10 @@ const CodeActivity: React.FC = () => {
         const fetchedSprints: Sprint[] = scheduleData.data.submissionDates.map((submissionDate, index) => ({
           id: index,
           projectGroupName: "",
-          sprintName: `sprint${index}`,
+          sprintName: `Sprint ${index + 1}`,
           endDate: new Date(submissionDate).getTime() / 1000, // Convert to seconds
           startDate: new Date(), // Will be calculated below
-          name: `sprint${index}`
+          name: `Sprint ${index + 1}`
         }));
 
         // Calculate start dates
