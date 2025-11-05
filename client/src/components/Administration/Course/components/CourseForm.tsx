@@ -77,13 +77,24 @@ export const DateInput: React.FC<DateInputProps> = ({
   onChange,
   className = "",
 }: DateInputProps) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dateValue = e.target.value;
+    if (dateValue) {
+      const newDate = new Date(dateValue);
+      // Only call onChange if the date is valid
+      if (!isNaN(newDate.getTime())) {
+        onChange(newDate);
+      }
+    }
+  };
+
   return (
     <div className={`flex items-center ${className}`}>
       {label && <label className="mr-2 text-gray-500">{label}</label>}
       <input
         type="date"
         value={value}
-        onChange={(e) => onChange(new Date(e.target.value))}
+        onChange={handleChange}
         className="rounded border border-gray-300 bg-white px-3 py-2 text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
       />
     </div>
