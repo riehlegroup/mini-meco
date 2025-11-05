@@ -26,7 +26,7 @@ const authApi = {
 
   forgotPassword: async (email: string): Promise<{ success: boolean }> => {
     return ApiClient.getInstance().post<{ success: boolean }>(
-      "/user/forgotPassword",
+      "/user/password/forgotMail",
       { email }
     );
   },
@@ -36,14 +36,14 @@ const authApi = {
     newPassword: string
   ): Promise<{ success: boolean }> => {
     return ApiClient.getInstance().post<{ success: boolean }>(
-      "/user/resetPassword",
+      "/user/password/reset",
       { token, newPassword }
     );
   },
 
   confirmEmail: async (token: string): Promise<{ success: boolean }> => {
     return ApiClient.getInstance().post<{ success: boolean }>(
-      "/user/confirmedEmail",
+      "/user/confirmation/email",
       { token }
     );
   },
