@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import AuthStorage from "@/services/storage/auth";
 import ApiClient from "@/services/api/client";
+import coursesApi from "@/services/api/courses";
 
 const ProjectConfig: React.FC = () => {
   const navigate = useNavigate();
@@ -70,17 +71,11 @@ const ProjectConfig: React.FC = () => {
     fetchUserData();
 
     const fetchCourses = async () => {
-      const userEmail = authStorage.getEmail();
-      if (userEmail) {
-        try {
-          const data = await ApiClient.getInstance().get<Array<{ id: number; courseName: string }>>(
-            "/user/courses",
-            { userEmail }
-          );
-          setCourses(data);
-        } catch (error) {
-          console.error("Error fetching courses:", error);
-        }
+      try {
+        const data = await coursesApi.getCourses();
+        setCourses(data);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
       }
     };
 
