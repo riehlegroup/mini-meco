@@ -68,7 +68,7 @@ const LoginScreen = () => {
     <div className="flex min-h-screen justify-center p-8 pt-20">
       <div className="w-full max-w-md">
         <h1 className="mb-8 text-center text-4xl font-bold text-slate-900">
-          Welcome to Mini-Meco
+          Happy Go Lucky
         </h1>
 
         <Tabs.Root

@@ -102,7 +102,7 @@ export class ProjectController implements IAppController {
 
     try {
       const course = await this.db.get(
-        `SELECT c.courseName FROM courses c
+        `SELECT c.id as courseId, c.courseName FROM courses c
          INNER JOIN projects p ON p.courseId = c.id
          WHERE p.projectName = ?`,
         [projectName]

@@ -43,24 +43,23 @@ const courseApi = {
   },
 
   createCourse: (body: {
-    semester: string;
+    termId: number;
     courseName: string;
     studentsCanCreateProject: boolean;
   }): Promise<Response> => {
-    console.log("[courseAPI] create: ", body);
-    return ApiClient.getInstance().post<Response>("/course", body);
+    return ApiClient.getInstance().post<Response>("/course", body, true);
   },
 
   updateCourse: (body: {
-    semester: string;
+    termId: number;
     courseName: string;
     studentsCanCreateProject: boolean;
   }): Promise<Response> => {
-    return ApiClient.getInstance().post<Response>("/course", body);
+    return ApiClient.getInstance().post<Response>("/course", body, true);
   },
 
   deleteCourse: (id: number): Promise<Response> => {
-    return ApiClient.getInstance().delete<Response>(`/course/${id}`);
+    return ApiClient.getInstance().delete<Response>(`/course/${id}`, true);
   },
 
   addProject: (body: {
@@ -68,7 +67,7 @@ const courseApi = {
     courseId: number;
     studentsCanJoinProject: boolean;
   }): Promise<Response> => {
-    return ApiClient.getInstance().post<Response>("/courseProject", body);
+    return ApiClient.getInstance().post<Response>("/courseProject", body, true);
   },
 
   updateProject: (

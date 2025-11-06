@@ -1,10 +1,9 @@
 export interface Course {
   id: number;
-  semester: string;
+  termId: number;
   courseName: string;
   projects: Project[];
   studentsCanCreateProject: boolean;
-  [key: string]: number | string | boolean | Project[];
 }
 
 export interface Project {

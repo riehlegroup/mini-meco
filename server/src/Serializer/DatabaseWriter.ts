@@ -5,6 +5,7 @@ import { User } from "../Models/User";
 import { Writer } from "./Writer";
 import { CourseProject } from "../Models/CourseProject";
 import { Course } from "../Models/Course";
+import { Term } from "../Models/Term";
 import { Reader } from "./Reader";
 import { CourseSchedule, SubmissionDate } from "../Models/CourseSchedule";
 
@@ -107,6 +108,8 @@ export class DatabaseWriter implements Writer {
             return "users";
         } else if (s instanceof Course) {
             return "courses";
+        } else if (s instanceof Term) {
+            return "terms";
         } else if (s instanceof CourseProject) {
             return "projects";
         } else if (s instanceof CourseSchedule) {

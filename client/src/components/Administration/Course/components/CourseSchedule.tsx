@@ -68,6 +68,13 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ course, onClose }) => {
     });
   };
 
+  const handleRegenerateWeekly = () => {
+    const weeklySubmissions = generateWeeklySubmission();
+    setSubmission(weeklySubmissions);
+    setMessage({ text: "Weekly submissions regenerated", type: "success" });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
@@ -176,8 +183,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ course, onClose }) => {
       <div className="mt-4 flex max-h-[90vh] w-auto max-w-2xl flex-col items-center overflow-y-auto rounded bg-white p-6 text-gray-500 shadow">
         <h2 className="text-2xl font-bold text-black">Course Scheduler</h2>
         <h3>
-          ID: {course.id}, Name: {course.courseName} and Semester:{" "}
-          {course.semester}
+          ID: {course.id}, Name: {course.courseName}
         </h3>
 
         <div className="flex w-full flex-col items-center">
@@ -198,7 +204,14 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ course, onClose }) => {
 
         <div className="mb-4 w-full">
           <h3 className="px-2 font-bold text-black">Submission:</h3>
-          <div className="flex items-end justify-center gap-2">
+          <div className="my-2 flex justify-center">
+            <Button
+              onClick={handleRegenerateWeekly}
+            >
+              Regenerate Weekly Submissions
+            </Button>
+          </div>
+          <div className="my-2 flex items-end justify-center gap-2">
             <DateInput
               label="Add Date:"
               className="justify-center"

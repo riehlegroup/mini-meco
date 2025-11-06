@@ -5,7 +5,6 @@ import { Course } from "../Models/Course";
 import { CourseProject } from "../Models/CourseProject";
 import { DatabaseWriter } from "../Serializer/DatabaseWriter";
 import { MethodFailedException } from "../Exceptions/MethodFailedException";
-import { Semester } from "../Models/Semester";
 import { IllegalArgumentException } from "../Exceptions/IllegalArgumentException";
 import { ProjectManager } from "./ProjectManager";
 import { CourseSchedule, SubmissionDate } from "../Models/CourseSchedule";
@@ -30,14 +29,18 @@ export class CourseManager implements IManager {
 
   /**
    * Creates a new course if it does not already exist.
-   * If a course with the same name exists, ensures it belongs to the same semester.
    * @returns Newly created or existing course
    */
-  async createCourse(courseName: string, semester: string): Promise<Course> {
-    let validSemester = Semester.create(semester);
+  async createCourse(courseName: string, termId: number): Promise<Course> {
     let course: Course | null = null;
 
     try {
+      // Validate term exists
+      const term = await this.oh.getTerm(termId, this.db);
+      if (!term) {
+        throw new IllegalArgumentException("Term not found");
+      }
+
       const existingRow = await this.db.get(
         "SELECT * FROM courses WHERE courses.courseName = ?",
         [courseName]
@@ -50,36 +53,22 @@ export class CourseManager implements IManager {
             "Existing course could not be loaded."
           );
         }
-
-        // If Semester is set and does not match semester
-        if (
-          course.getSemester() &&
-          course.getSemester() !== validSemester.toString()
-        ) {
-          throw new IllegalArgumentException(
-            `Course with name "${courseName}" already exists with semester "${course.getSemester()}". ` +
-              `Cannot create another course with the same name for semester "${validSemester.toString()}".`
-          );
-        }
-        course.setName(semester);
-
-        const writer = new DatabaseWriter(this.db);
-        writer.writeRoot(course);
-
         return course;
       } else {
-        // Create new Course-Entity
-        course = (await this.factory.create("Course")) as Course;
-        if (!course) {
+        const result = await this.db.run(
+          "INSERT INTO courses (courseName, termId) VALUES (?, ?)",
+          [courseName, termId]
+        );
+
+        if (!result || !result.lastID) {
           throw new MethodFailedException("Course creation failed.");
         }
 
-        course.setName(courseName);
-        course.setSemester(semester);
-
-        // Write Root-Object Course
-        const writer = new DatabaseWriter(this.db);
-        writer.writeRoot(course);
+        // Load the newly created course
+        course = await this.oh.getCourse(result.lastID, this.db);
+        if (!course) {
+          throw new MethodFailedException("Failed to load newly created course.");
+        }
 
         return course;
       }
@@ -243,6 +232,51 @@ export class CourseManager implements IManager {
 
       // Also delete related user_projects entries
       await this.db.run("DELETE FROM user_projects WHERE projectId = ?", [projectId]);
+
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Deletes a course from the database.
+   * @param courseId ID of the course to delete
+   * @returns True if deletion was successful, false if course not found
+   * @throws IllegalArgumentException if course has projects
+   */
+  async deleteCourse(courseId: number): Promise<boolean> {
+    try {
+      // Check if course exists
+      const course = await this.db.get(
+        "SELECT id FROM courses WHERE id = ?",
+        [courseId]
+      );
+
+      if (!course) {
+        return false;
+      }
+
+      // Check if course has projects
+      const projects = await this.db.all(
+        "SELECT id FROM projects WHERE courseId = ?",
+        [courseId]
+      );
+
+      if (projects && projects.length > 0) {
+        throw new IllegalArgumentException(
+          "Cannot delete course with existing projects. Please delete all projects first."
+        );
+      }
+
+      // Delete submissions first
+      await this.db.run("DELETE FROM submissions WHERE scheduleId = ?", [courseId]);
+
+      // Delete schedule
+      await this.db.run("DELETE FROM schedules WHERE id = ?", [courseId]);
+
+      // Delete the course
+      await this.db.run("DELETE FROM courses WHERE id = ?", [courseId]);
 
       return true;
     } catch (error) {

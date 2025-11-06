@@ -54,7 +54,7 @@ const CodeActivity: React.FC = () => {
     email: string;
     githubUsername: string;
   } | null>(null);
-  const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [commitsPerSprint, setCommitsPerSprint] = useState<CommitCount[]>([]);
 
   const octokit = new Octokit({
@@ -73,12 +73,12 @@ const CodeActivity: React.FC = () => {
       if (!projectName) return;
 
       try {
-        const data = await ApiClient.getInstance().get<{ courseName: string }>(
+        const data = await ApiClient.getInstance().get<{ courseId: number; courseName: string }>(
           "/courseProject/course",
-          { projectName: encodeURIComponent(projectName) }
+          { projectName: projectName }
         );
-        if (data && data.courseName) {
-          setSelectedCourse(data.courseName);
+        if (data && data.courseId) {
+          setSelectedCourseId(data.courseId);
         }
       } catch (error) {
         console.error("Error fetching project group:", error);
@@ -129,8 +129,8 @@ const CodeActivity: React.FC = () => {
       const data = await ApiClient.getInstance().get<{ url: string; message?: string }>(
         "/user/project/url",
         {
-          userEmail: encodeURIComponent(user.email),
-          projectName: encodeURIComponent(projectName)
+          userEmail: user.email,
+          projectName: projectName
         }
       );
 
@@ -158,27 +158,53 @@ const CodeActivity: React.FC = () => {
 
   useEffect(() => {
     const fetchAllSprints = async () => {
-      if (!selectedCourse) return;
+      if (!selectedCourseId) {
+        console.log("No selectedCourseId, skipping sprint fetch");
+        return;
+      }
 
+      console.log("Fetching schedule for courseId:", selectedCourseId);
       try {
-        const fetchedSprints: Sprint[] = await ApiClient.getInstance().get<Sprint[]>(
-          "/courseProject/sprints",
-          { courseName: encodeURIComponent(selectedCourse) }
-        );
+        const scheduleData = await ApiClient.getInstance().get<{
+          success: boolean;
+          data: {
+            id: number;
+            startDate: string;
+            endDate: string;
+            submissionDates: string[];
+          };
+        }>(`/course/${selectedCourseId}/schedule`);
 
-        // Only have end date, so calculate start date
+        console.log("Schedule data received:", scheduleData);
+
+        if (!scheduleData.success || !scheduleData.data) {
+          console.log("No schedule found for course");
+          return;
+        }
+
+        console.log("Submission dates:", scheduleData.data.submissionDates);
+
+        // Map submission dates to sprints
+        const fetchedSprints: Sprint[] = scheduleData.data.submissionDates.map((submissionDate, index) => ({
+          id: index,
+          projectGroupName: "",
+          sprintName: `Sprint ${index + 1}`,
+          endDate: new Date(submissionDate).getTime() / 1000, // Convert to seconds
+          startDate: new Date(), // Will be calculated below
+          name: `Sprint ${index + 1}`
+        }));
+
+        // Calculate start dates
         const updatedSprints = fetchedSprints.map(
           (sprint, index) => {
-            const sprintName = `sprint${index}`;
             if (index === 0) {
-              // First sprint: start date is one week before end date
-              const startDate = new Date(sprint.endDate);
-              startDate.setDate(startDate.getDate() - 7);
-              return { ...sprint, startDate, name: sprintName };
+              // First sprint: start date is course start or one week before end date
+              const startDate = new Date(scheduleData.data.startDate);
+              return { ...sprint, startDate };
             } else {
               // Other sprints: start date is the previous sprint's end date
-              const startDate = new Date(fetchedSprints[index - 1].endDate);
-              return { ...sprint, startDate, name: sprintName };
+              const startDate = new Date(fetchedSprints[index - 1].endDate * 1000);
+              return { ...sprint, startDate };
             }
           }
         );
@@ -190,7 +216,7 @@ const CodeActivity: React.FC = () => {
     };
 
     fetchAllSprints();
-  }, [selectedCourse]);
+  }, [selectedCourseId]);
   
 
   const getCommits = async (page: number) => {
@@ -226,7 +252,7 @@ const CodeActivity: React.FC = () => {
 
         const isWithinSprint = sprints.some((sprint) => {
           const sprintStart = new Date(sprint.startDate);
-          const sprintEnd = new Date(sprint.endDate);
+          const sprintEnd = new Date(sprint.endDate * 1000); // Convert from seconds to milliseconds
 
           return commitDate >= sprintStart && commitDate <= sprintEnd;
         });
@@ -276,7 +302,7 @@ const CodeActivity: React.FC = () => {
     const calculateCommitsPerSprint = () => {
       const commitsCount = sprints.map((sprint) => {
         const sprintStart = new Date(sprint.startDate);
-        const sprintEnd = new Date(sprint.endDate);
+        const sprintEnd = new Date(sprint.endDate * 1000); // Convert from seconds to milliseconds
         const commitsInSprint = commits.filter((commit) => {
           const commitDate = new Date(commit.commit.author?.date ?? 0);
           return commitDate >= sprintStart && commitDate <= sprintEnd;

@@ -6,6 +6,7 @@ import { Exception } from "../Exceptions/Exception";
 import { IllegalArgumentException } from "../Exceptions/IllegalArgumentException";
 import { IAppController } from "./IAppController";
 import { ObjectHandler } from "../ObjectHandler";
+import { checkAdmin } from "../Middleware/checkAdmin";
 
 /**
  * Controller for handling course-related HTTP requests.
@@ -27,6 +28,7 @@ export class CourseController implements IAppController {
   init(app: Application): void {
     app.post("/course", this.createCourse.bind(this));
     app.get("/course", this.getAllCourse.bind(this));
+    app.delete("/course/:id", checkAdmin(this.db), this.deleteCourse.bind(this));
     app.post("/courseProject", this.addProject.bind(this));
     app.get("/course/courseProjects", this.getCourseProjects.bind(this));
     app.put("/courseProject/:id", this.updateProject.bind(this));
@@ -45,7 +47,7 @@ export class CourseController implements IAppController {
         data: courses.map((course) => ({
           id: course.getId(),
           courseName: course.getName(),
-          semester: course.getSemester(),
+          termId: course.getTerm()?.getId(),
         })),
       });
     } catch (error) {
@@ -55,28 +57,34 @@ export class CourseController implements IAppController {
 
   async createCourse(req: Request, res: Response): Promise<void> {
     try {
-      const { courseName, semester } = req.body;
-      if (
-        !courseName ||
-        !semester ||
-        typeof (courseName || semester) !== "string"
-      ) {
+      const { courseName, termId } = req.body;
+
+      if (!courseName || typeof courseName !== "string") {
         res.status(400).json({
           success: false,
-          message: "Course name and semester is required and must be a string",
+          message: "Course name is required and must be a string",
         });
         return;
       }
 
-      if (typeof semester !== 'string') {
+      if (termId === undefined || termId === null) {
         res.status(400).json({
           success: false,
-          message: "Semester must be a string",
+          message: "Term ID is required",
         });
         return;
       }
 
-      const course = await this.cm.createCourse(courseName, semester);
+      const id = parseInt(termId);
+      if (isNaN(id)) {
+        res.status(400).json({
+          success: false,
+          message: "Term ID must be a valid number",
+        });
+        return;
+      }
+
+      const course = await this.cm.createCourse(courseName, id);
 
       res.status(201).json({
         success: true,
@@ -128,12 +136,31 @@ export class CourseController implements IAppController {
     }
   }
 
-  // This method is not implemented yet
   async deleteCourse(req: Request, res: Response): Promise<void> {
     try {
-      res.status(501).json({
-        success: false,
-        message: "Course update not implemented yet",
+      const courseId = parseInt(req.params.id);
+
+      if (isNaN(courseId)) {
+        res.status(400).json({
+          success: false,
+          message: "Course ID must be a valid number"
+        });
+        return;
+      }
+
+      const deleted = await this.cm.deleteCourse(courseId);
+
+      if (!deleted) {
+        res.status(404).json({
+          success: false,
+          message: "Course not found"
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Course deleted successfully",
       });
     } catch (error) {
       this.handleError(res, error as Exception);
