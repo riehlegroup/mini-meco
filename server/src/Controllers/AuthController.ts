@@ -170,7 +170,7 @@ export class AuthController implements IAppController {
         return;
       }
 
-      const token = jwt.sign({ id: user.getId() }, "your_jwt_secret", {
+      const token = jwt.sign({ id: user.getId() }, process.env.JWT_SECRET || "your_jwt_secret", {
         expiresIn: "1h",
       });
       res.status(200).json({
