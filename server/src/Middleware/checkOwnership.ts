@@ -32,17 +32,17 @@ export function checkOwnership(db: Database) {
       }
 
       if (
-        userFromTokenId?.getName() !== "admin" &&
+        userFromTokenId?.getRole() !== "ADMIN" &&
         userFromParamsId?.getName() !== userFromTokenId?.getName()
       ) {
         res.status(403).json({ message: "Forbidden: You can only edit your own data" });
         return;
       }
-
-      next();
     } catch {
       res.status(401).json({ message: "Invalid token" });
       return;
     }
+
+    next();
   };
 }
