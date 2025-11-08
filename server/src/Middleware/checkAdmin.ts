@@ -31,15 +31,15 @@ export function checkAdmin(db: Database) {
       }
 
       // Check if user is admin
-      if (user.getName() !== "admin") {
+      if (user.getRole() !== "ADMIN") {
         res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
         return;
       }
-
-      next();
     } catch {
       res.status(401).json({ success: false, message: "Invalid token" });
       return;
     }
+
+    next();
   };
 }
